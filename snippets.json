@@ -1,0 +1,87 @@
+{
+	"Print to console": {
+		"prefix": "log",
+		"body": [
+			"console.log('$1');",
+			"$2"
+		],
+		"description": "Log output to console"
+	},
+	"vquery": {
+		"scope": "javascript",
+		"prefix": "vquery",
+		"body": ["var bo${1:},", "\tbc${1:},", "\tbIs${1:}Record;","\tbo = TheApplication().GetBusObject(\"${2:}\");","\tbc = bo${1:}.GetBusComp(\"${2:}\");","\tbc${1:}.ActivateField(\"\");","\tbc${1:}.SetViewMode(AllView);","\tbc${1:}.ClearToQuery();","\tbc${1:}.SetSearchSpec(\"\", \"\");","\tbc${1:}.ExecuteQuery(ForwardOnly);","\tbIs${1:}Record = bc${1:}.FirstRecord();","\twhile (bIs${1:}Record){","\t\tbIs${1:}Record = bc${1:}.NextRecord();", "\t}","\tbc${1:} = null;","\tbo${1:} = null;"]
+	},
+
+	"query": {
+		"scope": "javascript",
+		"prefix": "query",
+		"body": ["\tbo${1:} = TheApplication().GetBusObject(\"${2:}\");","\tbc${1:} = bo${1:}.GetBusComp(\"${2:}\");","\tbc${1:}.ActivateField(\"\");","\tbc${1:}.SetViewMode(AllView);","\tbc${1:}.ClearToQuery();","\tbc${1:}.SetSearchSpec(\"\", \"\");","\tbc${1:}.ExecuteQuery(ForwardOnly);","\tbIs${1:}Record = bc${1:}.FirstRecord();","\twhile (bIs${1:}Record){","\t\tbIs${1:}Record = bc${1:}.NextRecord();", "\t}"]
+	},
+
+	"varq": {
+		"scope": "javascript",
+		"prefix": "varq",
+		"body": ["var bo${1:},", "\tbc${1:},", "\tbIs${1:}Record;"]
+	},
+
+	"varnull": {
+		"scope": "javascript",
+		"prefix": "varnull",
+		"body": ["\tbc${1:} = null;","\tbo${1:} = null;"]
+	},
+	
+	"method": {
+		"scope": "javascript",
+		"prefix": "method",
+		"body": ["function ${1:}(){", "\tvar sLogCategory,","\t\tsLogSource,","\t\tbo${2:},", "\t\tbc${2:},", "\t\tbIs${2:}Record;","\ttry{","\t\tTheApplication().LOGDebug(sLogCategory, sLogSource, \"${1:} start\");","\t\tbo${2:} = TheApplication().GetBusObject(\"${3:}\");","\t\tbc${2:} = bo${2:}.GetBusComp(\"${3:}\");","\t\tbc${2:}.ActivateField(\"\");","\t\tbc${2:}.SetViewMode(AllView);","\t\tbc${2:}.ClearToQuery();","\t\tbc${2:}.SetSearchSpec(\"\", \"\");","\t\tbc${2:}.ExecuteQuery(ForwardOnly);","\t\tbIs${2:}Record = bc${2:}.FirstRecord();","\t\twhile (bIs${2:}Record){","\t\t\tbIs${2:}Record = bc${2:}.NextRecord();", "\t\t}","\t\tTheApplication().LOGDebug(sLogCategory, sLogSource, \"${1:} end\");","\t} catch(e){","\t\tTheApplication().LOGError(sLogCategory, sLogSource, \"${1:} failed\", e);","\t} finally {","\t\tbc${2:} = null;","\t\tbo${2:} = null;","\t}","}"]
+	},
+
+	"logd": {
+		"scope": "javascript",
+		"prefix": "logd",
+		"body": ["TheApplication().LOGDebug(sLogCategory, sLogSource, ${1:}, ${2:});"]
+	},
+
+	"actf": {
+		"scope": "javascript",
+		"prefix": ".actf",
+		"body": [".ActivateField(\"${1:}\");"]
+	},
+
+	"getf": {
+		"scope": "javascript",
+		"prefix": ".getf",
+		"body": [".GetFieldValue(\"${1:}\");"]
+	},
+
+	"setf": {
+		"scope": "javascript",
+		"prefix": ".setf",
+		"body": [".SetFieldValue(\"${1:}\", \"${2:}\");"]
+	},
+
+	"newp":	{
+		"scope": "javascript",
+		"prefix": "newp",
+		"body": ["TheApplication().NewPropertySet();"]
+	},
+
+	"getp": {
+		"scope": "javascript",
+		"prefix": ".getp",
+		"body": [".GetProperty(\"${1:}\");"]
+	},
+
+	"setp": {
+		"scope": "javascript",
+		"prefix": ".setp",
+		"body": [".SetProperty(\"${1:}\", \"${2:}\");"]
+	},
+
+	"wf": {
+		"scope": "javascript",
+		"prefix": "wf",
+		"body": ["var bsWFPM,", "\tpsInput,", "\tpsOutput;", "bsWFPM = TheApplication().GetService(\"Workflow Process Manager\");", "psInput = TheApplication().NewPropertySet();", "psOutput = TheApplication().NewPropertySet();", "psInput.SetProperty(\"ProcessName\", \"${1:}\");", "bsWFPM.InvokeMethod(\"RunProcess\", psInput, psOutput);", "bsWFPM = null;"]
+	}	
+}
