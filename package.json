@@ -11,7 +11,8 @@
 		"Snippets"
 	],
 	"activationEvents": [
-		"onCommand:siebelscripteditor.helloWorld"
+		"onCommand:siebelscripteditor.helloWorld",
+		"onCommand:siebelscripteditor.openFile"
 	],
 	"main": "./extension.js",
 	"contributes": {
@@ -19,6 +20,10 @@
 			{
 				"command": "siebelscripteditor.helloWorld",
 				"title": "Hello World"
+			},
+			{
+				"command": "siebelscripteditor.openFile",
+				"title": "Open File"
 			}
 		],
 		"snippets": [
