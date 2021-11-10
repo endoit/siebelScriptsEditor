@@ -20,7 +20,7 @@ async function writeFiles(sData, wsName, bsName, fileName) {
       const filePath = vscode.Uri.file(wsPath + '/' + wsName + '/' + bsName + '/' + fileName + '.js');
       const wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(filePath, { overwrite: true, ignoreIfExists: false });
-      var x = await vscode.workspace.applyEdit(wsEdit);
+      await vscode.workspace.applyEdit(wsEdit);
 
       const writeData = Buffer.from(sData, 'utf8');
       vscode.workspace.fs.writeFile(filePath, writeData);
