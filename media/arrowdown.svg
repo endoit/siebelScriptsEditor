@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns:svg="http://www.w3.org/2000/svg" xmlns="http://www.w3.org/2000/svg"
+     version="1.0" width="500px" height="500px" viewBox="-505, -505 ,1010, 1010" >
+  <path style="stroke:none; fill:#000000;" d="M -400,-500 
+      L 400,-500 A 100,100 0 0 1 500,-400 L  500,400  A 100,100 0 0 1  400,500
+      L -400,500 A 100,100 0 0 1 -500,400 L -500,-400 A 100,100 0 0 1 -400,-500 z" /> <!-- rounded rect -->
+  <polygon  style="stroke:none; fill:#FFFFFF;" points="75,-350 75,100 
+       325,-150 325,25 0,350 -325,25 -325,-150 -75,100 -75,-350 " /> <!-- arrow down -->
+</svg>

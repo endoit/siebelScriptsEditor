@@ -13,6 +13,8 @@
 	"activationEvents": [
 		"onCommand:siebelscripteditor.helloWorld",
 		"onCommand:siebelscripteditor.openFile",
+		"onCommand:siebelscripteditor.pullScript",
+		"onCommand:siebelscripteditor.pushScript",
 		"onView:wsrepo"
 	],
 	"main": "./extension.js",
@@ -22,7 +24,7 @@
 				{
 				  "id": "siebelScriptEditor",
 				  "title": "Siebel Script Editor",
-				  "icon": "src/icon.svg"
+				  "icon": "./media/icon.svg"
 				}
 			  ]
 		},
@@ -37,8 +39,16 @@
 				"name": "Business Services"
 			  },
 			  {
-				"id": "businessServiceServerScripts",
-				"name": "Business Service Server Scripts"
+				"id": "businessComponents",
+				"name": "Business Components"
+			  },
+			  {
+				"id": "applets",
+				"name": "Applets"
+			  },
+			  {
+				"id": "applications",
+				"name": "Applications"
 			  }
 			]
 		  },
@@ -50,8 +60,36 @@
 			{
 				"command": "siebelscripteditor.openFile",
 				"title": "Open File"
+			},
+			{
+				"command": "siebelscripteditor.pullScript",
+				"title": "Get script from Siebel database",
+				"icon": {
+					"light": "./media/arrowdown.svg",
+					"dark": "./media/arrowdown.svg"
+				}
+			},
+			{
+				"command": "siebelscripteditor.pushScript",
+				"title": "Push script to Siebel database",
+				"icon": {
+					"light": "./media/arrowup.svg",
+					"dark": "./media/arrowup.svg"
+				}
 			}
 		],
+		"menus": {
+			"editor/title": [
+				{
+				"command": "siebelscripteditor.pullScript",
+				"group": "navigation"
+				},
+				{
+				"command": "siebelscripteditor.pushScript",
+				"group": "navigation"
+				}
+			]
+		},
 		"snippets": [
 			{
 				"language": "javascript",

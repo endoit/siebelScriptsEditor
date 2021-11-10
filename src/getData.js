@@ -13,12 +13,12 @@ const getWSandRepoData = async () => {
 
 exports.getWSandRepoData = getWSandRepoData;
 
-const getBusinessServices = async (wsid, repoid) => {
+const getSiebelData = async (wsid, repoid, type) => {
     const bsobj = {};
-    const queryStringBS = `SELECT * FROM SIEBEL.S_SERVICE WHERE CREATED < SYSDATE AND WS_ID='${wsid}' AND REPOSITORY_ID='${repoid}'`;
+    const queryStringBS = `SELECT * FROM SIEBEL.${type} WHERE CREATED < SYSDATE AND WS_ID='${wsid}' AND REPOSITORY_ID='${repoid}'`;
     const bsdata = await DBQuery.dbQuery(queryStringBS);
     bsdata && bsdata.rows.forEach((row) => {bsobj[row.NAME] = row.ROW_ID })
     return bsobj;
 };
 
-exports.getBusinessServices = getBusinessServices;
+exports.getSiebelData = getSiebelData;
