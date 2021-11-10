@@ -1,10 +1,5 @@
 const oracledb = require('oracledb');
-<<<<<<< Updated upstream:dbQuery.js
-const config = require('./config.js');
-//console.log(config.DBConnection);
-=======
 const config = require ('../config.js');
->>>>>>> Stashed changes:src/dbQuery.js
 
 oracledb.outFormat = oracledb.OBJECT;
 oracledb.fetchAsString = [ oracledb.CLOB ];
@@ -34,16 +29,8 @@ async function dbQuery(query) {
     if (result) {
       return result;
     } else {
-<<<<<<< Updated upstream:dbQuery.js
       console.log("The query returned without result set");
       return [];
-=======
-      console.log('-------------------------')
-      console.log(result)
-      return result;
-      // send all Template
-      //return res.send(result.rows)
->>>>>>> Stashed changes:src/dbQuery.js
     }
   }
 }

@@ -1,5 +1,5 @@
 const vscode = require('vscode');
-const config = require('./config.js');
+const config = require('../config.js');
 
 async function writeFiles(sData, wsName, bsName, fileName) {
   try {

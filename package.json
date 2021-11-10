@@ -12,11 +12,8 @@
 	],
 	"activationEvents": [
 		"onCommand:siebelscripteditor.helloWorld",
-<<<<<<< Updated upstream
-		"onCommand:siebelscripteditor.openFile"
-=======
+		"onCommand:siebelscripteditor.openFile",
 		"onView:wsrepo"
->>>>>>> Stashed changes
 	],
 	"main": "./extension.js",
 	"contributes": {
