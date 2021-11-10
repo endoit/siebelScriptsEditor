@@ -12,13 +12,42 @@
 	],
 	"activationEvents": [
 		"onCommand:siebelscripteditor.helloWorld",
+<<<<<<< Updated upstream
 		"onCommand:siebelscripteditor.openFile"
+=======
+		"onView:wsrepo"
+>>>>>>> Stashed changes
 	],
 	"main": "./extension.js",
 	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+				  "id": "siebelScriptEditor",
+				  "title": "Siebel Script Editor",
+				  "icon": "src/icon.svg"
+				}
+			  ]
+		},
+		"views": {
+			"siebelScriptEditor": [
+			{	"type": "webview",
+				"id": "wsrepo",
+				"name": "Workspace and repository version"
+			  },
+			  {
+				"id": "businessServices",
+				"name": "Business Services"
+			  },
+			  {
+				"id": "businessServiceServerScripts",
+				"name": "Business Service Server Scripts"
+			  }
+			]
+		  },
 		"commands": [
 			{
-				"command": "siebelscripteditor.helloWorld",
+				"command": "siebelScripteditor.helloWorld",
 				"title": "Hello World"
 			},
 			{

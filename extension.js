@@ -1,16 +1,20 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 const vscode = require('vscode');
+<<<<<<< Updated upstream
 const DBQuery = require('./dbQuery.js');
 const filesRW = require('./filesRW.js');
 const config = require('./config.js');
-
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
+=======
+const DBQuery = require ('./src/dbQuery.js');
+const getData = require('./src/getData.js');
+const TreeData = require('./src/TreeData.js');
+const getWSRepo = require('./src/getWSRepo.js');
+const config = require ('./config.js');
+>>>>>>> Stashed changes
 
 /**
  * @param {vscode.ExtensionContext} context
  */
+<<<<<<< Updated upstream
 function activate(context) {
 	// Use the console to output diagnostic information (console.log) and errors (console.error)
 	// This line of code will only be executed once when your extension is activated
@@ -58,6 +62,45 @@ function activate(context) {
 function deactivate() {
 	vscode.window.showInformationMessage('Accidently deactivated plugin :)');
 }
+=======
+async function activate(context) {
+	let wsrepo = await getData.getWSandRepoData();
+	let workspaces = Object.keys(wsrepo.ws).map((item) => `<option value="${item}">`).join('');
+	let repositories = Object.keys(wsrepo.repo).map((item) => `<option value="${item}">`).join('');
+	let busServObj = {};
+	const selected = {ws: "", repo: "", bs: ""};
+	let disposable = vscode.commands.registerCommand('siebelScripteditor.helloWorld', async () => {
+		const query = "SELECT * FROM SIEBEL.S_SERVICE WHERE CREATED < SYSDATE";
+		DBQuery.dbQuery(query);
+		vscode.window.showInformationMessage('Hello VSCODE from siebelScriptEditor!');
+	});
+	context.subscriptions.push(disposable);
+
+	const HTMLPage = getWSRepo.HTMLPage(workspaces, repositories);
+
+	const provider = { 
+        resolveWebviewView: (thisWebview) => {
+            thisWebview.webview.options = {enableScripts: true};
+			thisWebview.webview.onDidReceiveMessage(async (message) => {
+				selected.ws = wsrepo.ws[message.ws];
+				selected.repo = wsrepo.repo[message.repo];
+				vscode.window.showInformationMessage(`Selected Workspace: ${message.ws} Id: ${wsrepo.ws[message.ws]} and Repository: ${message.repo} Id: ${wsrepo.repo[message.repo]}`);
+				busServObj = await getData.getBusinessServices(wsrepo.ws[message.ws], wsrepo.repo[message.repo]);
+				const treeView = vscode.window.createTreeView('businessServices', {
+					treeDataProvider: new TreeData.TreeDataProvider(busServObj)
+				  });
+				  treeView.onDidChangeSelection((e) => {selected.bs = busServObj[e.selection[0].label]});
+				}, undefined, context.subscriptions);
+				
+            thisWebview.webview.html = HTMLPage;
+        }
+    };
+	let webv = vscode.window.registerWebviewViewProvider('wsrepo', provider);
+	context.subscriptions.push(webv);
+}
+
+function deactivate() {}
+>>>>>>> Stashed changes
 
 module.exports = {
 	activate,
