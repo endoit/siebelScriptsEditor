@@ -7,7 +7,7 @@ const TreeData = require('./src/TreeData.js');
 const getHTML = require('./src/getHTML.js');
 
 async function activate(context) {
-	const selected = {db: Object.keys(config.DBConnection)[0], ws: "", repo: "", bs: "", bc: "", applet: "", application: ""};
+	const selected = {db: Object.keys(config.DBConnection)[0], ws: "", repo: "", bs: {id: "", name: "", childId: ""}, bc: {id: "", name: "", childId: ""}, applet: {id: "",  name: "", childId: ""}, application: {id: "",  name: "", childId: ""}};
 	const dbRepoWS = {db: "", repo: "", ws: ""}
 	dbRepoWS.db = config.DBConnection;
 	dbRepoWS.repo = await getData.getRepoData(selected.db);	
@@ -82,56 +82,91 @@ async function activate(context) {
 						selected.repo = dbRepoWS.repo[message.repo];
 						selected.ws = dbRepoWS.ws[message.ws];
 						vscode.window.showInformationMessage(`Selected repository: ${message.ws}`);
-						busServObj = await getData.getSiebelData(selected.ws, selected.repo, "S_SERVICE", selected.db);
-						console.log(selected)
+						busServObj = await getData.getSiebelData(selected.ws, selected.repo, "service", selected.db);
 						const treeDataBS = new TreeData.TreeDataProvider(busServObj);
 						const treeViewBS = vscode.window.createTreeView('businessServices', {
 							treeDataProvider: treeDataBS
 						});
 						treeViewBS.onDidChangeSelection(async (e) => {
-							selected.bs = busServObj[e.selection[0].label].id;
+							if ("scripts" in e.selection[0] === false){
+								selected.bs.childId = busServObj[selected.bs.name].scripts[e.selection[0].label].id;
+								answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} business service method from the Siebel database?`, ...["Yes", "No"]);
+								if (answer === "Yes"){}
+								return;
+							}
+							selected.bs.id = busServObj[e.selection[0].label].id;
+							selected.bs.name = e.selection[0].label;
 							answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} business service from the Siebel database?`, ...["Yes", "No"]);
 							if (answer === "Yes"){
 								busServObj[e.selection[0].label].onDisk = true;
+								busServObj[e.selection[0].label].scripts = await getData.getServerScripts(selected.ws, selected.repo, selected.bs.id, "service", selected.db);
+								console.log(busServObj[e.selection[0].label])
 								treeDataBS.refresh(busServObj);
 							}
 						});
-						busCompObj = await getData.getSiebelData(selected.ws, selected.repo, "S_BUSCOMP", selected.db);
+						busCompObj = await getData.getSiebelData(selected.ws, selected.repo, "buscomp", selected.db);
 						const treeDataBC = new TreeData.TreeDataProvider(busCompObj);
 						const treeViewBC = vscode.window.createTreeView('businessComponents', {
 							treeDataProvider: treeDataBC
 						});
 						treeViewBC.onDidChangeSelection(async (e) => {
-							selected.bc = busCompObj[e.selection[0].label].id;
+							if ("scripts" in e.selection[0] === false){
+								selected.bc.childId = busCompObj[selected.bc.name].scripts[e.selection[0].label].id;
+								answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} business component method from the Siebel database?`, ...["Yes", "No"]);
+								if (answer === "Yes"){}
+								return;
+							}
+							selected.bc.id = busCompObj[e.selection[0].label].id;
+							selected.bc.name = e.selection[0].label;
 							answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} business component from the Siebel database?`, ...["Yes", "No"]);
 							if (answer === "Yes"){
 								busCompObj[e.selection[0].label].onDisk = true;
+								busCompObj[e.selection[0].label].scripts = await getData.getServerScripts(selected.ws, selected.repo, selected.bc.id, "buscomp", selected.db);
+								console.log(busCompObj[e.selection[0].label])
 								treeDataBC.refresh(busCompObj);
 							}
 						});
-						appletObj = await getData.getSiebelData(selected.ws, selected.repo, "S_APPLET", selected.db);
+						appletObj = await getData.getSiebelData(selected.ws, selected.repo, "applet", selected.db);
 						const treeDataApplet = new TreeData.TreeDataProvider(appletObj);
 						const treeViewApplet = vscode.window.createTreeView('applets', {
 							treeDataProvider: treeDataApplet
 						});
 						treeViewApplet.onDidChangeSelection(async (e) => {
-							selected.applet = appletObj[e.selection[0].label].id;
+							if ("scripts" in e.selection[0] === false){
+								selected.applet.childId = appletObj[selected.applet.name].scripts[e.selection[0].label].id;
+								answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} applet method from the Siebel database?`, ...["Yes", "No"]);	
+								if (answer === "Yes"){}
+								return;
+							}
+							selected.applet.id = appletObj[e.selection[0].label].id;
+							selected.applet.name = e.selection[0].label;
 							answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} from the Siebel database?`, ...["Yes", "No"]);
 							if (answer === "Yes"){
 								appletObj[e.selection[0].label].onDisk = true;
+								appletObj[e.selection[0].label].scripts = await getData.getServerScripts(selected.ws, selected.repo, selected.applet.id, "applet", selected.db);
+								console.log(appletObj[e.selection[0].label])
 								treeDataApplet.refresh(appletObj);
 							}
 						});
-						applicationObj = await getData.getSiebelData(selected.ws, selected.repo, "S_APPLICATION", selected.db);
+						applicationObj = await getData.getSiebelData(selected.ws, selected.repo, "application", selected.db);
 						const treeDataApplication = new TreeData.TreeDataProvider(applicationObj);
 						const treeViewApplication = vscode.window.createTreeView('applications', {
 							treeDataProvider: treeDataApplication
 						});
 						treeViewApplication.onDidChangeSelection(async (e) => {
-							selected.application = applicationObj[e.selection[0].label].id;
+							if ("scripts" in e.selection[0] === false){
+								selected.application.childId = busServObj[selected.application.name].scripts[e.selection[0].label].id;
+								answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} application method from the Siebel database?`, ...["Yes", "No"]);
+								if (answer === "Yes"){}
+								return;
+							}
+							selected.application.id = applicationObj[e.selection[0].label].id;
+							selected.application.name = e.selection[0].label;
 							answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} application from the Siebel database?`, ...["Yes", "No"]);
 							if (answer === "Yes"){
 								applicationObj[e.selection[0].label].onDisk = true;
+								applicationObj[e.selection[0].label].scripts = await getData.getServerScripts(selected.ws, selected.repo, selected.application.id, "applet", selected.db);
+								console.log(applicationObj[e.selection[0].label])
 								treeDataApplication.refresh(applicationObj);
 							}
 						});
