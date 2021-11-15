@@ -192,55 +192,6 @@ async function activate(context) {
     };
 	let selectBox = vscode.window.registerWebviewViewProvider('wsrepo', provider);
 	context.subscriptions.push(selectBox);
-
-=======
-
-	const HTMLPage = getWSRepo.HTMLPage(workspaces, repositories);
-
-	const provider = {
-		resolveWebviewView: (thisWebview) => {
-			thisWebview.webview.options = { enableScripts: true };
-			thisWebview.webview.onDidReceiveMessage(async (message) => {
-				selected.ws = wsrepo.ws[message.ws];
-				selected.repo = wsrepo.repo[message.repo];
-				busServObj = await getData.getSiebelData(wsrepo.ws[message.ws], wsrepo.repo[message.repo], "S_SERVICE");
-				const treeViewBS = vscode.window.createTreeView('businessServices', {
-					treeDataProvider: new TreeData.TreeDataProvider(busServObj)
-				});
-				treeViewBS.onDidChangeSelection((e) => {
-					selected.bs = busServObj[e.selection[0].label];
-					vscode.window.showInformationMessage(`Selected Workspace: ${message.ws} Id: ${wsrepo.ws[message.ws]} and Repository: ${message.repo} Id: ${wsrepo.repo[message.repo]} Business Service Name: ${e.selection[0].label} Id: ${selected.bs}`);
-				});
-				busCompObj = await getData.getSiebelData(wsrepo.ws[message.ws], wsrepo.repo[message.repo], "S_BUSCOMP");
-				const treeViewBC = vscode.window.createTreeView('businessComponents', {
-					treeDataProvider: new TreeData.TreeDataProvider(busCompObj)
-				});
-				treeViewBC.onDidChangeSelection((e) => {
-					selected.bc = busCompObj[e.selection[0].label];
-					vscode.window.showInformationMessage(`Selected Workspace: ${message.ws} Id: ${wsrepo.ws[message.ws]} and Repository: ${message.repo} Id: ${wsrepo.repo[message.repo]} Business Component Name: ${e.selection[0].label} Id: ${selected.bc}`);
-				});
-				appletObj = await getData.getSiebelData(wsrepo.ws[message.ws], wsrepo.repo[message.repo], "S_APPLET");
-				const treeViewApplet = vscode.window.createTreeView('applets', {
-					treeDataProvider: new TreeData.TreeDataProvider(appletObj)
-				});
-				treeViewApplet.onDidChangeSelection((e) => {
-					selected.applet = appletObj[e.selection[0].label];
-					vscode.window.showInformationMessage(`Selected Workspace: ${message.ws} Id: ${wsrepo.ws[message.ws]} and Repository: ${message.repo} Id: ${wsrepo.repo[message.repo]} Applet Name: ${e.selection[0].label} Id: ${selected.applet}`);
-				});
-				applicationObj = await getData.getSiebelData(wsrepo.ws[message.ws], wsrepo.repo[message.repo], "S_APPLICATION");
-				const treeViewApplication = vscode.window.createTreeView('applications', {
-					treeDataProvider: new TreeData.TreeDataProvider(applicationObj)
-				});
-				treeViewApplication.onDidChangeSelection((e) => {
-					selected.application = applicationObj[e.selection[0].label];
-					vscode.window.showInformationMessage(`Selected Workspace: ${message.ws} Id: ${wsrepo.ws[message.ws]} and Repository: ${message.repo} Id: ${wsrepo.repo[message.repo]} Applet Name: ${e.selection[0].label} Id: ${selected.application}`);
-				});
-			}, undefined, context.subscriptions);
-			thisWebview.webview.html = HTMLPage;
-		}
-	};
-	let webv = vscode.window.registerWebviewViewProvider('wsrepo', provider);
-	context.subscriptions.push(webv);
 }
 
 function deactivate() {
