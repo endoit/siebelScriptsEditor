@@ -10,21 +10,26 @@ const HTMLPage = (dbwsrepo, db, rp, ws) => {
 					.container {
 							display: flex;
 							flex-direction: column;
-							align-items: center;
+							align-items: left;
 					}
 					.divitem {
 							margin: 0.2em;
 					}
-					#ws, #repo, #db {
+					#ws, #repo, #db, #datepick {
 							border-radius: 0.4em;
 							text-align: center;
 							background-color: rgba(83, 89, 93, 0.5);
 							color: rgb(204, 204, 204);
 							border: 0;
 							padding: 0.2em;
-							width: 10.5em;
+							width: 10em;
 					}
-					.opt {
+					#datepick {
+						width: 9em;
+						font-family: inherit;
+						text-align: right;
+				}
+					.opt, #scr {
 							background: rgba(83, 89, 93, 1);
 							color: rgb(204, 204, 204);
 					}
@@ -64,6 +69,14 @@ const HTMLPage = (dbwsrepo, db, rp, ws) => {
 								${wss}
 						</select>
 					</div>
+					<div class="divitem">
+					<label for="cb">HAS SCRIPTS:</label>
+						<input type="checkbox" id="scr" checked>
+					</div>
+					<div class="divitem">
+						<label for="datepick">NEWER THAN:</label>
+						<input type="date" id="datepick">
+					</div>
 					<Button class="button" onclick="selectWS()">Get Siebel Data</Button>    
 				</div>
 				<script>
@@ -76,11 +89,13 @@ const HTMLPage = (dbwsrepo, db, rp, ws) => {
 							let repo = document.getElementById("repo").value;
 							vscode.postMessage({command: "selectRepo", repo});
 					}
-					const selectWS= () => {
+					const selectWS = () => {
 							let ws = document.getElementById("ws").value;
 							let repo = document.getElementById("repo").value;
-							vscode.postMessage({command: "selectWS", repo, ws});
-					}	
+							let scr = document.getElementById("scr").checked;
+							let date = document.getElementById("datepick").value;
+							vscode.postMessage({command: "selectWS", repo, ws, scr, date});
+					}
 				</script>
 			</body>
 		</html>`;
