@@ -52,7 +52,7 @@ async function activate(context) {
 		if (answer === "Yes"){
 			console.log("Yes");
 			let currentlyOpenTabfilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
-			//vscode.window.showInformationMessage(currentlyOpenTabfilePath);
+			vscode.window.showInformationMessage(currentlyOpenTabfilePath);
 			//console.log(vscode.workspace.workspaceFolders)
 		}
 	}

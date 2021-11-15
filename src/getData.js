@@ -59,7 +59,7 @@ const getServerScripts = async (params, type) => {
     const queryStringSC = `SELECT ROW_ID, NAME, SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE CREATED < SYSDATE AND WS_ID=:ws AND REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
     const bindedValues = {ws: params.ws, repo: params.repo, parentid: params[tablesAndIdColumns[type].abbr].id};
     const scdata = await DBQuery.dbQuery(queryStringSC, params.db, bindedValues);
-    scdata && scdata.rows.forEach((row) => {if (row.NAME !== "(declarations)"){scriptobj[row.NAME] = {id: row.ROW_ID, script: row.SCRIPT, onDisk: true}}});
+    scdata && scdata.rows.forEach((row) => {scriptobj[row.NAME] = {id: row.ROW_ID, script: row.SCRIPT, onDisk: true}});
     return scriptobj
 }
 
