@@ -82,19 +82,19 @@ const HTMLPage = (dbwsrepo, db, rp, ws) => {
 				<script>
 					const vscode = acquireVsCodeApi();
 					const selectDB = () => {
-							let db = document.getElementById("db").value;
-							vscode.postMessage({command: "selectDB", db});
+						let db = document.getElementById("db").value;
+						vscode.postMessage({command: "selectDB", db});
 					}
 					const selectRepo = () => {
-							let repo = document.getElementById("repo").value;
-							vscode.postMessage({command: "selectRepo", repo});
+						let repo = document.getElementById("repo").value;
+						vscode.postMessage({command: "selectRepo", repo});
 					}
 					const selectWS = () => {
-							let ws = document.getElementById("ws").value;
-							let repo = document.getElementById("repo").value;
-							let scr = document.getElementById("scr").checked;
-							let date = document.getElementById("datepick").value;
-							vscode.postMessage({command: "selectWS", repo, ws, scr, date});
+						let repo = document.getElementById("repo").value;
+						let ws = document.getElementById("ws").value;
+						let scr = document.getElementById("scr").checked;
+						let date = document.getElementById("datepick").value;
+						vscode.postMessage({command: "selectWS", repo, ws, scr, date});
 					}
 				</script>
 			</body>
