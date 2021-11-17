@@ -2,7 +2,7 @@ const HTMLPage = (dbwsrepo, db, rp, ws) => {
 	let dbs = Object.keys(dbwsrepo.db).map((item) => `<option class="opt" value="${item}" ${item === db ? "selected" : ""}>${item}</option>`).join('');
 	let repos = Object.keys(dbwsrepo.repo).map((item) => `<option class="opt" value="${item}" ${item === rp ? "selected" : ""}>${item}</option>`).join('');
 	let wss = Object.keys(dbwsrepo.ws).map((item) => `<option class="opt" value="${item}" ${item === ws ? "selected" : ""}>${item}</option>`).join('');
-
+	 
 	return `
 		<!doctype><html>
 			<head>
@@ -77,7 +77,8 @@ const HTMLPage = (dbwsrepo, db, rp, ws) => {
 						<label for="datepick">NEWER THAN:</label>
 						<input type="date" id="datepick">
 					</div>
-					<Button class="button" onclick="selectWS()">Get Siebel Data</Button>    
+					<Button class="button" onclick="selectWS()">Get Siebel Data</Button>
+					<Button class="button" id="backup" onclick="createBackup()">Create Backup</Button>  
 				</div>
 				<script>
 					const vscode = acquireVsCodeApi();
@@ -94,8 +95,15 @@ const HTMLPage = (dbwsrepo, db, rp, ws) => {
 						let ws = document.getElementById("ws").value;
 						let scr = document.getElementById("scr").checked;
 						let date = document.getElementById("datepick").value;
-						vscode.postMessage({command: "selectWS", repo, ws, scr, date});
+						vscode.postMessage({command: "backup", repo, ws, scr, date});
 					}
+					const createBackup = () => {
+						let repo = document.getElementById("repo").value;
+						let ws = document.getElementById("ws").value;
+						let scr = document.getElementById("scr").checked;
+						let date = document.getElementById("datepick").value;
+						vscode.postMessage({command: "backup", repo, ws, scr, date});
+					} 
 				</script>
 			</body>
 		</html>`;

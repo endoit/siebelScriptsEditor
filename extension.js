@@ -125,9 +125,35 @@ async function activate(context) {
 						treeViewApplication.onDidChangeSelection(async (e) => TreeData.selectionChange(e, "application", selected, applicationObj, treeDataApplication, folders));
 						break;
 					}
+					case "backup": {
+						folders.repo = message.repo
+						folders.ws = `${message.ws}_backup`;
+						selected.date = message.date
+						selected.scr = message.scr;
+						selected.repo = dbRepoWS.repo[message.repo];
+						selected.ws = dbRepoWS.ws[message.ws];
+						answer = await vscode.window.showInformationMessage(`Do you want to backup the ${message.ws} workspace from the ${message.repo},  ${selected.db} database?`, ...["Yes", "No"]);
+						if (answer === "Yes"){
+							/*let typeArr = ["service", "buscomp", "applet", "application"];
+							let backupFolder = `${folderPath()}_backup`
+							let obj, val, key, value;
+							busServObj = await getData.getSiebelData(selected, "service", folderPath());
+							for ([obj, val] of Object.entires(busServObj)){
+								selected.service.id = val.id;
+								busServObj[obj].scripts = await getData.getServerScripts(selected, "service");
+								for ([key, value] of Object.entries(busServObj[obj].scripts)){
+									filesRW.writeFiles(value.script, backupFolder, obj, key);
+								}
+							}
+							busCompObj = await getData.getSiebelData(selected, "buscomp", folderPath());
+							appletObj = await getData.getSiebelData(selected, "applet", folderPath());
+							applicationObj = await getData.getSiebelData(selected, "application", folderPath());*/
+						}
+						break;
+					}
 				}	
 			}, undefined, context.subscriptions);
-			thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, "DEVDB", "Siebel Repository", "MAIN");
+			thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, "DEVDB", "Siebel Repository", "MAIN", true);
 		}
 	};
 	let selectBox = vscode.window.registerWebviewViewProvider('wsrepo', provider);

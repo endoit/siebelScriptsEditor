@@ -1,6 +1,7 @@
 const DBQuery = require ('./dbQuery.js');
 const fs = require('fs');
 const vscode = require('vscode');
+const path = require('path');
 
 const tablesAndIdColumns = {
     service: {
@@ -42,17 +43,26 @@ const getWSData = async (repoid, database) => {
 };
 
 const getSiebelData = async (params, type, folder) => {
-    let wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+    const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
     const siebobj = {};
+    let exists;
+    let fileNames;
     let queryStringSB = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].table} WHERE CREATED > TO_DATE(:datestr, 'yyyy-mm-dd') AND WS_ID=:ws AND REPOSITORY_ID=:repo`;
     if (params.scr === true){
         queryStringSB += ` AND ROW_ID IN (SELECT ${tablesAndIdColumns[type].idColumn} FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE SCRIPT IS NOT NULL)`
     }
     const bindedValues = {ws: params.ws, repo: params.repo, datestr: params.date || "1800-01-01"};
     const bsdata = await DBQuery.dbQuery(queryStringSB, params.db, bindedValues);
-    bsdata && bsdata.rows.forEach((row) => {siebobj[row.NAME] = {id: row.ROW_ID, scripts: {}, 
-        onDisk: fs.existsSync(`${wsPath}/${folder}/${type}/${row.NAME}`)
-    }});
+    bsdata && bsdata.rows.forEach((row) => {
+        exists = fs.existsSync(`${wsPath}/${folder}/${type}/${row.NAME}`);
+        siebobj[row.NAME] = {id: row.ROW_ID, scripts: {}, 
+            onDisk: exists
+        }
+        if (exists){
+            fileNames = fs.readdirSync(`${wsPath}/${folder}/${type}/${row.NAME}`);
+            fileNames.forEach((file) => {if (path.extname(file) === ".js"){siebobj[row.NAME].scripts[path.basename(file, ".js")] = {onDisk: true}}})
+        }
+    });
     return siebobj;
 };
 
@@ -62,25 +72,27 @@ const getServerScripts = async (params, type) => {
     const bindedValues = {ws: params.ws, repo: params.repo, parentid: params[type].id};
     const scdata = await DBQuery.dbQuery(queryStringSC, params.db, bindedValues);
     scdata && scdata.rows.forEach((row) => {scriptobj[row.NAME] = {id: row.ROW_ID, script: row.SCRIPT, onDisk: true}});
-    return scriptobj
+    return scriptobj;
 }
 
-const getServerScriptsNames = async (params, type) => {
+const getServerScriptsNames = async (params, type, folderObj) => {
+    const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+    const folderPath = `${folderObj.db}_${folderObj.repo}/${folderObj.ws}/${type}`;
     const scriptobj = {};
     const queryStringSC = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE CREATED < SYSDATE AND WS_ID=:ws AND REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
     const bindedValues = {ws: params.ws, repo: params.repo, parentid: params[type].id};
     const scdata = await DBQuery.dbQuery(queryStringSC, params.db, bindedValues);
-    scdata && scdata.rows.forEach((row) => {scriptobj[row.NAME] = {id: row.ROW_ID, onDisk: false}});
-    return scriptobj
+    scdata && scdata.rows.forEach((row) => {scriptobj[row.NAME] = {id: row.ROW_ID, 
+        onDisk: fs.existsSync(`${wsPath}/${folderPath}/${params[type].name}/${row.NAME}.js`)}});
+    return scriptobj;
 }
 
 const getServerScriptMethod = async (params, type) => {
     const queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE CREATED < SYSDATE AND WS_ID=:ws AND REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid AND ROW_ID=:methodid`;
     const bindedValues = {ws: params.ws, repo: params.repo, parentid: params[type].id, methodid: params[type].childId};
     const scdata = await DBQuery.dbQuery(queryStringSC, params.db, bindedValues);
-    const scriptobj = scdata.rows[0].SCRIPT;
-    console.log(scriptobj)
-    return scriptobj
+    const scriptstr = scdata.rows[0].SCRIPT;
+    return scriptstr;
 }
 
 exports.getWSData = getWSData;

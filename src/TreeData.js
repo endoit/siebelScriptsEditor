@@ -13,17 +13,19 @@ const messageText = {
 const selectionChange = async (e, type, selected, dataObj, treeObj, folderObj) => {
 	const folderPath = `${folderObj.db}_${folderObj.repo}/${folderObj.ws}/${type}`;
     let answer;
-    let item;
+    let scrName;
+    let scrMethod;
+    let scrNamesAndIds;
 
     if (e.selection[0].hasOwnProperty("scripts") === false){
         selected[type].childId = dataObj[e.selection[0].parent].scripts[e.selection[0].label].id;
         answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} ${messageText[type]} method from the Siebel database?`, ...["Yes", "No"]);
         if (answer === "Yes"){
+            dataObj[e.selection[0].parent].onDisk = true;
             dataObj[e.selection[0].parent].scripts[e.selection[0].label].script = await getData.getServerScriptMethod(selected, type);
             dataObj[e.selection[0].parent].scripts[e.selection[0].label].onDisk = true;
             filesRW.writeFiles(dataObj[e.selection[0].parent].scripts[e.selection[0].label].script, folderPath, e.selection[0].parent, e.selection[0].label);
-            //aInfos = [wsName, sWSId, bsName, sBSId, [e.selection[0].label]]
-            //filesRW.writeInfo(aInfos, wsName, bsName);
+            filesRW.writeInfo(selected, folderObj, folderPath, type, {[e.selection[0].label]: selected[type].childId});
             treeObj.refresh(dataObj);
         }
         return;
@@ -32,15 +34,18 @@ const selectionChange = async (e, type, selected, dataObj, treeObj, folderObj) =
     selected[type].name = e.selection[0].label;
     answer = await vscode.window.showInformationMessage(`Do you want to get the ${e.selection[0].label} ${messageText[type]} from the Siebel database?`, ...["Yes", "Only method names"]);
     if (answer === "Yes"){
+        scrNamesAndIds = {};
         dataObj[e.selection[0].label].onDisk = true;
         dataObj[e.selection[0].label].scripts = await getData.getServerScripts(selected, type);
-        for (item in dataObj[e.selection[0].label].scripts){
-            filesRW.writeFiles(dataObj[e.selection[0].label].scripts[item].script, folderPath, e.selection[0].label, item);
+        for ([scrName, scrMethod] of Object.entries(dataObj[e.selection[0].label].scripts)){
+            filesRW.writeFiles(scrMethod.script, folderPath, e.selection[0].label, scrName);
+            scrNamesAndIds[scrName] = scrMethod.id
         }
+        filesRW.writeInfo(selected, folderObj, folderPath, type, scrNamesAndIds);
         treeObj.refresh(dataObj);
     }
     if (answer === "Only method names"){
-        dataObj[e.selection[0].label].scripts = await getData.getServerScriptsNames(selected, type);
+        dataObj[e.selection[0].label].scripts = await getData.getServerScriptsNames(selected, type, folderObj);
         console.log(dataObj[e.selection[0].label])
         treeObj.refresh(dataObj);
     }
