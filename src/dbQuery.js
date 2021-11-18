@@ -5,7 +5,7 @@ oracledb.outFormat = oracledb.OBJECT;
 oracledb.fetchAsString = [ oracledb.CLOB ];
 oracledb.initOracleClient({ configDir: config.DBConnection["DEVDB"].configDir });
 
-async function dbQuery(query, database, bindings) {
+async function dbQuery(query, database, bindings, update) {
   try {
     // Exectue query
     console.log(database);
@@ -13,6 +13,7 @@ async function dbQuery(query, database, bindings) {
     console.log('connected to database');
     //const query = "SELECT * FROM SIEBEL.S_SERVICE WHERE CREATED > SYSDATE-100";
     var result = await connection.execute(query, bindings || {});
+    if (update){connection.commit()};
   } catch (err) {
     // send error message
     console.log(err.message);

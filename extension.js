@@ -18,6 +18,8 @@ async function activate(context) {
 	let busCompObj = {};
 	let appletObj = {};
 	let applicationObj = {};
+	const typeArr = ["service", "buscomp", "applet", "application"];
+	let objType;
 	let answer;
 
 	let disposable = vscode.commands.registerCommand('siebelScripteditor.helloWorld', async () => {
@@ -48,20 +50,19 @@ async function activate(context) {
 	});
 	context.subscriptions.push(disposable2);
 
-	let pullButton = vscode.commands.registerCommand('siebelscripteditor.pullScript', async function () {
+	let pullButton = vscode.commands.registerCommand('siebelscripteditor.pullScript', async () => {
 
 		answer = await vscode.window.showInformationMessage("Do you want to overwrite the current script from the Siebel database?", ...["Yes", "No"]);
 		if (answer === "Yes"){
-			//let currentlyOpenTabfilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
-			/*vscode.window.showInformationMessage(currentlyOpenTabfilePath);
-			//console.log(vscode.Uri.file(asd[0]))*/
+			getData.pushOrPullScript("pull");
 		}
 	}
 	)
 	context.subscriptions.push(pullButton);
-	let pushButton = vscode.commands.registerCommand('siebelscripteditor.pushScript', async function () {
+	let pushButton = vscode.commands.registerCommand('siebelscripteditor.pushScript', async () => {
 		answer = await vscode.window.showInformationMessage("Do you want to overwrite this script in the Siebel database?", ...["Yes", "No"]);
 		if (answer === "Yes"){
+			getData.pushOrPullScript("push");
 		}
 	}
 	)
@@ -95,65 +96,59 @@ async function activate(context) {
 						selected.scr = message.scr;
 						selected.repo = dbRepoWS.repo[message.repo];
 						selected.ws = dbRepoWS.ws[message.ws];
+						thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, selected.db, message.repo, message.ws, true);
 						vscode.window.showInformationMessage(`Selected repository: ${message.ws}`);
+
 						busServObj = await getData.getSiebelData(selected, "service", folderPath());
 						const treeDataBS = new TreeData.TreeDataProvider(busServObj);
-						const treeViewBS = vscode.window.createTreeView('businessServices', {
-							treeDataProvider: treeDataBS
-						});
+						const treeViewBS = vscode.window.createTreeView('businessServices', {treeDataProvider: treeDataBS});
 						treeViewBS.onDidChangeSelection(async (e) => TreeData.selectionChange(e, "service", selected, busServObj, treeDataBS, folders));
 						
 						busCompObj = await getData.getSiebelData(selected, "buscomp", folderPath());
 						const treeDataBC = new TreeData.TreeDataProvider(busCompObj);
-						const treeViewBC = vscode.window.createTreeView('businessComponents', {
-							treeDataProvider: treeDataBC
-						});
+						const treeViewBC = vscode.window.createTreeView('businessComponents', {treeDataProvider: treeDataBC});
 						treeViewBC.onDidChangeSelection(async (e) => TreeData.selectionChange(e, "buscomp", selected, busCompObj, treeDataBC, folders));
 						
 						appletObj = await getData.getSiebelData(selected, "applet", folderPath());
 						const treeDataApplet = new TreeData.TreeDataProvider(appletObj);
-						const treeViewApplet = vscode.window.createTreeView('applets', {
-							treeDataProvider: treeDataApplet
-						});
+						const treeViewApplet = vscode.window.createTreeView('applets', {treeDataProvider: treeDataApplet});
 						treeViewApplet.onDidChangeSelection(async (e) => TreeData.selectionChange(e, "applet", selected, appletObj, treeDataApplet, folders));
 						
 						applicationObj = await getData.getSiebelData(selected, "application", folderPath());
 						const treeDataApplication = new TreeData.TreeDataProvider(applicationObj);
-						const treeViewApplication = vscode.window.createTreeView('applications', {
-							treeDataProvider: treeDataApplication
-						});
+						const treeViewApplication = vscode.window.createTreeView('applications', {treeDataProvider: treeDataApplication});
 						treeViewApplication.onDidChangeSelection(async (e) => TreeData.selectionChange(e, "application", selected, applicationObj, treeDataApplication, folders));
 						break;
 					}
 					case "backup": {
+						let timeStamp = new Date();
+						let timeStampStr = `${timeStamp.getFullYear()}${timeStamp.getMonth() + 1}${timeStamp.getDate()}_${timeStamp.getHours()}h${timeStamp.getMinutes()}m`;
 						folders.repo = message.repo
-						folders.ws = `${message.ws}_backup`;
+						folders.ws = `${message.ws}_backup_${timeStampStr}`;
 						selected.date = message.date
 						selected.scr = message.scr;
 						selected.repo = dbRepoWS.repo[message.repo];
 						selected.ws = dbRepoWS.ws[message.ws];
 						answer = await vscode.window.showInformationMessage(`Do you want to backup the ${message.ws} workspace from the ${message.repo},  ${selected.db} database?`, ...["Yes", "No"]);
 						if (answer === "Yes"){
-							/*let typeArr = ["service", "buscomp", "applet", "application"];
-							let backupFolder = `${folderPath()}_backup`
-							let obj, val, key, value;
-							busServObj = await getData.getSiebelData(selected, "service", folderPath());
-							for ([obj, val] of Object.entires(busServObj)){
-								selected.service.id = val.id;
-								busServObj[obj].scripts = await getData.getServerScripts(selected, "service");
-								for ([key, value] of Object.entries(busServObj[obj].scripts)){
-									filesRW.writeFiles(value.script, backupFolder, obj, key);
+							vscode.window.withProgress({
+								location: vscode.ProgressLocation.Window,
+								cancellable: false,
+								title: "Creating backup"
+								}, async () => {
+									for (objType of typeArr){
+										await getData.createBackup(selected, objType, folderPath());
+									}
+									await filesRW.writeInfo(selected, folders, folderPath(), "backup");
+									vscode.window.showInformationMessage(`Backup created in folder ${folders.ws}`);
 								}
-							}
-							busCompObj = await getData.getSiebelData(selected, "buscomp", folderPath());
-							appletObj = await getData.getSiebelData(selected, "applet", folderPath());
-							applicationObj = await getData.getSiebelData(selected, "application", folderPath());*/
+							);
 						}
 						break;
 					}
 				}	
 			}, undefined, context.subscriptions);
-			thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, "DEVDB", "Siebel Repository", "MAIN", true);
+			thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, "DEVDB", "Siebel Repository", "MAIN");
 		}
 	};
 	let selectBox = vscode.window.registerWebviewViewProvider('wsrepo', provider);

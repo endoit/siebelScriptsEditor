@@ -2,7 +2,7 @@ const vscode = require('vscode');
 const config = require('../config.js');
 const fs = require('fs');
 
-async function writeFiles(sData, wsName, bsName, fileName) {
+async function writeFiles(sData, wsName, bsName, fileName, backup) {
   try {
     vscode.workspace.saveAll(false);
     let bPath = true;
@@ -27,8 +27,10 @@ async function writeFiles(sData, wsName, bsName, fileName) {
       const writeData = Buffer.from(sData, 'utf8');
       vscode.workspace.fs.writeFile(filePath, writeData);
 
-      await vscode.window.showTextDocument(filePath, { "preview": false });
-      vscode.window.showInformationMessage('New files were created in directory: ./' + wsName + '/' + bsName);
+      if (!backup){
+        await vscode.window.showTextDocument(filePath, { "preview": false });
+        vscode.window.showInformationMessage('New files were created in directory: ./' + wsName + '/' + bsName);
+      }
     } else {
       vscode.window.showInformationMessage('Open a WorkSpace or define a WorkSpace path in config file');
     }
@@ -44,6 +46,7 @@ async function writeInfo(selectedObj, folderObj, folderPath, type, methodName) {
     let wsPath;
     let infoObj;
     let wsEdit;
+    let filePath;
     let readData;
     let scrname;
     let scrid;
@@ -54,9 +57,8 @@ async function writeInfo(selectedObj, folderObj, folderPath, type, methodName) {
     } else {
       bPath = false;
     }
-    const filePath = vscode.Uri.file(`${wsPath}/${folderPath}/${selectedObj[type].name}/info.json`);
-  
-    if (bPath) {
+    if (bPath && type !== "backup") {
+      filePath = vscode.Uri.file(`${wsPath}/${folderPath}/${selectedObj[type].name}/info.json`);
       //update or create info if not exists
       if (fs.existsSync(`${wsPath}/${folderPath}/${selectedObj[type].name}/info.json`)){
         readData = await vscode.workspace.fs.readFile(filePath);
@@ -66,7 +68,6 @@ async function writeInfo(selectedObj, folderObj, folderPath, type, methodName) {
         }
         vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
       } else {
-        console.log("no jsonexists")
         infoObj = {
           "folder created at": new Date().toString(),
           "db": folderObj.db,
@@ -84,8 +85,22 @@ async function writeInfo(selectedObj, folderObj, folderPath, type, methodName) {
         await vscode.workspace.applyEdit(wsEdit);
         vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
       }
+    } else if (bPath && type === "backup"){
+      filePath = vscode.Uri.file(`${wsPath}/${folderPath}/backupinfo.json`);
+      infoObj = {
+        "backup created at": new Date().toString(),
+        "db": folderObj.db,
+        "repo": {"name": folderObj.repo, "id": selectedObj.repo},
+        "ws": {"name": folderObj.ws.trimRight("_backup"), "id": selectedObj.ws}
+      }
+      wsEdit = new vscode.WorkspaceEdit();
+      wsEdit.createFile(filePath, {overwrite: true, ignoreIfExists: false});
+      await vscode.workspace.applyEdit(wsEdit);
+      vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
+      return "finished";
     } else {
       vscode.window.showInformationMessage('Open a WorkSpace or define a WorkSpace path in config file');
+
     }
   } catch (err) {
     return err.message;
