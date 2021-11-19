@@ -1,6 +1,6 @@
 {
 	"name": "siebelscripteditor",
-	"displayName": "siebelScriptEditor",
+	"displayName": "Siebel Script Editor",
 	"description": "",
 	"version": "0.0.1",
 	"engines": {
@@ -11,11 +11,9 @@
 		"Snippets"
 	],
 	"activationEvents": [
-		"onCommand:siebelscripteditor.helloWorld",
-		"onCommand:siebelscripteditor.openFile",
 		"onCommand:siebelscripteditor.pullScript",
 		"onCommand:siebelscripteditor.pushScript",
-		"onView:wsrepo"
+		"onView:extensionView"
 	],
 	"main": "./extension.js",
 	"contributes": {
@@ -30,9 +28,10 @@
 		},
 		"views": {
 			"siebelScriptEditor": [
-			{	"type": "webview",
-				"id": "wsrepo",
-				"name": "Workspace and repository version"
+				{
+				"type": "webview",
+				"id": "extensionView",
+				"name": "Select datasource"
 			  },
 			  {
 				"id": "businessServices",
@@ -53,14 +52,6 @@
 			]
 		  },
 		"commands": [
-			{
-				"command": "siebelScripteditor.helloWorld",
-				"title": "Hello World"
-			},
-			{
-				"command": "siebelscripteditor.openFile",
-				"title": "Open File"
-			},
 			{
 				"command": "siebelscripteditor.pullScript",
 				"title": "Get script from Siebel database",
