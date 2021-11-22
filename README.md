@@ -1,6 +1,6 @@
 # siebelscripteditor README
 
-This is the README for your extension "siebelscripteditor". After writing up a brief description, we recommend including the following sections.
+Siebel Script Editor is an extension which enable editing server scripts for Siebel Objects directly in Visual Studio Code.
 
 ## Features
 
@@ -14,18 +14,15 @@ For example if there is an image subfolder under your extension project workspac
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+Node-oracledb client is requiered, see https://oracle.github.io/node-oracledb/INSTALL.html.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
 
 This extension contributes the following settings:
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+* `siebelScriptEditor.databaseConfigurations`: list of database configurations, of which the extension use to connect to databases, in order to get and update the scripts
+* `siebelScriptEditor.defaultConnection`: default connection, repository and workspace to use when the extension activates, optional
 
 ## Known Issues
 
