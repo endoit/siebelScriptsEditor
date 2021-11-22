@@ -10,6 +10,10 @@
 		"Other",
 		"Snippets"
 	],
+	"repository": {
+    "type": "git",
+    "url": "https://github.com/FagabosGit/siebelScriptEditor"
+  },
 	"activationEvents": [
 		"onCommand:siebelscripteditor.pullScript",
 		"onCommand:siebelscripteditor.pushScript",
