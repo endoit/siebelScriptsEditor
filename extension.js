@@ -3,34 +3,20 @@ const filesRW = require('./src/filesRW.js');
 const getData = require('./src/getData.js');
 const treeData = require('./src/treeData.js');
 const getHTML = require('./src/getHTML.js');
-const fs = require('fs')
 
 async function activate(context) {
 	let answer;
+	let config;
 	let provider;
-	const configFilePath = vscode.Uri.file(`${vscode.workspace.workspaceFolders[0].uri.fsPath}/config.json`);
-	if (fs.existsSync(configFilePath.fsPath) === false){
-		answer = await vscode.window.showInformationMessage("config.json was not found in the current workspace, do you want to create it to initialize the extension?", ...["Yes", "No"]);
+	let dbParams;
+	let dbNameUserPw;
+	let extensionView;
+	let dbConfigs = vscode.workspace.getConfiguration('siebelScriptEditor').databaseConfigurations;
+	if (dbConfigs.length === 0){
+		answer = await vscode.window.showInformationMessage("No database configuration was found in the settings, do you want to go to settings and create one?", ...["Yes", "No"]);
 		if (answer === "Yes"){
-			const newConfigData = {
-				"default": {
-					"db": "",
-					"repo": "",
-					"ws": ""
-				},
-				"DBConnection": {
-					"DATABASE_NAME": {
-						"user": "DATABASE_USERNAME",
-						"password": "DATABASE_PASSWORD",
-						"connectString": "111.111.111.111:1111/SIEBEL"
-					}
-				}
-			}
-			const wsEdit = new vscode.WorkspaceEdit();
-      wsEdit.createFile(configFilePath, { overwrite: false, ignoreIfExists: true });
-      await vscode.workspace.applyEdit(wsEdit);
-			vscode.workspace.fs.writeFile(configFilePath, Buffer.from(JSON.stringify(newConfigData, null, 2), 'utf8'));
-			vscode.window.showTextDocument(configFilePath, { "preview": false });
+			//opens the Settings for the extension file
+			vscode.commands.executeCommand("workbench.action.openSettings", "SiebelScriptEditor");
 		}
 		provider = {
 			resolveWebviewView: (thisWebview) => {
@@ -39,31 +25,44 @@ async function activate(context) {
 				thisWebview.webview.onDidReceiveMessage(async (message) => {
 					switch (message.command) {
 						case "testdb": {
-							const readConfigTest = await vscode.workspace.fs.readFile(configFilePath);
-							const configDataTest = JSON.parse(Buffer.from(readConfigTest)).DBConnection;
-							const testDB = Object.entries(configDataTest)[0][1];
-							const testResp = await getData.getRepoData(testDB);
-							if (Object.keys(testResp).length > 0){
-								vscode.window.showInformationMessage("Database connection is working!");
-								thisWebview.webview.html = getHTML.HTMLPage("enablereload");
+							const readConfigTestArr = vscode.workspace.getConfiguration('siebelScriptEditor').databaseConfigurations;
+							if (readConfigTestArr.length > 0){
+								const readConfigTest = readConfigTestArr[0].split("@");
+								const userPasswordTest = readConfigTest[0].split("/");
+								const configDataTest = {user: userPasswordTest[1], password: userPasswordTest[2], connectString: readConfigTest[1]};
+								const testResp = await getData.getRepoData(configDataTest);
+								if (Object.keys(testResp).length > 0){
+									vscode.window.showInformationMessage("Database connection is working!");
+									thisWebview.webview.html = getHTML.HTMLPage("enablereload");
+								} else {
+									vscode.window.showInformationMessage("Connection error, please check credentials and database status!");
+								}
 							} else {
-								vscode.window.showInformationMessage("Connection error, please check credentials and database status!");
+								vscode.window.showInformationMessage("Please add at least one database configuration!");
 							}
 							break;
 						}
 						case "reload": {
-							vscode.commands.executeCommand("workbench.action.reloadWindow");
+							vscode.commands.executeCommand("workbench.action.reloadWindow");				
 							break;
 						}
 					}
 				})
 			}
-		};
-		let extensionView = vscode.window.registerWebviewViewProvider("extensionView", provider);
+		}
+		extensionView = vscode.window.registerWebviewViewProvider("extensionView", provider);
 		context.subscriptions.push(extensionView);
 	} else {
-		const readConfig = await vscode.workspace.fs.readFile(configFilePath);
-		const configData = JSON.parse(Buffer.from(readConfig));
+		let defConnection = vscode.workspace.getConfiguration('siebelScriptEditor').defaultConnection.split("/");
+		let configData = {default: {}, DBConnection: {}};
+		for (config of dbConfigs){
+			dbParams = config.split("@");
+			dbNameUserPw = dbParams[0].split("/");
+			configData.DBConnection[dbNameUserPw[0]] = {user: dbNameUserPw[1], password: dbNameUserPw[2], connectString: dbParams[1]};
+			if (dbNameUserPw[0] === defConnection[0]){
+				configData.default = {db: defConnection[0], repo: defConnection[1], ws: defConnection[2]}
+			}
+		}
 		const configObj = configData.DBConnection;
 		const defaultObj = configData.default
 		const firstDB = Object.keys(configData.DBConnection)[0];
@@ -73,7 +72,6 @@ async function activate(context) {
 		const dbRepoWS = { db: "", repo: "", ws: "" }
 		dbRepoWS.db = configObj;
 		dbRepoWS.repo = await getData.getRepoData(configObj[selected.db]);
-		console.log(dbRepoWS.repo)
 		let firstRepo = Object.keys(dbRepoWS.repo)[0];
 		dbRepoWS.ws = await getData.getWSData(dbRepoWS.repo[defaultObj.repo || firstRepo], configObj[selected.db]);
 		let firstWS = Object.keys(dbRepoWS.ws)[0];
@@ -188,23 +186,24 @@ async function activate(context) {
 							break;
 						}
 						case "setDefault": {
-							//sets the default database, repository and workspace in the config.json
+							//sets the default database, repository and workspace in the settings
 							answer = await vscode.window.showInformationMessage(`Do you want to set the default database to ${message.db}, the default repository to ${message.repo} and the default workspace to ${message.ws}?`, ...["Yes", "No"]);
 							if (answer === "Yes"){
 								configData.default = { "db":  message.db, "repo": message.repo, "ws": message.ws };
-								vscode.workspace.fs.writeFile(configFilePath, Buffer.from(JSON.stringify(configData, null, 2), 'utf8'));
+								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.db}/${message.repo}/${message.ws}`, vscode.ConfigurationTarget.Global);
+								
 							}
 						}
 						case "openConfig": {
-							//opens the config.json file
-							vscode.window.showTextDocument(configFilePath, { "preview": false });
+							//opens the Settings for the extension
+							vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptEditor");
 						}
 					}
 				}, undefined, context.subscriptions);
 				thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, defaultObj.db || firstDB, defaultObj.repo || firstRepo, defaultObj.ws || firstWS);
 			}
 		};
-		let extensionView = vscode.window.registerWebviewViewProvider("extensionView", provider);
+		extensionView = vscode.window.registerWebviewViewProvider("extensionView", provider);
 		context.subscriptions.push(extensionView);
 	}
 }

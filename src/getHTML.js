@@ -25,7 +25,7 @@ const HTMLPage = (dbwsrepo, db, rp, ws, backup) => {
 			</style>
 		</head>
 		<body>
-		<p>Please fill the config.json with the required data for database connection, and then press reload.</p>
+		<p>Please add at least one database configuration in the settings, test it, and then press reload.</p>
 			<Button class="button" onclick="testdb()">Test database connection</Button>
 			<Button class="button" onclick="reload()" ${dbwsrepo === "enablereload" ? "" : "disabled"}>Reload</Button>
 			<script>
@@ -145,8 +145,8 @@ const HTMLPage = (dbwsrepo, db, rp, ws, backup) => {
 						<Button class="button" onclick="selectWS()">Get Siebel Data</Button>
 					</div>
 					<div class="divitem">
-						<Button class="button_backup" id="backup" ${backup ? "" : "disabled"} onclick="createBackup()">Create backup from selected</Button>
-						<Button class="button_backup" id="config" onclick="openConfig()">Open config.json</Button>  
+						<Button class="button_backup" id="backup" ${backup ? "" : "disabled"} onclick="createBackup()">Create backup</Button>
+						<Button class="button_backup" id="config" onclick="openConfig()">Open settings</Button>  
 					</div>	
 				</div>
 				<script>

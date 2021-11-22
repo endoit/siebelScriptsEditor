@@ -20,37 +20,37 @@
 		"viewsContainers": {
 			"activitybar": [
 				{
-				  "id": "siebelScriptEditor",
-				  "title": "Siebel Script Editor",
-				  "icon": "./media/icon.svg"
+					"id": "siebelScriptEditor",
+					"title": "Siebel Script Editor",
+					"icon": "./media/icon.svg"
 				}
-			  ]
+			]
 		},
 		"views": {
 			"siebelScriptEditor": [
 				{
-				"type": "webview",
-				"id": "extensionView",
-				"name": "Select datasource"
-			  },
-			  {
-				"id": "businessServices",
-				"name": "Business Services"
-			  },
-			  {
-				"id": "businessComponents",
-				"name": "Business Components"
-			  },
-			  {
-				"id": "applets",
-				"name": "Applets"
-			  },
-			  {
-				"id": "applications",
-				"name": "Applications"
-			  }
+					"type": "webview",
+					"id": "extensionView",
+					"name": "Select datasource"
+				},
+				{
+					"id": "businessServices",
+					"name": "Business Services"
+				},
+				{
+					"id": "businessComponents",
+					"name": "Business Components"
+				},
+				{
+					"id": "applets",
+					"name": "Applets"
+				},
+				{
+					"id": "applications",
+					"name": "Applications"
+				}
 			]
-		  },
+		},
 		"commands": [
 			{
 				"command": "siebelscripteditor.pullScript",
@@ -72,14 +72,30 @@
 		"menus": {
 			"editor/title": [
 				{
-				"command": "siebelscripteditor.pullScript",
-				"group": "navigation"
+					"command": "siebelscripteditor.pullScript",
+					"group": "navigation"
 				},
 				{
-				"command": "siebelscripteditor.pushScript",
-				"group": "navigation"
+					"command": "siebelscripteditor.pushScript",
+					"group": "navigation"
 				}
 			]
+		},
+		"configuration": {
+			"title": "Siebel Script Editor",
+			"properties": {
+				"siebelScriptEditor.defaultConnection": {
+					"type": "string",
+					"description": "Name of the default database, repository and workspace to use, in the following format: DATABASENAME/REPOSITORYNAME/WORKSPACENAME, e.g. DEVDB/Siebel Repository/Main. Use the 'Set as default' button in the extension to change it."
+				},
+				"siebelScriptEditor.databaseConfigurations": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Parameteres for connection to Siebel databases, use the following format: DATABASENAME/USERNAME/PASSWORD@CONNECTSTRING, e.g. DEVDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL."
+				}
+			}
 		},
 		"snippets": [
 			{

@@ -200,7 +200,7 @@ const pushOrPullScript = async (action, databaseObj) => {
 			const resp = await dbQuery(updateStringSC, databaseObj[infoObj.db], bindedValues, commit);
 			if(resp.rowsAffected === 1){
 				vscode.window.showInformationMessage("Successfully updated script in the database!");
-				infoObj.scripts[scrName]["last pull to database"] = new Date().toString();
+				infoObj.scripts[scrName]["last push to database"] = new Date().toString();
 			} else {
 				vscode.window.showErrorMessage("Update was unsuccessful, check database connection!");
 			}

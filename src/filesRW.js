@@ -66,7 +66,7 @@ const writeInfo = async (selectedObj, folderObj, folderPath, type, methodName) =
         readData = await vscode.workspace.fs.readFile(filePath);
         infoObj = JSON.parse(Buffer.from(readData));
         for ([scrname, scrid] of Object.entries(methodName)) {
-          infoObj.scripts[scrname] = { "id": scrid, "last update from database": new Date().toString(), "last pull to database": "" }
+          infoObj.scripts[scrname] = { "id": scrid, "last update from database": new Date().toString(), "last push to database": "" }
         }
         vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
       } else {
@@ -81,7 +81,7 @@ const writeInfo = async (selectedObj, folderObj, folderPath, type, methodName) =
           "scripts": {}
         }
         for ([scrname, scrid] of Object.entries(methodName)) {
-          infoObj.scripts[scrname] = { "id": scrid, "last update from database": new Date().toString(), "last pull to database": "" }
+          infoObj.scripts[scrname] = { "id": scrid, "last update from database": new Date().toString(), "last push to database": "" }
         }
         wsEdit = new vscode.WorkspaceEdit();
         wsEdit.createFile(filePath, { overwrite: false, ignoreIfExists: true });
