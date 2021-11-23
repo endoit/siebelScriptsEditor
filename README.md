@@ -1,11 +1,11 @@
 # Siebel Script Editor README
 
-Siebel Script Editor is an extension which enables editing server scripts for Siebel Objects directly in Visual Studio Code by connecting to the Siebel database. The extension currently only works with Oracle databases.
+Siebel Script Editor is an extension which enables editing server scripts for Siebel Objects directly in Visual Studio Code by connecting to the Siebel database.
 
 ## Features
 
 Download Business Service, Business Component, Applet and Application server scripts from the specified database, repository and workspace, and edit them with Visual Studio Code as javascript files.
-Create backup from the server scripts.
+Create full backup from the specified database/repository/workspace.
 Option to search only for objects which have scripts or newer than specified.
 The downloaded scripts can be easily versioned using git, refreshed from the Siebel database, or pushed into the Siebel database.
 
@@ -33,9 +33,15 @@ Visual Studio Code Workspace
 │   │   │       │   CustomMethod.js
 │   │   │       │   info.json
 │   │   └───application
-│   │       └───Siebel Application Name
-│   │           │   CustomMethod.js
-│   │           │   info.json
+│   │   │   └───Siebel Application Name
+│   │   │       │   CustomMethod.js
+│   │   │       │   info.json
+│   │   └───Workspace Name_backup_timestamp
+│   │       │   │   backupinfo.json
+│   │       └───sevice
+│   │       └───buscomp
+│   │       └───applet
+│   │       └───application
 │   └───Other Workspace Name
 └───Other Database Name_Other Repository Name
     └───Another Workspace Name
@@ -56,8 +62,9 @@ This extension contributes the following settings:
 
 ## Known Issues
 
+The extension currently only works with Oracle databases.
 Only one workspace folder is supported.
-Only works with newer Siebel versions, which has workspaces.
+Only works with newer (from IP 2017) Siebel versions, which has workspaces.
 
 ## Release Notes
 

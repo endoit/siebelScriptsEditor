@@ -18,13 +18,14 @@ async function dbQuery(query, databaseConfig, bindings, commit) {
 		result = await connection.execute(query, bindings || {});
 		if (commit) { connection.commit() };
 	} catch (err) {
+		console.log(err)
 		return err.message;
 	} finally {
 		if (connection) {
 			try {
 				await connection.close();
 			} catch (err) {
-
+				console.log(err)
 			}
 		}
 		if (result) {
@@ -67,8 +68,9 @@ const getRepoData = async (databaseConf) => {
 	return repobj;
 };
 
-//get workspaces
+//get workspaces if Siebel version has them
 const getWSData = async (repoid, databaseConf) => {
+	if (databaseConf.workspaces === false){return {}}
 	const wsobj = {};
 	const queryStringWS = `SELECT ROW_ID, NAME FROM SIEBEL.S_WORKSPACE WHERE REPOSITORY_ID=:repo`;
 	const wsdata = await dbQuery(queryStringWS, databaseConf, { repo: repoid });
@@ -82,11 +84,16 @@ const getSiebelData = async (params, databaseConf, type, folder) => {
 	const siebobj = {};
 	let exists;
 	let fileNames;
-	let queryStringSB = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].table} WHERE CREATED > TO_DATE(:datestr, 'yyyy-mm-dd') AND WS_ID=:ws AND REPOSITORY_ID=:repo`;
+	const bindedValues = {repo: params.repo, datestr: params.date || "1800-01-01" };
+	let queryStringSB = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].table} WHERE CREATED > TO_DATE(:datestr, 'yyyy-mm-dd') AND REPOSITORY_ID=:repo`;
+	if (databaseConf.workspaces === true){
+		queryStringSB += ` AND WS_ID=:ws`
+		bindedValues.ws = params.ws;
+	}
 	if (params.scr === true) {
 		queryStringSB += ` AND ROW_ID IN (SELECT ${tablesAndIdColumns[type].idColumn} FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE SCRIPT IS NOT NULL)`
 	}
-	const bindedValues = { ws: params.ws, repo: params.repo, datestr: params.date || "1800-01-01" };
+	
 	const bsdata = await dbQuery(queryStringSB, databaseConf, bindedValues);
 	bsdata && bsdata.rows && bsdata.rows.forEach((row) => {
 		exists = fs.existsSync(`${wsPath}/${folder}/${type}/${row.NAME}`);
@@ -105,8 +112,12 @@ const getSiebelData = async (params, databaseConf, type, folder) => {
 //get all scripts for siebel object
 const getServerScripts = async (params, databaseConf, type) => {
 	const scriptobj = {};
-	const queryStringSC = `SELECT ROW_ID, NAME, SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE WS_ID=:ws AND REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
-	const bindedValues = { ws: params.ws, repo: params.repo, parentid: params[type].id };
+	const bindedValues = { repo: params.repo, parentid: params[type].id };
+	let queryStringSC = `SELECT ROW_ID, NAME, SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
+	if (databaseConf.workspaces === true){
+		queryStringSC += ` AND WS_ID=:ws`
+		bindedValues.ws = params.ws;
+	}
 	const scdata = await dbQuery(queryStringSC, databaseConf, bindedValues);
 	scdata && scdata.rows && scdata.rows.forEach((row) => { scriptobj[row.NAME] = { id: row.ROW_ID, script: row.SCRIPT, onDisk: true } });
 	return scriptobj;
@@ -117,8 +128,12 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 	const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 	const folderPath = `${folderObj.db}_${folderObj.repo}/${folderObj.ws}/${type}`;
 	const scriptobj = {};
-	const queryStringSC = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE WS_ID=:ws AND REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
-	const bindedValues = { ws: params.ws, repo: params.repo, parentid: params[type].id };
+	const bindedValues = { repo: params.repo, parentid: params[type].id };
+	let queryStringSC = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
+	if (databaseConf.workspaces === true){
+		queryStringSC += ` AND WS_ID=:ws`
+		bindedValues.ws = params.ws;
+	}
 	const scdata = await dbQuery(queryStringSC, databaseConf, bindedValues);
 	scdata && scdata.rows && scdata.rows.forEach((row) => {
 		scriptobj[row.NAME] = {
@@ -131,8 +146,12 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 
 //get selected method for siebel object
 const getServerScriptMethod = async (params, databaseConf, type) => {
-	const queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE WS_ID=:ws AND REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid AND ROW_ID=:methodid`;
-	const bindedValues = { ws: params.ws, repo: params.repo, parentid: params[type].id, methodid: params[type].childId };
+	const bindedValues = { repo: params.repo, parentid: params[type].id, methodid: params[type].childId };
+	let queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid AND ROW_ID=:methodid`;
+	if (databaseConf.workspaces === true){
+		queryStringSC += ` AND WS_ID=:ws`
+		bindedValues.ws = params.ws;
+	}
 	const scdata = await dbQuery(queryStringSC, databaseConf, bindedValues);
 	const scriptstr = scdata.rows && scdata.rows[0].SCRIPT;
 	return scriptstr;
@@ -179,8 +198,12 @@ const pushOrPullScript = async (action, databaseObj) => {
 	}
 	switch (action) {
 		case "pull": {
-			const queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE WS_ID=:ws AND REPOSITORY_ID=:repo AND ${tablesAndIdColumns[infoObj.type].idColumn}=:parentid AND ROW_ID=:methodid`;
-			const bindedValues = { ws: infoObj.ws.id, repo: infoObj.repo.id, parentid: infoObj.siebelObject.id, methodid: infoObj.scripts[scrName].id };
+			const bindedValues = { repo: infoObj.repo.id, parentid: infoObj.siebelObject.id, methodid: infoObj.scripts[scrName].id };
+			let queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[infoObj.type].idColumn}=:parentid AND ROW_ID=:methodid`;
+			if (databaseObj[infoObj.db].workspaces === true){
+				queryStringSC += ` AND WS_ID=:ws`
+				bindedValues.ws =  infoObj.ws.id;
+			}
 			const scdata = await dbQuery(queryStringSC, databaseObj[infoObj.db], bindedValues);
 			const scriptstr = scdata.rows[0].SCRIPT;
 			const wsEdit = new vscode.WorkspaceEdit();
@@ -195,8 +218,12 @@ const pushOrPullScript = async (action, databaseObj) => {
 			const commit = true;
 			const scrDataRead = await vscode.workspace.fs.readFile(scrFilePath);
 			const scrText = Buffer.from(scrDataRead).toString();
-			const updateStringSC = `UPDATE SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} SET SCRIPT=:script, LAST_UPD=CURRENT_TIMESTAMP WHERE WS_ID=:ws AND REPOSITORY_ID=:repo AND ${tablesAndIdColumns[infoObj.type].idColumn}=:parentid AND ROW_ID=:methodid`;
-			const bindedValues = { ws: infoObj.ws.id, repo: infoObj.repo.id, parentid: infoObj.siebelObject.id, methodid: infoObj.scripts[scrName].id, script: scrText };
+			const bindedValues = { repo: infoObj.repo.id, parentid: infoObj.siebelObject.id, methodid: infoObj.scripts[scrName].id, script: scrText };
+			let updateStringSC = `UPDATE SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} SET SCRIPT=:script, LAST_UPD=CURRENT_TIMESTAMP WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[infoObj.type].idColumn}=:parentid AND ROW_ID=:methodid`;
+			if (databaseObj[infoObj.db].workspaces === true){
+				updateStringSC += ` AND WS_ID=:ws`
+				bindedValues.ws =  infoObj.ws.id;
+			}
 			const resp = await dbQuery(updateStringSC, databaseObj[infoObj.db], bindedValues, commit);
 			if(resp.rowsAffected === 1){
 				vscode.window.showInformationMessage("Successfully updated script in the database!");

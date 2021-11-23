@@ -75,7 +75,7 @@ const writeInfo = async (selectedObj, folderObj, folderPath, type, methodName) =
           "folder created at": new Date().toString(),
           "db": folderObj.db,
           "repo": { "name": folderObj.repo, "id": selectedObj.repo },
-          "ws": { "name": folderObj.ws, "id": selectedObj.ws },
+          "ws": { "name": folderObj.ws || "", "id": selectedObj.ws || "" },
           "type": type,
           "siebelObject": { "name": selectedObj[type].name, "id": selectedObj[type].id },
           "scripts": {}
@@ -95,7 +95,7 @@ const writeInfo = async (selectedObj, folderObj, folderPath, type, methodName) =
         "backup created at": new Date().toString(),
         "db": folderObj.db,
         "repo": { "name": folderObj.repo, "id": selectedObj.repo },
-        "ws": { "name": folderObj.ws.split("_backup_")[0], "id": selectedObj.ws }
+        "ws": { "name": selectedObj.ws ? folderObj.ws.split("_backup_")[0] : "", "id": selectedObj.ws || "" }
       }
       wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(filePath, { overwrite: true, ignoreIfExists: false });

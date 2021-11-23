@@ -53,12 +53,12 @@ async function activate(context) {
 		extensionView = vscode.window.registerWebviewViewProvider("extensionView", provider);
 		context.subscriptions.push(extensionView);
 	} else {
-		let defConnection = vscode.workspace.getConfiguration('siebelScriptEditor').defaultConnection.split("/");
+		let defConnection = vscode.workspace.getConfiguration("siebelScriptEditor").defaultConnection.split("/");
 		let configData = {default: {}, DBConnection: {}};
 		for (config of dbConfigs){
 			dbParams = config.split("@");
 			dbNameUserPw = dbParams[0].split("/");
-			configData.DBConnection[dbNameUserPw[0]] = {user: dbNameUserPw[1], password: dbNameUserPw[2], connectString: dbParams[1]};
+			configData.DBConnection[dbNameUserPw[0]] = {user: dbNameUserPw[1], password: dbNameUserPw[2], connectString: dbParams[1], workspaces:  dbParams[2] === "nows" ? false : true};
 			if (dbNameUserPw[0] === defConnection[0]){
 				configData.default = {db: defConnection[0], repo: defConnection[1], ws: defConnection[2]}
 			}
@@ -133,7 +133,7 @@ async function activate(context) {
 							selected.ws = dbRepoWS.ws[message.ws];
 							let backup = true;
 							thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, selected.db, message.repo, message.ws, backup);
-							vscode.window.showInformationMessage(`Selected repository: ${message.ws}`);
+							if (message.ws) {vscode.window.showInformationMessage(`Selected workspace: ${message.ws}`)};
 
 							busServObj = await getData.getSiebelData(selected, configObj[selected.db], "service", folderPath());
 							const treeDataBS = new treeData.TreeDataProvider(busServObj);
@@ -163,12 +163,12 @@ async function activate(context) {
 							let timeStamp = new Date();
 							let timeStampStr = `${timeStamp.getFullYear()}${timeStamp.getMonth() + 1}${timeStamp.getDate()}_${timeStamp.getHours()}h${timeStamp.getMinutes()}m`;
 							folders.repo = message.repo
-							folders.ws = `${message.ws}_backup_${timeStampStr}`;
+							folders.ws = `${message.ws || "repo"}_backup_${timeStampStr}`;
 							selected.date = message.date
 							selected.scr = message.scr;
 							selected.repo = dbRepoWS.repo[message.repo];
 							selected.ws = dbRepoWS.ws[message.ws];
-							answer = await vscode.window.showInformationMessage(`Do you want to backup the ${message.ws} workspace from the ${message.repo},  ${selected.db} database?`, ...["Yes", "No"]);
+							answer = await vscode.window.showInformationMessage(`Do you want to create backup from the ${message.ws ? message.ws + " workspace," : "" }  ${message.repo},  ${selected.db} database?`, ...["Yes", "No"]);
 							if (answer === "Yes") {
 								vscode.window.withProgress({
 									location: vscode.ProgressLocation.Window,
@@ -190,7 +190,7 @@ async function activate(context) {
 							answer = await vscode.window.showInformationMessage(`Do you want to set the default database to ${message.db}, the default repository to ${message.repo} and the default workspace to ${message.ws}?`, ...["Yes", "No"]);
 							if (answer === "Yes"){
 								configData.default = { "db":  message.db, "repo": message.repo, "ws": message.ws };
-								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.db}/${message.repo}/${message.ws}`, vscode.ConfigurationTarget.Global);
+								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.db}/${message.repo}${message.ws ? "/" + message.ws : ""}`, vscode.ConfigurationTarget.Global);
 								
 							}
 						}
