@@ -190,13 +190,18 @@ async function activate(context) {
 							answer = await vscode.window.showInformationMessage(`Do you want to set the default database to ${message.db}, the default repository to ${message.repo} and the default workspace to ${message.ws}?`, ...["Yes", "No"]);
 							if (answer === "Yes"){
 								configData.default = { "db":  message.db, "repo": message.repo, "ws": message.ws };
-								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.db}/${message.repo}${message.ws ? "/" + message.ws : ""}`, vscode.ConfigurationTarget.Global);
-								
+								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.db}/${message.repo}${message.ws ? "/" + message.ws : ""}`, vscode.ConfigurationTarget.Global);	
 							}
+							break;
 						}
 						case "openConfig": {
 							//opens the Settings for the extension
 							vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptEditor");
+							break;
+						}
+						case "reload": {
+							vscode.commands.executeCommand("workbench.action.reloadWindow");				
+							break;
 						}
 					}
 				}, undefined, context.subscriptions);

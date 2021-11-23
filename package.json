@@ -97,7 +97,7 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "Parameteres for connection to Siebel databases, use the following format: DATABASENAME/USERNAME/PASSWORD@CONNECTSTRING, e.g. DEVDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL.\nIMPORTANT: If you are using Siebel version older than IP17 which does not have workspaces, add @nows at the end of the configuration, e.g. OLDDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL@nows"
+					"description": "Parameteres for connection to Siebel databases, use the following format: DATABASENAME/USERNAME/PASSWORD@CONNECTSTRING, e.g. DEVDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL.\nIMPORTANT: If you are using Siebel version older than IP17 which does not have workspaces, add @nows at the end of the configuration, e.g. OLDDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL@nows.\nPress the Reload button on the extension after editing configurations!"
 				}
 			}
 		},

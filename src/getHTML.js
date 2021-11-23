@@ -147,6 +147,9 @@ const HTMLPage = (dbwsrepo, db, rp, ws, backup) => {
 					<div class="divitem">
 						<Button class="button_backup" id="backup" ${backup ? "" : "disabled"} onclick="createBackup()">Create backup</Button>
 						<Button class="button_backup" id="config" onclick="openConfig()">Open settings</Button>  
+					</div>
+					<div class="divitem">
+						<Button class="button" onclick="reload()">Reload</Button>
 					</div>	
 				</div>
 				<script>
@@ -181,6 +184,9 @@ const HTMLPage = (dbwsrepo, db, rp, ws, backup) => {
 					}
 					const openConfig = () => {
 						vscode.postMessage({command: "openConfig"});
+					}
+					const reload = () => {
+						vscode.postMessage({command: "reload"});
 					}
 				</script>
 			</body>
