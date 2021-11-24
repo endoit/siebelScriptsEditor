@@ -1,65 +1,81 @@
-# siebelscripteditor README
+# Siebel Script Editor README
 
-This is the README for your extension "siebelscripteditor". After writing up a brief description, we recommend including the following sections.
+Siebel Script Editor is an extension which enables editing server scripts written in eScript for Siebel Objects directly in Visual Studio Code by connecting to the Siebel database.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+Download Business Service, Business Component, Applet and Application server scripts from the specified database, repository and workspace (if used), and edit them with Visual Studio Code as javascript files.
 
-For example if there is an image subfolder under your extension project workspace:
+![Get server scripts](/features/getscripts.gif "Get server scripts")
 
-\!\[feature X\]\(images/feature-x.png\)
+The downloaded scripts can be refreshed from the Siebel database, or pushed into the Siebel database.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+![Push and pull server scripts](/features/pushpull.gif "Push and pull server scripts")
+
+Create backup from the specified database/repository/workspace:
+
+![Backup](/features/backup.gif "Backup")
+
+Snippets included for boilerplate:
+
+![Snippet in action](/features/snippetgif.gif "Snippet in action")
+
+Folder structure for the scripts:
+```
+Visual Studio Code Workspace   
+│
+└───Database Name_Repository Name
+│   └───Workspace Name
+│   │   └───sevice
+│   │   │   └───Business Service Name
+│   │   │       │   Service_PreInvokeMethod.js
+│   │   │       │   CustomMethod.js
+│   │   │       │   info.json
+│   │   └───buscomp
+│   │   │   └───Business Component Name
+│   │   │       │   Buscomp_PreInvokeMethod.js
+│   │   │       │   CustomMethod.js
+│   │   │       │   info.json
+│   │   └───applet
+│   │   │   └──Applet Name
+│   │   │       │   WebApplet_PreInvokeMethod.js
+│   │   │       │   CustomMethod.js
+│   │   │       │   info.json
+│   │   └───application
+│   │   │   └───Siebel Application Name
+│   │   │       │   CustomMethod.js
+│   │   │       │   info.json
+│   │   └───Workspace Name_backup_timestamp
+│   │       │   │   backupinfo.json
+│   │       └───sevice
+│   │       └───buscomp
+│   │       └───applet
+│   │       └───application
+│   └───Other Workspace Name
+└───Other Database Name_Other Repository Name
+    └───Another Workspace Name
+```
+
+The info.json holds the information for the Siebel Object server scripts, including the row ids needed for the database operations, and the timestamp of the last update from and last push to the database.
 
 ## Requirements
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+The extension requires 64-bit Oracle Client to be installed, see https://oracle.github.io/node-oracledb/INSTALL.html.
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
-
-For example:
-
 This extension contributes the following settings:
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+* `siebelScriptEditor.databaseConfigurations`: list of database configurations for the extension to connect to databases.
+* `siebelScriptEditor.defaultConnection`: default connection, repository and workspace to use when the extension activates, optional.
 
 ## Known Issues
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+The extension currently only works with Oracle databases.
+Only one workspace folder is supported.
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
-
 ### 1.0.0
 
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial release of Siebel Scripts Editor
