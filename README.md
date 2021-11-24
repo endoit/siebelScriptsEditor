@@ -4,7 +4,7 @@ Siebel Script Editor is an extension which enables editing server scripts writte
 
 ## Features
 
-Download Business Service, Business Component, Applet and Application server scripts from the specified database, repository and workspace, and edit them with Visual Studio Code as javascript files. Supports Siebel versions older than IP17 as well, which do not have workspaces. 
+Download Business Service, Business Component, Applet and Application server scripts from the specified database, repository and workspace (if used), and edit them with Visual Studio Code as javascript files.
 
 ![Get server scripts](/features/getscripts.gif "Get server scripts")
 

@@ -58,7 +58,8 @@ async function activate(context) {
 		for (config of dbConfigs){
 			dbParams = config.split("@");
 			dbNameUserPw = dbParams[0].split("/");
-			configData.DBConnection[dbNameUserPw[0]] = {user: dbNameUserPw[1], password: dbNameUserPw[2], connectString: dbParams[1], workspaces:  dbParams[2] === "nows" ? false : true};
+			configData.DBConnection[dbNameUserPw[0]] = {user: dbNameUserPw[1], password: dbNameUserPw[2], connectString: dbParams[1]};
+			configData.DBConnection[dbNameUserPw[0]].workspaces = await getData.checkForWorkspaces(configData.DBConnection[dbNameUserPw[0]]);
 			if (dbNameUserPw[0] === defConnection[0]){
 				configData.default = {db: defConnection[0], repo: defConnection[1], ws: defConnection[2]}
 			}
