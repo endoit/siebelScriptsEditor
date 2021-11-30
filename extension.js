@@ -8,13 +8,12 @@ async function activate(context) {
 	let answer;
 	let config;
 	let provider;
-	let dbParams;
-	let dbNameUserPw;
+	let workspaces;
 	let extensionView;
 	let dbConfigs = vscode.workspace.getConfiguration('siebelScriptEditor').databaseConfigurations;
-	if (dbConfigs.length === 0){
+	if (dbConfigs.length === 0) {
 		answer = await vscode.window.showInformationMessage("No database configuration was found in the settings, do you want to go to settings and create one?", ...["Yes", "No"]);
-		if (answer === "Yes"){
+		if (answer === "Yes") {
 			//opens the Settings for the extension file
 			vscode.commands.executeCommand("workbench.action.openSettings", "SiebelScriptEditor");
 		}
@@ -26,12 +25,12 @@ async function activate(context) {
 					switch (message.command) {
 						case "testdb": {
 							const readConfigTestArr = vscode.workspace.getConfiguration('siebelScriptEditor').databaseConfigurations;
-							if (readConfigTestArr.length > 0){
+							if (readConfigTestArr.length > 0) {
 								const readConfigTest = readConfigTestArr[0].split("@");
 								const userPasswordTest = readConfigTest[0].split("/");
-								const configDataTest = {user: userPasswordTest[1], password: userPasswordTest[2], connectString: readConfigTest[1]};
+								const configDataTest = { user: userPasswordTest[1], password: userPasswordTest[2], connectString: readConfigTest[1] };
 								const testResp = await getData.getRepoData(configDataTest);
-								if (Object.keys(testResp).length > 0){
+								if (Object.keys(testResp).length > 0) {
 									vscode.window.showInformationMessage("Database connection is working!");
 									thisWebview.webview.html = getHTML.HTMLPage("enablereload");
 								} else {
@@ -43,7 +42,7 @@ async function activate(context) {
 							break;
 						}
 						case "reload": {
-							vscode.commands.executeCommand("workbench.action.reloadWindow");				
+							vscode.commands.executeCommand("workbench.action.reloadWindow");
 							break;
 						}
 					}
@@ -54,14 +53,29 @@ async function activate(context) {
 		context.subscriptions.push(extensionView);
 	} else {
 		let defConnection = vscode.workspace.getConfiguration("siebelScriptEditor").defaultConnection.split("/");
-		let configData = {default: {}, DBConnection: {}};
-		for (config of dbConfigs){
-			dbParams = config.split("@");
-			dbNameUserPw = dbParams[0].split("/");
-			configData.DBConnection[dbNameUserPw[0]] = {user: dbNameUserPw[1], password: dbNameUserPw[2], connectString: dbParams[1]};
-			configData.DBConnection[dbNameUserPw[0]].workspaces = await getData.checkForWorkspaces(configData.DBConnection[dbNameUserPw[0]]);
-			if (dbNameUserPw[0] === defConnection[0]){
-				configData.default = {db: defConnection[0], repo: defConnection[1], ws: defConnection[2]}
+		let safeMode = vscode.workspace.getConfiguration("siebelScriptEditor").safeMode;
+		let configData = { default: {}, DBConnection: {} };
+		for (config of dbConfigs) {
+			let dbParams = config.split("@");
+			let dbNameUserPw = dbParams[0].split("/");
+			let dbObj = { user: dbNameUserPw[1], password: dbNameUserPw[2], connectString: dbParams[1] };
+			workspaces = await getData.checkForWorkspaces(dbObj);
+			if (safeMode) {
+				let safeModeUser = await getData.getUserIdByName(dbObj, dbParams[2] || "");
+				if (safeModeUser) {
+					configData.DBConnection[dbNameUserPw[0]] = dbObj;
+					configData.DBConnection[dbNameUserPw[0]].workspaces = workspaces;
+					configData.DBConnection[dbNameUserPw[0]].safeModeUser = safeModeUser;
+					if (dbNameUserPw[0] === defConnection[0]) {
+						configData.default = { db: defConnection[0], repo: defConnection[1], ws: defConnection[2] || "" }
+					}
+				}
+			} else {
+				configData.DBConnection[dbNameUserPw[0]] = dbObj;
+				configData.DBConnection[dbNameUserPw[0]].workspaces = workspaces;
+				if (dbNameUserPw[0] === defConnection[0]) {
+					configData.default = { db: defConnection[0], repo: defConnection[1], ws: defConnection[2] || "" }
+				}
 			}
 		}
 		const configObj = configData.DBConnection;
@@ -134,7 +148,7 @@ async function activate(context) {
 							selected.ws = dbRepoWS.ws[message.ws];
 							let backup = true;
 							thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, selected.db, message.repo, message.ws, backup);
-							if (message.ws) {vscode.window.showInformationMessage(`Selected workspace: ${message.ws}`)};
+							if (message.ws) { vscode.window.showInformationMessage(`Selected workspace: ${message.ws}`) };
 
 							busServObj = await getData.getSiebelData(selected, configObj[selected.db], "service", folderPath());
 							const treeDataBS = new treeData.TreeDataProvider(busServObj);
@@ -169,7 +183,7 @@ async function activate(context) {
 							selected.scr = message.scr;
 							selected.repo = dbRepoWS.repo[message.repo];
 							selected.ws = dbRepoWS.ws[message.ws];
-							answer = await vscode.window.showInformationMessage(`Do you want to create backup from the ${message.ws ? message.ws + " workspace," : "" }  ${message.repo},  ${selected.db} database?`, ...["Yes", "No"]);
+							answer = await vscode.window.showInformationMessage(`Do you want to create backup from the ${message.ws ? message.ws + " workspace," : ""}  ${message.repo},  ${selected.db} database?`, ...["Yes", "No"]);
 							if (answer === "Yes") {
 								vscode.window.withProgress({
 									location: vscode.ProgressLocation.Window,
@@ -189,9 +203,9 @@ async function activate(context) {
 						case "setDefault": {
 							//sets the default database, repository and workspace in the settings
 							answer = await vscode.window.showInformationMessage(`Do you want to set the default database to ${message.db}, the default repository to ${message.repo} and the default workspace to ${message.ws}?`, ...["Yes", "No"]);
-							if (answer === "Yes"){
-								configData.default = { "db":  message.db, "repo": message.repo, "ws": message.ws };
-								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.db}/${message.repo}${message.ws ? "/" + message.ws : ""}`, vscode.ConfigurationTarget.Global);	
+							if (answer === "Yes") {
+								configData.default = { "db": message.db, "repo": message.repo, "ws": message.ws };
+								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.db}/${message.repo}${message.ws ? "/" + message.ws : ""}`, vscode.ConfigurationTarget.Global);
 							}
 							break;
 						}
@@ -201,7 +215,7 @@ async function activate(context) {
 							break;
 						}
 						case "reload": {
-							vscode.commands.executeCommand("workbench.action.reloadWindow");				
+							vscode.commands.executeCommand("workbench.action.reloadWindow");
 							break;
 						}
 					}

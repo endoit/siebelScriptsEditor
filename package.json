@@ -90,14 +90,19 @@
 			"properties": {
 				"siebelScriptEditor.defaultConnection": {
 					"type": "string",
-					"description": "Name of the default database, repository and workspace to use, in the following format: DATABASENAME/REPOSITORYNAME/WORKSPACENAME, e.g. DEVDB/Siebel Repository/Main.\nUse the 'Set as default' button in the extension to change it."
+					"description": "Use the 'Set as default' button in the extension to change it. Name of the default database, repository and workspace to use, in the following format: DATABASENAME/REPOSITORYNAME/WORKSPACENAME, e.g. DEVDB/Siebel Repository/Main."
 				},
 				"siebelScriptEditor.databaseConfigurations": {
 					"type": "array",
 					"items": {
 						"type": "string"
 					},
-					"description": "Parameteres for connection to Siebel databases, use the following format: DATABASENAME/USERNAME/PASSWORD@CONNECTSTRING, e.g. DEVDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL.\nPress the Reload button on the extension after editing configurations!"
+					"description": "Parameteres for connection to Siebel databases, use the following format: DATABASENAME/USERNAME/PASSWORD@CONNECTSTRING@SIEBELUSERNAME, e.g. DEVDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL@SIEBUSER.\n The Siebel username is only required for safe mode.\nPress the Reload button on the extension after editing configurations!"
+				},
+				"siebelScriptEditor.safeMode": {
+					"type": "boolean",
+					"default": "true",
+					"description": "In safe mode, you can only get and update Siebel objects locked by the given Siebel username if workspaces are not in use or not exist.\nIf workspaces are used, then only objects belonging to active workspaces (i.e. their status is either \"Edit-In-Progress\" or \"Checkpointed\") created by the given username can be pulled from or pushed to the database.\nPress the Reload button on the extension after changing this setting!"
 				}
 			}
 		},

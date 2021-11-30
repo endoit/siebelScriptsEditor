@@ -18,7 +18,7 @@ async function dbQuery(query, databaseConfig, bindings, commit) {
 		result = await connection.execute(query, bindings || {});
 		if (commit) { connection.commit() };
 	} catch (err) {
-		if (err.message.startsWith("ORA-00904")){
+		if (err.message.startsWith("ORA-00904")) {
 			result = "nowsidcolumn";
 		} else {
 			vscode.window.showErrorMessage("Error connecting to database: " + err.message);
@@ -66,16 +66,27 @@ const NO_WS_ID_COLUMN = 1;
 const WS_NOT_IN_USE = 2;
 const WS_ENABLED = 3;
 
-//check if workspaces exists and are used
+//check if workspaces exists and are used for a connection
 const checkForWorkspaces = async (databaseConf) => {
 	const queryStringWSE = `SELECT ROW_ID FROM SIEBEL.S_APPLICATION WHERE WS_ID IS NOT NULL`;
 	const wseData = await dbQuery(queryStringWSE, databaseConf);
-	if (wseData === "nowsidcolumn"){
+	if (wseData === "nowsidcolumn") {
 		return NO_WS_ID_COLUMN;
-	} else if (wseData.rows && wseData.rows.length === 0){
+	} else if (wseData.rows && wseData.rows.length === 0) {
 		return WS_NOT_IN_USE;
-	} else if (wseData.rows && wseData.rows.length > 0){
+	} else if (wseData.rows && wseData.rows.length > 0) {
 		return WS_ENABLED;
+	}
+}
+
+//get user id for safe mode
+const getUserIdByName = async (databaseConf, userName) => {
+	const queryStringUserId = `SELECT ROW_ID FROM SIEBEL.S_USER WHERE LOGIN=:username`;
+	const userData = await dbQuery(queryStringUserId, databaseConf, { username: userName });
+	if (userData && userData.rows[0]) {
+		return userData.rows[0].ROW_ID;
+	} else {
+		return "";
 	}
 }
 
@@ -90,10 +101,15 @@ const getRepoData = async (databaseConf) => {
 
 //get workspaces if Siebel version has them
 const getWSData = async (repoid, databaseConf) => {
-	if (databaseConf.workspaces !== WS_ENABLED){return {};}
+	if (databaseConf.workspaces !== WS_ENABLED) { return {}; }
 	const wsobj = {};
-	const queryStringWS = `SELECT ROW_ID, NAME FROM SIEBEL.S_WORKSPACE WHERE REPOSITORY_ID=:repo`;
-	const wsdata = await dbQuery(queryStringWS, databaseConf, { repo: repoid });
+	let queryStringWS = `SELECT ROW_ID, NAME FROM SIEBEL.S_WORKSPACE WHERE REPOSITORY_ID=:repo`;
+	const bindings = { repo: repoid }
+	if (databaseConf.safeModeUser) {
+		queryStringWS += ` AND CREATED_BY=:userid AND STATUS_CD IN ('Edit-In-Progress', 'Checkpointed')`;
+		bindings.userid = databaseConf.safeModeUser;
+	}
+	const wsdata = await dbQuery(queryStringWS, databaseConf, bindings);
 	wsdata && wsdata.rows && wsdata.rows.forEach((row) => { wsobj[row.NAME] = row.ROW_ID });
 	return wsobj;
 };
@@ -104,18 +120,22 @@ const getSiebelData = async (params, databaseConf, type, folder) => {
 	const siebobj = {};
 	let exists;
 	let fileNames;
-	const bindedValues = {repo: params.repo, datestr: params.date || "1800-01-01" };
+	const bindedValues = { repo: params.repo, datestr: params.date || "1800-01-01" };
 	let queryStringSB = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].table} WHERE CREATED > TO_DATE(:datestr, 'yyyy-mm-dd') AND REPOSITORY_ID=:repo`;
-	if (databaseConf.workspaces === WS_ENABLED){
+	if (databaseConf.workspaces === WS_ENABLED) {
 		queryStringSB += ` AND WS_ID=:ws`;
 		bindedValues.ws = params.ws;
-	} else if (databaseConf.workspaces === WS_NOT_IN_USE){
+	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSB += ` AND WS_ID IS NULL`;
+	}
+	if (databaseConf.safeModeUser && databaseConf.workspaces !== WS_ENABLED) {
+		queryStringSB += ` AND OBJ_LOCKED_BY=:userid`;
+		bindedValues.userid = databaseConf.safeModeUser;
 	}
 	if (params.scr === true) {
 		queryStringSB += ` AND ROW_ID IN (SELECT ${tablesAndIdColumns[type].idColumn} FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE SCRIPT IS NOT NULL)`;
 	}
-	
+
 	const bsdata = await dbQuery(queryStringSB, databaseConf, bindedValues);
 	bsdata && bsdata.rows && bsdata.rows.forEach((row) => {
 		exists = fs.existsSync(`${wsPath}/${folder}/${type}/${row.NAME}`);
@@ -136,10 +156,10 @@ const getServerScripts = async (params, databaseConf, type) => {
 	const scriptobj = {};
 	const bindedValues = { repo: params.repo, parentid: params[type].id };
 	let queryStringSC = `SELECT ROW_ID, NAME, SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
-	if (databaseConf.workspaces === WS_ENABLED){
+	if (databaseConf.workspaces === WS_ENABLED) {
 		queryStringSC += ` AND WS_ID=:ws`;
 		bindedValues.ws = params.ws;
-	} else if (databaseConf.workspaces === WS_NOT_IN_USE){
+	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
 	}
 	const scdata = await dbQuery(queryStringSC, databaseConf, bindedValues);
@@ -154,10 +174,10 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 	const scriptobj = {};
 	const bindedValues = { repo: params.repo, parentid: params[type].id };
 	let queryStringSC = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
-	if (databaseConf.workspaces === true){
+	if (databaseConf.workspaces === WS_ENABLED) {
 		queryStringSC += ` AND WS_ID=:ws`;
 		bindedValues.ws = params.ws;
-	} else if (databaseConf.workspaces === WS_NOT_IN_USE){
+	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
 	}
 	const scdata = await dbQuery(queryStringSC, databaseConf, bindedValues);
@@ -174,10 +194,10 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 const getServerScriptMethod = async (params, databaseConf, type) => {
 	const bindedValues = { repo: params.repo, parentid: params[type].id, methodid: params[type].childId };
 	let queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid AND ROW_ID=:methodid`;
-	if (databaseConf.workspaces === true){
+	if (databaseConf.workspaces === WS_ENABLED) {
 		queryStringSC += ` AND WS_ID=:ws`;
 		bindedValues.ws = params.ws;
-	} else if (databaseConf.workspaces === WS_NOT_IN_USE){
+	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
 	}
 	const scdata = await dbQuery(queryStringSC, databaseConf, bindedValues);
@@ -206,32 +226,32 @@ const createBackup = async (params, databaseConf, type, backupFolder) => {
 //push/pull script from/to database
 const pushOrPullScript = async (action, databaseObj) => {
 	let currentlyOpenTabfilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
-	if (path.basename(currentlyOpenTabfilePath).endsWith(".js") === false) { 
+	if (path.basename(currentlyOpenTabfilePath).endsWith(".js") === false) {
 		vscode.window.showInformationMessage("Currently active file is not a Siebel Object script or its extension is not .js!");
-		return; 
+		return;
 	}
 	let scrName = path.basename(currentlyOpenTabfilePath, ".js");
 	let dirPath = path.dirname(currentlyOpenTabfilePath);
 	let infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
-	if (fs.existsSync(infoFilePath.fsPath) === false){
+	if (fs.existsSync(infoFilePath.fsPath) === false) {
 		vscode.window.showInformationMessage("File info.json was not found, please get the Siebel Object again from the extension!");
-		return; 
+		return;
 	}
 	let readData = await vscode.workspace.fs.readFile(infoFilePath);
 	let scrFilePath = vscode.Uri.file(`${dirPath}/${scrName}.js`);
 	let infoObj = JSON.parse(Buffer.from(readData));
-	if (infoObj.scripts.hasOwnProperty(scrName) === false){
+	if (infoObj.scripts.hasOwnProperty(scrName) === false) {
 		vscode.window.showInformationMessage("Script was not found in info.json, please get the Siebel Object script again from the extension or check for accidental renaming!");
-		return; 
+		return;
 	}
 	switch (action) {
 		case "pull": {
 			const bindedValues = { repo: infoObj.repo.id, parentid: infoObj.siebelObject.id, methodid: infoObj.scripts[scrName].id };
 			let queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[infoObj.type].idColumn}=:parentid AND ROW_ID=:methodid`;
-			if (databaseObj[infoObj.db].workspaces === WS_ENABLED){
-				queryStringSC += ` AND WS_ID=:ws`
-				bindedValues.ws =  infoObj.ws.id;
-			} else if (databaseObj[infoObj.db].workspaces === WS_NOT_IN_USE){
+			if (databaseObj[infoObj.db].workspaces === WS_ENABLED) {
+				queryStringSC += ` AND WS_ID=:ws`;
+				bindedValues.ws = infoObj.ws.id;
+			} else if (databaseObj[infoObj.db].workspaces === WS_NOT_IN_USE) {
 				queryStringSC += ` AND WS_ID IS NULL`
 			}
 			const scdata = await dbQuery(queryStringSC, databaseObj[infoObj.db], bindedValues);
@@ -245,23 +265,36 @@ const pushOrPullScript = async (action, databaseObj) => {
 			break;
 		}
 		case "push": {
+			if (databaseObj[infoObj.db].safeModeUser && databaseObj[infoObj.db].workspaces === WS_ENABLED) {
+				let checkWSString = `SELECT ROW_ID FROM SIEBEL.S_WORKSPACE WHERE REPOSITORY_ID=:repo AND ROW_ID=:ws AND STATUS_CD IN ('Edit-In-Progress', 'Checkpointed')`;
+				let bindedValuesWS = { repo: infoObj.repo.id, ws: infoObj.ws.id };
+				let wsInfo = await dbQuery(checkWSString, databaseObj[infoObj.db], bindedValuesWS);
+				if (wsInfo.rows && wsInfo.rows.length !== 1) {
+					vscode.window.showErrorMessage("Unable to push script to database, because workspace status is not Edit-In-Progress or Checkpointed!");
+					return;
+				}
+			}
 			const commit = true;
 			const scrDataRead = await vscode.workspace.fs.readFile(scrFilePath);
 			const scrText = Buffer.from(scrDataRead).toString();
 			const bindedValues = { repo: infoObj.repo.id, parentid: infoObj.siebelObject.id, methodid: infoObj.scripts[scrName].id, script: scrText };
 			let updateStringSC = `UPDATE SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} SET SCRIPT=:script, LAST_UPD=CURRENT_TIMESTAMP WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[infoObj.type].idColumn}=:parentid AND ROW_ID=:methodid`;
-			if (databaseObj[infoObj.db].workspaces === WS_ENABLED){
-				updateStringSC += ` AND WS_ID=:ws`
-				bindedValues.ws =  infoObj.ws.id;
-			} else if (databaseObj[infoObj.db].workspaces === WS_NOT_IN_USE){
+			if (databaseObj[infoObj.db].workspaces === WS_ENABLED) {
+				updateStringSC += ` AND WS_ID=:ws`;
+				bindedValues.ws = infoObj.ws.id;
+			} else if (databaseObj[infoObj.db].workspaces === WS_NOT_IN_USE) {
 				updateStringSC += ` AND WS_ID IS NULL`;
 			}
+			if (databaseObj[infoObj.db].safeModeUser && databaseObj[infoObj.db].workspaces !== WS_ENABLED) {
+				updateStringSC += ` AND OBJ_LOCKED_BY=:userid`;
+				bindedValues.userid = databaseObj[infoObj.db].safeModeUser;
+			}
 			const resp = await dbQuery(updateStringSC, databaseObj[infoObj.db], bindedValues, commit);
-			if(resp.rowsAffected === 1){
+			if (resp.rowsAffected === 1) {
 				vscode.window.showInformationMessage("Successfully updated script in the database!");
 				infoObj.scripts[scrName]["last push to database"] = new Date().toString();
 			} else {
-				vscode.window.showErrorMessage("Update was unsuccessful, check database connection!");
+				vscode.window.showErrorMessage("Update was unsuccessful, check database connection or object locking!");
 			}
 			break;
 		}
@@ -270,6 +303,7 @@ const pushOrPullScript = async (action, databaseObj) => {
 }
 
 exports.checkForWorkspaces = checkForWorkspaces;
+exports.getUserIdByName = getUserIdByName;
 exports.getWSData = getWSData;
 exports.getRepoData = getRepoData;
 exports.getSiebelData = getSiebelData;
