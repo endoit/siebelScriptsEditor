@@ -266,11 +266,11 @@ const pushOrPullScript = async (action, databaseObj) => {
 		}
 		case "push": {
 			if (databaseObj[infoObj.db].safeModeUser && databaseObj[infoObj.db].workspaces === WS_ENABLED) {
-				let checkWSString = `SELECT ROW_ID FROM SIEBEL.S_WORKSPACE WHERE REPOSITORY_ID=:repo AND ROW_ID=:ws AND STATUS_CD IN ('Edit-In-Progress', 'Checkpointed')`;
-				let bindedValuesWS = { repo: infoObj.repo.id, ws: infoObj.ws.id };
+				let checkWSString = `SELECT ROW_ID FROM SIEBEL.S_WORKSPACE WHERE REPOSITORY_ID=:repo AND ROW_ID=:ws AND CREATED_BY=:userid AND STATUS_CD IN ('Edit-In-Progress', 'Checkpointed')`;
+				let bindedValuesWS = { repo: infoObj.repo.id, ws: infoObj.ws.id, userid: databaseObj[infoObj.db].safeModeUser };
 				let wsInfo = await dbQuery(checkWSString, databaseObj[infoObj.db], bindedValuesWS);
 				if (wsInfo.rows && wsInfo.rows.length !== 1) {
-					vscode.window.showErrorMessage("Unable to push script to database, because workspace status is not Edit-In-Progress or Checkpointed!");
+					vscode.window.showErrorMessage("Unable to push script to database, because workspace status is not Edit-In-Progress or Checkpointed or was not created by the given user!");
 					return;
 				}
 			}
