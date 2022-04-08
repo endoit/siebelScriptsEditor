@@ -11,9 +11,9 @@
 		"Snippets"
 	],
 	"repository": {
-    "type": "git",
-    "url": "https://github.com/FagabosGit/siebelScriptEditor"
-  },
+		"type": "git",
+		"url": "https://github.com/endoit/siebelScriptsEditor"
+	},
 	"activationEvents": [
 		"onCommand:siebelscripteditor.pullScript",
 		"onCommand:siebelscripteditor.pushScript",
@@ -118,7 +118,9 @@
 		"pretest": "npm run lint",
 		"test": "node ./test/runTest.js"
 	},
-	"dependencies": {"oracledb": "^5.3.0"},
+	"dependencies": {
+		"oracledb": "^5.3.0"
+	},
 	"devDependencies": {
 		"@types/glob": "^7.1.4",
 		"@types/mocha": "^9.0.0",
