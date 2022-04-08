@@ -68,6 +68,7 @@ This extension contributes the following settings:
 
 * `siebelScriptEditor.databaseConfigurations`: list of database configurations for the extension to connect to databases.
 * `siebelScriptEditor.defaultConnection`: default connection, repository and workspace to use when the extension activates, optional.
+* `siebelScriptEditor.safeMode`: When true, you can only get and update Siebel objects locked by the given Siebel username if workspaces are not in use or not exist. If workspaces are in use, then only objects belonging to active workspaces (i.e. their status is either "Edit-In-Progress" or "Checkpointed") created by the given username can be pulled from or pushed to the database.
 
 ## Known Issues
 
