@@ -98,7 +98,7 @@ The scripts are saved as javascripts files, and an info.json will be created for
 
 ![infojson](/features/documentation/infojson.PNG)
 
-## Pulling from and pushing scripts to the database
+## Refreshing and updating scripts
 Two command button will appear in top right corner, the arrow pointing down refreshes the currently focused script from the database, the arrow pointing up pushes it to the database, timestamping the updated column as well:
 
 ![pushpullbutton](/features/documentation/pushpullbutton.PNG)
