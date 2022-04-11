@@ -1,6 +1,6 @@
 # Siebel Script Editor README
 
-Siebel Script Editor is an extension which enables editing server scripts written in eScript for Siebel Objects directly in Visual Studio Code by connecting to the Siebel database.
+Siebel Script Editor is an extension which enables editing server scripts written in eScript for Siebel Objects directly in Visual Studio Code by connecting to the Siebel database. [Full documentation](https://github.com/endoit/siebelScriptsEditor/blob/main/documentation.md)
 
 ## Features
 
