@@ -102,7 +102,7 @@ const writeInfo = async (selectedObj, folderObj, folderPath, type, methodName) =
       await vscode.workspace.applyEdit(wsEdit);
       vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
     } else {
-      vscode.window.showInformationMessage('Open a WorkSpace or define a WorkSpace path in config file');
+      vscode.window.showInformationMessage('Open a WorkSpace folder!');
     }
   } catch (err) {
     return err.message;
