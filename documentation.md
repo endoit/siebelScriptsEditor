@@ -5,15 +5,15 @@ Siebel Script Editor is a Visual Studio Code extension, which enables the editin
 
 ## Installation
 Prerequisites:
-- siebelscripteditor-\<VERSION_NUMBER\>.vsix extension file
+- siebelscripteditor-\<VERSION_NUMBER\>.vsix extension file [__Download Link__](https://github.com/endoit/siebelScriptsEditor/raw/main/siebelscripteditor-1.0.0.vsix)
 -	Visual Studio Code should be up-to-date
 -	[64-bit Oracle Client](https://www.oracle.com/database/technologies/instant-client/downloads.html)
 
-The extension can be installed with the following command using the .vsix file:
+The extension can be installed with the following command using the .vsix file ():
 ```
 code --install-extension <PATH>\siebelscripteditor-1.0.0.vsix
 ```
-After successful install, a new icon will appear in the left sidebar:
+After successful install, Visual Studio Code should be restarted, and a new icon will appear in the left sidebar:
 
 ![icon](/features/documentation/icon.PNG)
 
@@ -37,7 +37,7 @@ Currently there are three settings for the extension:
   - Password: database password
   - ConnectionString: connection string for the database. e.g. 111.111.111.111:1111/SIEBEL
   - SiebelUsername: only required for safe mode, which is enabled by default
-- __Default Connection__: the default database/repository/workspace to use when starting the extension, it should be set with the Set as default button on the extension.
+- __Default Connection__: the default database/repository/workspace to use when starting the extension, it should be set with the __Set as default__ button on the extension.
 - __Safe Mode__: turns safe mode on and off. In safe mode, you can only get and update Siebel objects locked by the given Siebel username if workspaces are not in use or not exist (in case of older Siebel versions). If workspaces are in use, then only objects belonging to active workspaces (their status is either Edit-In-Progress or Checkpointed) created by the given username can be pulled from or pushed to the database.
 
 We should give at least one database configuration, e.g.:
