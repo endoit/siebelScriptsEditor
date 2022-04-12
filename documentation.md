@@ -9,7 +9,7 @@ Prerequisites:
 -	Visual Studio Code should be up-to-date
 -	[64-bit Oracle Client](https://www.oracle.com/database/technologies/instant-client/downloads.html)
 
-The extension can be installed with the following command using the .vsix file ():
+The extension can be installed with the following command using the .vsix file:
 ```
 code --install-extension <PATH>\siebelscripteditor-1.0.0.vsix
 ```
@@ -78,7 +78,7 @@ The other buttons:
 - __Reload__ reloads the extension.
 
 ## Using the extension to get server scripts
-Clicking on an object, a dialog box will show in the bottomright corner with three buttons:
+Clicking on an object, a dialog box will show in the bottom right corner with three buttons:
 
 ![getbspopup](/features/documentation/getbspopup.PNG)
 
