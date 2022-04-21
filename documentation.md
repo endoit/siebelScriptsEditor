@@ -117,6 +117,10 @@ And the info.json will be updated as well:
 
 ![infoup](/features/documentation/infoup.PNG)
 
+__IMPORTANT__: In workspace enabled Siebel versions, editing server scripts and then checkpointing the workspace, and subsequently editing already edited scripts in Siebel (web)tools will create new versions from them, which will not be the same as the ones edited in the extension. In that case, if a newer version of a script exists, the extension will detect it, and will not let pushing it to the database. The scripts should be refreshed from the extension, either with the pull button, or from the the tree view. Only the newest version of server scripts is possible to get and edit with the extension in the database.
+
+![badversion](/features/documentation/badversion.PNG)
+
 Possible errors when pushing scripts to the database:
 
 ![perr1](/features/documentation/perr1.PNG)

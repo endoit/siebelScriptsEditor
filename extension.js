@@ -81,7 +81,7 @@ async function activate(context) {
 		const configObj = configData.DBConnection;
 		const defaultObj = configData.default
 		const firstDB = Object.keys(configData.DBConnection)[0];
-		const selected = { date: "", scr: "", db: defaultObj.db || firstDB, ws: "", repo: "", service: { id: "", name: "", childId: "" }, buscomp: { id: "", name: "", childId: "" }, applet: { id: "", name: "", childId: "" }, application: { id: "", name: "", childId: "" } };
+		const selected = { date: "", scr: "", db: defaultObj.db || firstDB, ws: "", repo: "", service: { id: "", name: "", wssrcid: "", childId: "" }, buscomp: { id: "", name: "", childId: "" }, applet: { id: "", name: "", childId: "" }, application: { id: "", name: "", childId: "" } };
 		const folders = { db: selected.db, repo: "", ws: "" };
 		const folderPath = () => `${folders.db}_${folders.repo}/${folders.ws}`;
 		const dbRepoWS = { db: "", repo: "", ws: "" }

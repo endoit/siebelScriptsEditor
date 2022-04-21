@@ -123,7 +123,21 @@ const getSiebelData = async (params, databaseConf, type, folder) => {
 	const bindedValues = { repo: params.repo, datestr: params.date || "1800-01-01" };
 	let queryStringSB = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].table} WHERE CREATED > TO_DATE(:datestr, 'yyyy-mm-dd') AND REPOSITORY_ID=:repo`;
 	if (databaseConf.workspaces === WS_ENABLED) {
-		queryStringSB += ` AND WS_ID=:ws`;
+		queryStringSB = `WITH MAXVERSION
+										AS ( SELECT MAX (SC.WS_OBJ_VER) AS MAXVERSIONNR,
+										SC.WS_SRC_ID AS MAX_WS_SRC_ID
+										FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} SC
+										GROUP BY SC.WS_SRC_ID)
+										SELECT OBJECT.ROW_ID, OBJECT.NAME
+										FROM MAXVERSION, SIEBEL.${tablesAndIdColumns[type].scriptTable} SRVSCRIPT, SIEBEL.${tablesAndIdColumns[type].table} OBJECT
+										WHERE SRVSCRIPT.WS_OBJ_VER=MAXVERSION.MAXVERSIONNR
+										AND SRVSCRIPT.WS_SRC_ID=MAXVERSION.MAX_WS_SRC_ID
+										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=OBJECT.ROW_ID
+										AND OBJECT.WS_ID=:ws
+										AND OBJECT.REPOSITORY_ID=:repo
+										AND OBJECT.CREATED > TO_DATE(:datestr, 'yyyy-mm-dd')
+										${params.scr ? `AND OBJECT.ROW_ID IN (SELECT ${tablesAndIdColumns[type].idColumn} FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE SCRIPT IS NOT NULL)` : ""}
+										GROUP BY OBJECT.ROW_ID, OBJECT.NAME`
 		bindedValues.ws = params.ws;
 	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSB += ` AND WS_ID IS NULL`;
@@ -132,10 +146,9 @@ const getSiebelData = async (params, databaseConf, type, folder) => {
 		queryStringSB += ` AND OBJ_LOCKED_BY=:userid`;
 		bindedValues.userid = databaseConf.safeModeUser;
 	}
-	if (params.scr === true) {
+	if (params.scr === true && databaseConf.workspaces !== WS_ENABLED) {
 		queryStringSB += ` AND ROW_ID IN (SELECT ${tablesAndIdColumns[type].idColumn} FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE SCRIPT IS NOT NULL)`;
 	}
-
 	const bsdata = await dbQuery(queryStringSB, databaseConf, bindedValues);
 	bsdata && bsdata.rows && bsdata.rows.forEach((row) => {
 		exists = fs.existsSync(`${wsPath}/${folder}/${type}/${row.NAME}`);
@@ -154,11 +167,22 @@ const getSiebelData = async (params, databaseConf, type, folder) => {
 //get all scripts for siebel object
 const getServerScripts = async (params, databaseConf, type) => {
 	const scriptobj = {};
-	const bindedValues = { repo: params.repo, parentid: params[type].id };
+	let bindedValues = { repo: params.repo, parentid: params[type].id };
 	let queryStringSC = `SELECT ROW_ID, NAME, SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
 	if (databaseConf.workspaces === WS_ENABLED) {
-		queryStringSC += ` AND WS_ID=:ws`;
-		bindedValues.ws = params.ws;
+		queryStringSC = `WITH MAXVERSION
+										AS ( SELECT MAX (SC.WS_OBJ_VER) AS MAXVERSIONNR,
+										SC.WS_SRC_ID AS MAX_WS_SRC_ID
+										FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} SC
+										GROUP BY SC.WS_SRC_ID)
+										SELECT SRVSCRIPT.ROW_ID, SRVSCRIPT.NAME, SRVSCRIPT.SCRIPT
+										FROM MAXVERSION, SIEBEL.${tablesAndIdColumns[type].scriptTable} SRVSCRIPT, SIEBEL.${tablesAndIdColumns[type].table} OBJECT
+										WHERE SRVSCRIPT.WS_OBJ_VER=MAXVERSION.MAXVERSIONNR
+										AND SRVSCRIPT.WS_SRC_ID=MAXVERSION.MAX_WS_SRC_ID
+										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=OBJECT.ROW_ID
+										AND OBJECT.WS_ID=:ws
+										AND OBJECT.REPOSITORY_ID=:repo`
+		bindedValues = { repo: params.repo, ws: params.ws };
 	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
 	}
@@ -172,15 +196,27 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 	const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
 	const folderPath = `${folderObj.db}_${folderObj.repo}/${folderObj.ws}/${type}`;
 	const scriptobj = {};
-	const bindedValues = { repo: params.repo, parentid: params[type].id };
+	let bindedValues = { repo: params.repo, parentid: params[type].id };
 	let queryStringSC = `SELECT ROW_ID, NAME FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid`;
 	if (databaseConf.workspaces === WS_ENABLED) {
-		queryStringSC += ` AND WS_ID=:ws`;
-		bindedValues.ws = params.ws;
+		queryStringSC = `WITH MAXVERSION
+										AS ( SELECT MAX (SC.WS_OBJ_VER) AS MAXVERSIONNR,
+										SC.WS_SRC_ID AS MAX_WS_SRC_ID
+										FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} SC
+										GROUP BY SC.WS_SRC_ID)
+										SELECT SRVSCRIPT.ROW_ID, SRVSCRIPT.NAME
+										FROM MAXVERSION, SIEBEL.${tablesAndIdColumns[type].scriptTable} SRVSCRIPT, SIEBEL.${tablesAndIdColumns[type].table} OBJECT
+										WHERE SRVSCRIPT.WS_OBJ_VER=MAXVERSION.MAXVERSIONNR
+										AND SRVSCRIPT.WS_SRC_ID=MAXVERSION.MAX_WS_SRC_ID
+										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=OBJECT.ROW_ID
+										AND OBJECT.WS_ID=:ws
+										AND OBJECT.REPOSITORY_ID=:repo`
+		bindedValues = { repo: params.repo, ws: params.ws };
 	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
 	}
 	const scdata = await dbQuery(queryStringSC, databaseConf, bindedValues);
+	console.log(scdata)
 	scdata && scdata.rows && scdata.rows.forEach((row) => {
 		scriptobj[row.NAME] = {
 			id: row.ROW_ID,
@@ -192,7 +228,7 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 
 //get selected method for siebel object
 const getServerScriptMethod = async (params, databaseConf, type) => {
-	const bindedValues = { repo: params.repo, parentid: params[type].id, methodid: params[type].childId };
+	let bindedValues = { repo: params.repo, parentid: params[type].id, methodid: params[type].childId };
 	let queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[type].idColumn}=:parentid AND ROW_ID=:methodid`;
 	if (databaseConf.workspaces === WS_ENABLED) {
 		queryStringSC += ` AND WS_ID=:ws`;
@@ -227,31 +263,40 @@ const createBackup = async (params, databaseConf, type, backupFolder) => {
 const pushOrPullScript = async (action, databaseObj) => {
 	let currentlyOpenTabfilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
 	if (path.basename(currentlyOpenTabfilePath).endsWith(".js") === false) {
-		vscode.window.showInformationMessage("Currently active file is not a Siebel Object script or its extension is not .js!");
+		vscode.window.showErrorMessage("Currently active file is not a Siebel Object script or its extension is not .js!");
 		return;
 	}
 	let scrName = path.basename(currentlyOpenTabfilePath, ".js");
 	let dirPath = path.dirname(currentlyOpenTabfilePath);
 	let infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
 	if (fs.existsSync(infoFilePath.fsPath) === false) {
-		vscode.window.showInformationMessage("File info.json was not found, please get the Siebel Object again from the extension!");
+		vscode.window.showErrorMessage("File info.json was not found, please get the Siebel Object again from the extension!");
 		return;
 	}
 	let readData = await vscode.workspace.fs.readFile(infoFilePath);
 	let scrFilePath = vscode.Uri.file(`${dirPath}/${scrName}.js`);
 	let infoObj = JSON.parse(Buffer.from(readData));
 	if (infoObj.scripts.hasOwnProperty(scrName) === false) {
-		vscode.window.showInformationMessage("Script was not found in info.json, please get the Siebel Object script again from the extension or check for accidental renaming!");
+		vscode.window.showErrorMessage("Script was not found in info.json, please get the Siebel Object script again from the extension or check for accidental renaming!");
 		return;
 	}
 	switch (action) {
 		case "pull": {
-			const bindedValues = { repo: infoObj.repo.id, parentid: infoObj.siebelObject.id, methodid: infoObj.scripts[scrName].id };
-			let queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[infoObj.type].idColumn}=:parentid AND ROW_ID=:methodid`;
+			const bindedValues = { repo: infoObj.repo.id, methodid: infoObj.scripts[scrName].id };
+			let queryStringSC = `SELECT SCRIPT FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE REPOSITORY_ID=:repo AND ROW_ID=:methodid`;
 			if (databaseObj[infoObj.db].workspaces === WS_ENABLED) {
-				queryStringSC += ` AND WS_ID=:ws`;
-				bindedValues.ws = infoObj.ws.id;
-			} else if (databaseObj[infoObj.db].workspaces === WS_NOT_IN_USE) {
+				const getWSSourceIdString = `SELECT WS_SRC_ID FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE ROW_ID=:methodid`;
+				const methodidobj = { methodid: infoObj.scripts[scrName].id };
+				const getWSSourceId = await dbQuery(getWSSourceIdString, databaseObj[infoObj.db], methodidobj);
+				const wssrcidobj = { wssrcid: getWSSourceId.rows[0]?.WS_SRC_ID };
+				const checkWSVersionString = `SELECT ROW_ID FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE WS_SRC_ID=:wssrcid ORDER BY WS_OBJ_VER DESC`;
+				const checkWSVersion = await dbQuery(checkWSVersionString, databaseObj[infoObj.db], wssrcidobj);
+				if (checkWSVersion.rows[0]?.ROW_ID !== infoObj.scripts[scrName].id) {
+					bindedValues.methodid = checkWSVersion.rows[0]?.ROW_ID;
+					infoObj.scripts[scrName]["id"] = checkWSVersion.rows[0]?.ROW_ID;
+				}
+			}
+			if (databaseObj[infoObj.db].workspaces === WS_NOT_IN_USE) {
 				queryStringSC += ` AND WS_ID IS NULL`
 			}
 			const scdata = await dbQuery(queryStringSC, databaseObj[infoObj.db], bindedValues);
@@ -274,11 +319,23 @@ const pushOrPullScript = async (action, databaseObj) => {
 					return;
 				}
 			}
+			if (databaseObj[infoObj.db].workspaces === WS_ENABLED) {
+				const getWSSourceIdString = `SELECT WS_SRC_ID FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE ROW_ID=:methodid`;
+				const methodidobj = { methodid: infoObj.scripts[scrName].id };
+				const getWSSourceId = await dbQuery(getWSSourceIdString, databaseObj[infoObj.db], methodidobj);
+				const wssrcidobj = { wssrcid: getWSSourceId.rows[0]?.WS_SRC_ID };
+				const checkWSVersionString = `SELECT ROW_ID FROM SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} WHERE WS_SRC_ID=:wssrcid ORDER BY WS_OBJ_VER DESC`;
+				const checkWSVersion = await dbQuery(checkWSVersionString, databaseObj[infoObj.db], wssrcidobj);
+				if (checkWSVersion.rows[0]?.ROW_ID !== infoObj.scripts[scrName].id) {
+					vscode.window.showErrorMessage("Unable to push script to database, because workspace has been checkpointed and there is a newer version of this script in the database, please refresh it with the pull button!");
+					return;
+				}
+			}
 			const commit = true;
 			const scrDataRead = await vscode.workspace.fs.readFile(scrFilePath);
 			const scrText = Buffer.from(scrDataRead).toString();
-			const bindedValues = { repo: infoObj.repo.id, parentid: infoObj.siebelObject.id, methodid: infoObj.scripts[scrName].id, script: scrText };
-			let updateStringSC = `UPDATE SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} SET SCRIPT=:script, LAST_UPD=CURRENT_TIMESTAMP WHERE REPOSITORY_ID=:repo AND ${tablesAndIdColumns[infoObj.type].idColumn}=:parentid AND ROW_ID=:methodid`;
+			const bindedValues = { repo: infoObj.repo.id, methodid: infoObj.scripts[scrName].id, script: scrText };
+			let updateStringSC = `UPDATE SIEBEL.${tablesAndIdColumns[infoObj.type].scriptTable} SET SCRIPT=:script, LAST_UPD=CURRENT_TIMESTAMP WHERE REPOSITORY_ID=:repo AND ROW_ID=:methodid`;
 			if (databaseObj[infoObj.db].workspaces === WS_ENABLED) {
 				updateStringSC += ` AND WS_ID=:ws`;
 				bindedValues.ws = infoObj.ws.id;
