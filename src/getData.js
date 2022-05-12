@@ -180,6 +180,7 @@ const getServerScripts = async (params, databaseConf, type) => {
 										WHERE SRVSCRIPT.WS_OBJ_VER=MAXVERSION.MAXVERSIONNR
 										AND SRVSCRIPT.WS_SRC_ID=MAXVERSION.MAX_WS_SRC_ID
 										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=OBJECT.ROW_ID
+										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=:parentid
 										AND OBJECT.WS_ID=:ws
 										AND OBJECT.REPOSITORY_ID=:repo`
 		bindedValues = { repo: params.repo, ws: params.ws };
@@ -209,6 +210,7 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 										WHERE SRVSCRIPT.WS_OBJ_VER=MAXVERSION.MAXVERSIONNR
 										AND SRVSCRIPT.WS_SRC_ID=MAXVERSION.MAX_WS_SRC_ID
 										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=OBJECT.ROW_ID
+										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=:parentid
 										AND OBJECT.WS_ID=:ws
 										AND OBJECT.REPOSITORY_ID=:repo`
 		bindedValues = { repo: params.repo, ws: params.ws };
