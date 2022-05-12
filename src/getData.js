@@ -183,7 +183,7 @@ const getServerScripts = async (params, databaseConf, type) => {
 										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=:parentid
 										AND OBJECT.WS_ID=:ws
 										AND OBJECT.REPOSITORY_ID=:repo`
-		bindedValues = { repo: params.repo, ws: params.ws };
+		bindedValues = { repo: params.repo, ws: params.ws, parentid: params[type].id };
 	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
 	}
@@ -213,7 +213,7 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=:parentid
 										AND OBJECT.WS_ID=:ws
 										AND OBJECT.REPOSITORY_ID=:repo`
-		bindedValues = { repo: params.repo, ws: params.ws };
+		bindedValues = { repo: params.repo, ws: params.ws, parentid: params[type].id };
 	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
 	}
