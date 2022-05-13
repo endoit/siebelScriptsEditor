@@ -137,7 +137,8 @@ const getSiebelData = async (params, databaseConf, type, folder) => {
 										AND OBJECT.REPOSITORY_ID=:repo
 										AND OBJECT.CREATED > TO_DATE(:datestr, 'yyyy-mm-dd')
 										${params.scr ? `AND OBJECT.ROW_ID IN (SELECT ${tablesAndIdColumns[type].idColumn} FROM SIEBEL.${tablesAndIdColumns[type].scriptTable} WHERE SCRIPT IS NOT NULL)` : ""}
-										GROUP BY OBJECT.ROW_ID, OBJECT.NAME`
+										GROUP BY OBJECT.ROW_ID, OBJECT.NAME
+										ORDER BY OBJECT.NAME`
 		bindedValues.ws = params.ws;
 	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSB += ` AND WS_ID IS NULL`;
@@ -182,7 +183,8 @@ const getServerScripts = async (params, databaseConf, type) => {
 										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=OBJECT.ROW_ID
 										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=:parentid
 										AND OBJECT.WS_ID=:ws
-										AND OBJECT.REPOSITORY_ID=:repo`
+										AND OBJECT.REPOSITORY_ID=:repo
+										ORDER BY SRVSCRIPT.NAME`
 		bindedValues = { repo: params.repo, ws: params.ws, parentid: params[type].id };
 	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
@@ -212,7 +214,8 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=OBJECT.ROW_ID
 										AND SRVSCRIPT.${tablesAndIdColumns[type].idColumn}=:parentid
 										AND OBJECT.WS_ID=:ws
-										AND OBJECT.REPOSITORY_ID=:repo`
+										AND OBJECT.REPOSITORY_ID=:repo
+										ORDER BY SRVSCRIPT.NAME`
 		bindedValues = { repo: params.repo, ws: params.ws, parentid: params[type].id };
 	} else if (databaseConf.workspaces === WS_NOT_IN_USE) {
 		queryStringSC += ` AND WS_ID IS NULL`;
