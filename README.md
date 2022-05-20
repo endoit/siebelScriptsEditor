@@ -1,82 +1,36 @@
-# Siebel Script Editor README
+Siebel Script Editor is a Visual Studio Code extension, which enables editing Siebel object server scripts directly in VS Code, using a direct connection to the Siebel database.
 
-Siebel Script Editor is an extension which enables editing server scripts written in eScript for Siebel Objects directly in Visual Studio Code by connecting to the Siebel database. [__See the full documentation for the detailed installation instructions__](https://github.com/endoit/siebelScriptsEditor/blob/main/documentation.md)
+[__See the full documentation for detailed installation and usage instructions__](documentation.md)
 
-## Features
+[Changelog](CHANGELOG.md)
 
-Download Business Service, Business Component, Applet and Application server scripts from the specified database, repository and workspace (if used), and edit them with Visual Studio Code as javascript files.
+# 1. Features
 
-![Get server scripts](/features/getscripts.gif "Get server scripts")
+- Download Business Service, Business Component, Applet and Application server scripts from the specified database, repository and workspace (for workspace-enabled Siebel versions), and edit them with Visual Studio Code as javascript files.
 
-The downloaded scripts can be refreshed from the Siebel database, or pushed into the Siebel database.
+  ![Get server scripts](features/getscripts.gif "Get server scripts")
 
-![Push and pull server scripts](/features/pushpull.gif "Push and pull server scripts")
+- Pull (refresh) / push (upload) scripts from/to the Siebel database.
 
-Create backup from the specified database/repository/workspace:
+  ![Push and pull server scripts](features/pushpull.gif "Push and pull server scripts")
 
-![Backup](/features/backup.gif "Backup")
+- Create backup of the specified database/repository/workspace:
 
-Snippets included for boilerplate:
+  ![Backup](features/backup.gif "Backup")
 
-![Snippet in action](/features/snippetgif.gif "Snippet in action")
+- Snippets included for boilerplate code:
 
-Folder structure for the scripts:
-```
-Visual Studio Code Workspace   
-│
-└───Database Name_Repository Name
-│   └───Workspace Name
-│   │   └───sevice
-│   │   │   └───Business Service Name
-│   │   │       │   Service_PreInvokeMethod.js
-│   │   │       │   CustomMethod.js
-│   │   │       │   info.json
-│   │   └───buscomp
-│   │   │   └───Business Component Name
-│   │   │       │   Buscomp_PreInvokeMethod.js
-│   │   │       │   CustomMethod.js
-│   │   │       │   info.json
-│   │   └───applet
-│   │   │   └──Applet Name
-│   │   │       │   WebApplet_PreInvokeMethod.js
-│   │   │       │   CustomMethod.js
-│   │   │       │   info.json
-│   │   └───application
-│   │   │   └───Siebel Application Name
-│   │   │       │   CustomMethod.js
-│   │   │       │   info.json
-│   │   └───Workspace Name_backup_timestamp
-│   │       │   │   backupinfo.json
-│   │       └───sevice
-│   │       └───buscomp
-│   │       └───applet
-│   │       └───application
-│   └───Other Workspace Name
-└───Other Database Name_Other Repository Name
-    └───Another Workspace Name
-```
+  ![Snippet in action](features/snippetgif.gif "Snippet in action")
 
-The info.json holds the information for the Siebel Object server scripts, including the row ids needed for the database operations, and the timestamp of the last update from and last push to the database.
+- Supports multiple Siebel database connections.
 
-## Requirements
+- Safe mode prevents overwriting scripts being worked on by other developers.
 
-The extension requires 64-bit Oracle Client to be installed, see https://oracle.github.io/node-oracledb/INSTALL.html.
+# 2. Requirements
 
-## Extension Settings
+The extension requires the 64-bit Oracle Client to be installed, see the [full documentation for detailed installation instructions](documentation.md).
 
-This extension contributes the following settings:
+# 3. Known Issues
 
-* `siebelScriptEditor.databaseConfigurations`: list of database configurations for the extension to connect to databases.
-* `siebelScriptEditor.defaultConnection`: default connection, repository and workspace to use when the extension activates, optional.
-* `siebelScriptEditor.safeMode`: When true, you can only get and update Siebel objects locked by the given Siebel username if workspaces are not in use or not exist. If workspaces are in use, then only objects belonging to active workspaces (i.e. their status is either "Edit-In-Progress" or "Checkpointed") created by the given username can be pulled from or pushed to the database.
-
-## Known Issues
-
-The extension currently only works with Oracle databases.
-Only one workspace folder is supported.
-
-## Release Notes
-
-### 1.0.0
-
-Initial release of Siebel Scripts Editor
+- The extension supports Oracle databases only.
+- Only one VS Code workspace folder is supported.
