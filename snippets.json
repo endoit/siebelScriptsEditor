@@ -1,87 +1,634 @@
 {
-	"Print to console": {
-		"prefix": "log",
-		"body": [
-			"console.log('$1');",
-			"$2"
-		],
-		"description": "Log output to console"
-	},
-	"vquery": {
-		"scope": "javascript",
-		"prefix": "vquery",
-		"body": ["var bo${1:},", "\tbc${1:},", "\tbIs${1:}Record;","\tbo = TheApplication().GetBusObject(\"${2:}\");","\tbc = bo${1:}.GetBusComp(\"${2:}\");","\tbc${1:}.ActivateField(\"\");","\tbc${1:}.SetViewMode(AllView);","\tbc${1:}.ClearToQuery();","\tbc${1:}.SetSearchSpec(\"\", \"\");","\tbc${1:}.ExecuteQuery(ForwardOnly);","\tbIs${1:}Record = bc${1:}.FirstRecord();","\twhile (bIs${1:}Record){","\t\tbIs${1:}Record = bc${1:}.NextRecord();", "\t}","\tbc${1:} = null;","\tbo${1:} = null;"]
-	},
-
 	"query": {
 		"scope": "javascript",
 		"prefix": "query",
-		"body": ["\tbo${1:} = TheApplication().GetBusObject(\"${2:}\");","\tbc${1:} = bo${1:}.GetBusComp(\"${2:}\");","\tbc${1:}.ActivateField(\"\");","\tbc${1:}.SetViewMode(AllView);","\tbc${1:}.ClearToQuery();","\tbc${1:}.SetSearchSpec(\"\", \"\");","\tbc${1:}.ExecuteQuery(ForwardOnly);","\tbIs${1:}Record = bc${1:}.FirstRecord();","\twhile (bIs${1:}Record){","\t\tbIs${1:}Record = bc${1:}.NextRecord();", "\t}"]
+		"body": [
+			"\tbo${1:} = TheApplication().GetBusObject(\"${2:}\");",
+			"\tbc${1:} = bo${1:}.GetBusComp(\"${2:}\");",
+			"\tbc${1:}.ActivateField(\"\");",
+			"\tbc${1:}.SetViewMode(AllView);",
+			"\tbc${1:}.ClearToQuery();",
+			"\tbc${1:}.SetSearchSpec(\"\", \"\");",
+			"\tbc${1:}.ExecuteQuery(ForwardOnly);",
+			"\tbIs${1:}Record = bc${1:}.FirstRecord();",
+			"\twhile (bIs${1:}Record){",
+			"\t\tbIs${1:}Record = bc${1:}.NextRecord();",
+			"\t}"
+		]
 	},
-
-	"varq": {
-		"scope": "javascript",
-		"prefix": "varq",
-		"body": ["var bo${1:},", "\tbc${1:},", "\tbIs${1:}Record;"]
-	},
-
-	"varnull": {
-		"scope": "javascript",
-		"prefix": "varnull",
-		"body": ["\tbc${1:} = null;","\tbo${1:} = null;"]
-	},
-	
 	"method": {
 		"scope": "javascript",
 		"prefix": "method",
-		"body": ["function ${1:}(){", "\tvar sLogCategory,","\t\tsLogSource,","\t\tbo${2:},", "\t\tbc${2:},", "\t\tbIs${2:}Record;","\ttry{","\t\tTheApplication().LOGDebug(sLogCategory, sLogSource, \"${1:} start\");","\t\tbo${2:} = TheApplication().GetBusObject(\"${3:}\");","\t\tbc${2:} = bo${2:}.GetBusComp(\"${3:}\");","\t\tbc${2:}.ActivateField(\"\");","\t\tbc${2:}.SetViewMode(AllView);","\t\tbc${2:}.ClearToQuery();","\t\tbc${2:}.SetSearchSpec(\"\", \"\");","\t\tbc${2:}.ExecuteQuery(ForwardOnly);","\t\tbIs${2:}Record = bc${2:}.FirstRecord();","\t\twhile (bIs${2:}Record){","\t\t\tbIs${2:}Record = bc${2:}.NextRecord();", "\t\t}","\t\tTheApplication().LOGDebug(sLogCategory, sLogSource, \"${1:} end\");","\t} catch(e){","\t\tTheApplication().LOGError(sLogCategory, sLogSource, \"${1:} failed\", e);","\t} finally {","\t\tbc${2:} = null;","\t\tbo${2:} = null;","\t}","}"]
+		"body": [
+			"function ${1:}(){",
+			"\tvar sLogCategory,",
+			"\t\tsLogSource,",
+			"\t\tbo${2:},",
+			"\t\tbc${2:},",
+			"\t\tbIs${2:}Record;",
+			"\ttry{",
+			"\t\tbo${2:} = TheApplication().GetBusObject(\"${3:}\");",
+			"\t\tbc${2:} = bo${2:}.GetBusComp(\"${3:}\");",
+			"\t\tbc${2:}.ActivateField(\"\");",
+			"\t\tbc${2:}.SetViewMode(AllView);",
+			"\t\tbc${2:}.ClearToQuery();",
+			"\t\tbc${2:}.SetSearchSpec(\"\", \"\");",
+			"\t\tbc${2:}.ExecuteQuery(ForwardOnly);",
+			"\t\tbIs${2:}Record = bc${2:}.FirstRecord();",
+			"\t\twhile (bIs${2:}Record){",
+			"\t\t\tbIs${2:}Record = bc${2:}.NextRecord();",
+			"\t\t}",
+			"\t} catch(e){",
+			"\t} finally {",
+			"\t\tbc${2:} = null;",
+			"\t\tbo${2:} = null;",
+			"\t}",
+			"}"
+		]
 	},
-
-	"logd": {
+	"SetPositionName": {
 		"scope": "javascript",
-		"prefix": "logd",
-		"body": ["TheApplication().LOGDebug(sLogCategory, sLogSource, ${1:}, ${2:});"]
+		"body": "SetPositionName(${1:})",
+		"prefix": "SetPositionName"
 	},
-
-	"actf": {
+	"GetChild": {
 		"scope": "javascript",
-		"prefix": ".actf",
-		"body": [".ActivateField(\"${1:}\");"]
+		"body": "GetChild(${1:})",
+		"prefix": "GetChild"
 	},
-
-	"getf": {
+	"GetUserProperty": {
 		"scope": "javascript",
-		"prefix": ".getf",
-		"body": [".GetFieldValue(\"${1:}\");"]
+		"body": "GetUserProperty(${1:})",
+		"prefix": "GetUserProperty"
 	},
-
-	"setf": {
+	"LoginName": {
 		"scope": "javascript",
-		"prefix": ".setf",
-		"body": [".SetFieldValue(\"${1:}\", \"${2:}\");"]
+		"body": "loginName()",
+		"prefix": "LoginName"
 	},
-
-	"newp":	{
+	"SetProfileAttr": {
 		"scope": "javascript",
-		"prefix": "newp",
-		"body": ["TheApplication().NewPropertySet();"]
+		"body": "SetProfileAttr(${1:})",
+		"prefix": "SetProfileAttr"
 	},
-
-	"getp": {
+	"GetMultipleFieldValues": {
 		"scope": "javascript",
-		"prefix": ".getp",
-		"body": [".GetProperty(\"${1:}\");"]
+		"body": "GetMultipleFieldValues(${1:})",
+		"prefix": "GetMultipleFieldValues"
 	},
-
-	"setp": {
+	"InputBox": {
 		"scope": "javascript",
-		"prefix": ".setp",
-		"body": [".SetProperty(\"${1:}\", \"${2:}\");"]
+		"body": "InputBox()",
+		"prefix": "InputBox"
 	},
-
-	"wf": {
+	"TraceOff": {
 		"scope": "javascript",
-		"prefix": "wf",
-		"body": ["var bsWFPM,", "\tpsInput,", "\tpsOutput;", "bsWFPM = TheApplication().GetService(\"Workflow Process Manager\");", "psInput = TheApplication().NewPropertySet();", "psOutput = TheApplication().NewPropertySet();", "psInput.SetProperty(\"ProcessName\", \"${1:}\");", "bsWFPM.InvokeMethod(\"RunProcess\", psInput, psOutput);", "bsWFPM = null;"]
-	}	
+		"body": "TraceOff()",
+		"prefix": "TraceOff"
+	},
+	"GetProfileAttr": {
+		"scope": "javascript",
+		"body": "GetProfileAttr(${1:})",
+		"prefix": "GetProfileAttr"
+	},
+	"Drilldown": {
+		"scope": "javascript",
+		"body": "Drilldown()",
+		"prefix": "Drilldown"
+	},
+	"CurrencyCode": {
+		"scope": "javascript",
+		"body": "CurrencyCode()",
+		"prefix": "CurrencyCode"
+	},
+	"GetSearchExpr": {
+		"scope": "javascript",
+		"body": "GetSearchExpr()",
+		"prefix": "GetSearchExpr"
+	},
+	"toSystem": {
+		"scope": "javascript",
+		"body": "toSystem()",
+		"prefix": "toSystem"
+	},
+	"GetSearchSpec": {
+		"scope": "javascript",
+		"body": "GetSearchSpec(${1:})",
+		"prefix": "GetSearchSpec"
+	},
+	"GotoApplet": {
+		"scope": "javascript",
+		"body": "GotoApplet()",
+		"prefix": "GotoApplet"
+	},
+	"SuppressNotification": {
+		"scope": "javascript",
+		"body": "SuppressNotification()",
+		"prefix": "SuppressNotification"
+	},
+	"SetMultipleFieldValues": {
+		"scope": "javascript",
+		"body": "SetMultipleFieldValues(${1:})",
+		"prefix": "SetMultipleFieldValues"
+	},
+	"RaiseErrorText": {
+		"scope": "javascript",
+		"body": "RaiseErrorText(${1:})",
+		"prefix": "RaiseErrorText"
+	},
+	"FindApplet": {
+		"scope": "javascript",
+		"body": "FindApplet()",
+		"prefix": "FindApplet"
+	},
+	"RemoveChild": {
+		"scope": "javascript",
+		"body": "RemoveChild(${1:})",
+		"prefix": "RemoveChild"
+	},
+	"RefineQuery": {
+		"scope": "javascript",
+		"body": "RefineQuery()",
+		"prefix": "RefineQuery"
+	},
+	"SearchExpr": {
+		"scope": "javascript",
+		"body": "SearchExpr(${1:})",
+		"prefix": "SearchExpr"
+	},
+	"SetNamedSearch": {
+		"scope": "javascript",
+		"body": "SetNamedSearch(${1:})",
+		"prefix": "SetNamedSearch"
+	},
+	"ActiveControl": {
+		"scope": "javascript",
+		"body": "ActiveControl()",
+		"prefix": "ActiveControl"
+	},
+	"ShowStatus": {
+		"scope": "javascript",
+		"body": "ShowStatus()",
+		"prefix": "ShowStatus"
+	},
+	"GotoControl": {
+		"scope": "javascript",
+		"body": "GotoControl()",
+		"prefix": "GotoControl"
+	},
+	"NewRecord": {
+		"scope": "javascript",
+		"body": "NewRecord(${1|NewAfter,NewAfterCopy,NewBefore,NewBeforeCopy|})",
+		"prefix": "NewRecord"
+	},
+	"Trace": {
+		"scope": "javascript",
+		"body": "Trace(${1:})",
+		"prefix": "Trace"
+	},
+	"ActiveBusObject": {
+		"scope": "javascript",
+		"body": "ActiveBusObject()",
+		"prefix": "ActiveBusObject"
+	},
+	"GetFieldValue": {
+		"scope": "javascript",
+		"body": "GetFieldValue(${1:})",
+		"prefix": "GetFieldValue"
+	},
+	"GetValue": {
+		"scope": "javascript",
+		"body": "GetValue()",
+		"prefix": "GetValue"
+	},
+	"GetPicklistBusComp": {
+		"scope": "javascript",
+		"body": "GetPicklistBusComp(${1:})",
+		"prefix": "GetPicklistBusComp"
+	},
+	"AddChild": {
+		"scope": "javascript",
+		"body": "AddChild(${1:})",
+		"prefix": "AddChild"
+	},
+	"NextRecord": {
+		"scope": "javascript",
+		"body": "NextRecord()",
+		"prefix": "NextRecord"
+	},
+	"SetSortSpec": {
+		"scope": "javascript",
+		"body": "SetSortSpec(${1:})",
+		"prefix": "SetSortSpec"
+	},
+	"Pick": {
+		"scope": "javascript",
+		"body": "Pick()",
+		"prefix": "Pick"
+	},
+	"BusComp": {
+		"scope": "javascript",
+		"body": "BusComp()",
+		"prefix": "BusComp"
+	},
+	"ToBuffer": {
+		"scope": "javascript",
+		"body": "ToBuffer(${1:})",
+		"prefix": "ToBuffer"
+	},
+	"SetViewMode": {
+		"scope": "javascript",
+		"body": "SetViewMode(${1:AllView})",
+		"prefix": "SetViewMode"
+	},
+	"GetAssocBusComp": {
+		"scope": "javascript",
+		"body": "GetAssocBusComp()",
+		"prefix": "GetAssocBusComp"
+	},
+	"RemoveProperty": {
+		"scope": "javascript",
+		"body": "RemoveProperty(${1:})",
+		"prefix": "RemoveProperty"
+	},
+	"SetType": {
+		"scope": "javascript",
+		"body": "SetType(${1:})",
+		"prefix": "SetType"
+	},
+	"SetSearchExpr": {
+		"scope": "javascript",
+		"body": "SetSearchExpr(${1:})",
+		"prefix": "SetSearchExpr"
+	},
+	"ToString": {
+		"scope": "javascript",
+		"body": "ToString(${1:})",
+		"prefix": "ToString"
+	},
+	"GetNamedSearch": {
+		"scope": "javascript",
+		"body": "GetNamedSearch(${1:})",
+		"prefix": "GetNamedSearch"
+	},
+	"GotoView": {
+		"scope": "javascript",
+		"body": "GotoView(${1:})",
+		"prefix": "GotoView"
+	},
+	"BusObject": {
+		"scope": "javascript",
+		"body": "BusObject()",
+		"prefix": "BusObject"
+	},
+	"ClearToQuery": {
+		"scope": "javascript",
+		"body": "ClearToQuery()",
+		"prefix": "ClearToQuery"
+	},
+	"GetProperty": {
+		"scope": "javascript",
+		"body": "GetProperty(${1:})",
+		"prefix": "GetProperty"
+	},
+	"SetFieldValue": {
+		"scope": "javascript",
+		"body": "SetFieldValue(${1:})",
+		"prefix": "SetFieldValue"
+	},
+	"GetFirstProperty": {
+		"scope": "javascript",
+		"body": "GetFirstProperty()",
+		"prefix": "GetFirstProperty"
+	},
+	"TraceOn": {
+		"scope": "javascript",
+		"body": "TraceOn(${1:})",
+		"prefix": "TraceOn"
+	},
+	"fromSystem": {
+		"scope": "javascript",
+		"body": "fromSystem()",
+		"prefix": "fromSystem"
+	},
+	"ActiveViewName": {
+		"scope": "javascript",
+		"body": "ActiveViewName()",
+		"prefix": "ActiveViewName"
+	},
+	"UndoRecord": {
+		"scope": "javascript",
+		"body": "UndoRecord()",
+		"prefix": "UndoRecord"
+	},
+	"MsgBox": {
+		"scope": "javascript",
+		"body": "MsgBox()",
+		"prefix": "MsgBox"
+	},
+	"PositionId": {
+		"scope": "javascript",
+		"body": "PositionId()",
+		"prefix": "PositionId"
+	},
+	"ToObject": {
+		"scope": "javascript",
+		"body": "ToObject(${1:})",
+		"prefix": "ToObject"
+	},
+	"GetType": {
+		"scope": "javascript",
+		"body": "GetType()",
+		"prefix": "GetType"
+	},
+	"SetSharedGlobal": {
+		"scope": "javascript",
+		"body": "SetSharedGlobal(${1:})",
+		"prefix": "SetSharedGlobal"
+	},
+	"GetPropertyCount": {
+		"scope": "javascript",
+		"body": "GetPropertyCount()",
+		"prefix": "GetPropertyCount"
+	},
+	"NewPropertySet": {
+		"scope": "javascript",
+		"body": "NewPropertySet()",
+		"prefix": "NewPropertySet"
+	},
+	"PropertyExists": {
+		"scope": "javascript",
+		"body": "PropertyExists(${1:})",
+		"prefix": "PropertyExists"
+	},
+	"LoginId": {
+		"scope": "javascript",
+		"body": "LoginId()",
+		"prefix": "LoginId"
+	},
+	"ToNumber": {
+		"scope": "javascript",
+		"body": "ToNumber(${1:})",
+		"prefix": "ToNumber"
+	},
+	"ExecuteQuery": {
+		"scope": "javascript",
+		"body": "ExecuteQuery(${1|ForwardOnly,ForwardBackward|})",
+		"prefix": "ExecuteQuery"
+	},
+	"WriteRecord": {
+		"scope": "javascript",
+		"body": "WriteRecord()",
+		"prefix": "WriteRecord"
+	},
+	"ToInteger": {
+		"scope": "javascript",
+		"body": "ToInteger(${1:})",
+		"prefix": "ToInteger"
+	},
+	"GetChildCount": {
+		"scope": "javascript",
+		"body": "GetChildCount()",
+		"prefix": "GetChildCount"
+	},
+	"CountRecords": {
+		"scope": "javascript",
+		"body": "CountRecords()",
+		"prefix": "CountRecords"
+	},
+	"AllowNotification": {
+		"scope": "javascript",
+		"body": "AllowNotification()",
+		"prefix": "AllowNotification"
+	},
+	"Name": {
+		"scope": "javascript",
+		"body": "Name()",
+		"prefix": "Name"
+	},
+	"Copy": {
+		"scope": "javascript",
+		"body": "Copy()",
+		"prefix": "Copy"
+	},
+	"PreviousRecord": {
+		"scope": "javascript",
+		"body": "PreviousRecord()",
+		"prefix": "PreviousRecord"
+	},
+	"GetUserProp": {
+		"scope": "javascript",
+		"body": "GetUserProp(${1:})",
+		"prefix": "GetUserProp"
+	},
+	"SetUserProperty": {
+		"scope": "javascript",
+		"body": "SetUserProperty(${1:})",
+		"prefix": "SetUserProperty"
+	},
+	"GetBusObject": {
+		"scope": "javascript",
+		"body": "GetBusObject(${1:})",
+		"prefix": "GetBusObject"
+	},
+	"ToUint16": {
+		"scope": "javascript",
+		"body": "ToUint16(${1:})",
+		"prefix": "ToUint16"
+	},
+	"GetSharedGlobal": {
+		"scope": "javascript",
+		"body": "GetSharedGlobal(${1:})",
+		"prefix": "GetSharedGlobal"
+	},
+	"ActiveApplet": {
+		"scope": "javascript",
+		"body": "ActiveApplet()",
+		"prefix": "ActiveApplet"
+	},
+	"ParentBusComp": {
+		"scope": "javascript",
+		"body": "ParentBusComp()",
+		"prefix": "ParentBusComp"
+	},
+	"ToUint32": {
+		"scope": "javascript",
+		"body": "ToUint32(${1:})",
+		"prefix": "ToUint32"
+	},
+	"SetSearchSpec": {
+		"scope": "javascript",
+		"body": "SetSearchSpec(${1:})",
+		"prefix": "SetSearchSpec"
+	},
+	"Associate": {
+		"scope": "javascript",
+		"body": "Associate(${1:})",
+		"prefix": "Associate"
+	},
+	"Applet": {
+		"scope": "javascript",
+		"body": "Applet()",
+		"prefix": "Applet"
+	},
+	"GetFormattedFieldValue": {
+		"scope": "javascript",
+		"body": "GetFormattedFieldValue(${1:})",
+		"prefix": "GetFormattedFieldValue"
+	},
+	"GetViewMode": {
+		"scope": "javascript",
+		"body": "GetViewMode()",
+		"prefix": "GetViewMode"
+	},
+	"LookupMessage": {
+		"scope": "javascript",
+		"body": "LookupMessage(${1:})",
+		"prefix": "LookupMessage"
+	},
+	"GetNextProperty": {
+		"scope": "javascript",
+		"body": "GetNextProperty()",
+		"prefix": "GetNextProperty"
+	},
+	"GetService": {
+		"scope": "javascript",
+		"body": "GetService(${1:})",
+		"prefix": "GetService"
+	},
+	"NextSelected": {
+		"scope": "javascript",
+		"body": "NextSelected()",
+		"prefix": "NextSelected"
+	},
+	"ToBytes": {
+		"scope": "javascript",
+		"body": "ToBytes(${1:})",
+		"prefix": "ToBytes"
+	},
+	"GetCTIService": {
+		"scope": "javascript",
+		"body": "GetCTIService()",
+		"prefix": "GetCTIService"
+	},
+	"FirstRecord": {
+		"scope": "javascript",
+		"body": "FirstRecord()",
+		"prefix": "FirstRecord"
+	},
+	"FirstSelected": {
+		"scope": "javascript",
+		"body": "FirstSelected()",
+		"prefix": "FirstSelected"
+	},
+	"SetPositionId": {
+		"scope": "javascript",
+		"body": "SetPositionId(${1:})",
+		"prefix": "SetPositionId"
+	},
+	"SetFormattedFieldValue": {
+		"scope": "javascript",
+		"body": "SetFormattedFieldValue(${1:})",
+		"prefix": "SetFormattedFielValue"
+	},
+	"ToBoolean": {
+		"scope": "javascript",
+		"body": "ToBoolean(${1:})",
+		"prefix": "ToBoolean"
+	},
+	"RaiseError": {
+		"scope": "javascript",
+		"body": "RaiseError(${1:})",
+		"prefix": "RaiseError"
+	},
+	"PostChanges": {
+		"scope": "javascript",
+		"body": "PostChanges()",
+		"prefix": "PostChanges"
+	},
+	"SetProperty": {
+		"scope": "javascript",
+		"body": "SetProperty(${1:})",
+		"prefix": "SetProperty"
+	},
+	"TheApplication": {
+		"scope": "javascript",
+		"body": "TheApplication()",
+		"prefix": "TheApplication"
+	},
+	"Reset": {
+		"scope": "javascript",
+		"body": "Reset()",
+		"prefix": "Reset"
+	},
+	"ActiveBusComp": {
+		"scope": "javascript",
+		"body": "ActiveBusComp()",
+		"prefix": "ActiveBusComp"
+	},
+	"InvokeMethod": {
+		"scope": "javascript",
+		"body": "InvokeMethod(${1:})",
+		"prefix": "InvokeMethod"
+	},
+	"LastRecord": {
+		"scope": "javascript",
+		"body": "LastRecord()",
+		"prefix": "LastRecord"
+	},
+	"InsertChildAt": {
+		"scope": "javascript",
+		"body": "InsertChildAt(${1:})",
+		"prefix": "InsertChildAt"
+	},
+	"FindControl": {
+		"scope": "javascript",
+		"body": "FindControl()",
+		"prefix": "FindControl"
+	},
+	"Set${1:}": {
+		"scope": "javascript",
+		"body": "SetValue(${1:})",
+		"prefix": "SetValue"
+	},
+	"ToInt32": {
+		"scope": "javascript",
+		"body": "ToInt32(${1:})",
+		"prefix": "ToInt32"
+	},
+	"GetBusComp": {
+		"scope": "javascript",
+		"body": "GetBusComp(${1:})",
+		"prefix": "GetBusComp"
+	},
+	"ActivateMultipleFields": {
+		"scope": "javascript",
+		"body": "ActivateMultipleFields(${1:})",
+		"prefix": "ActivateMultipleFields"
+	},
+	"PositionName": {
+		"scope": "javascript",
+		"body": "PositionName()",
+		"prefix": "PositionName"
+	},
+	"ActivateField": {
+		"scope": "javascript",
+		"body": "ActivateField(${1:})",
+		"prefix": "ActivateField"
+	},
+	"DeleteRecord": {
+		"scope": "javascript",
+		"body": "DeleteRecord()",
+		"prefix": "DeleteRecord"
+	},
+	"GetMVGBusComp": {
+		"scope": "javascript",
+		"body": "GetMVGBusComp(${1:})",
+		"prefix": "GetMVGBusComp"
+	},
+	"DeactivateFields": {
+		"scope": "javascript",
+		"body": "DeactivateFields()",
+		"prefix": "DeactivateFields"
+	}
 }

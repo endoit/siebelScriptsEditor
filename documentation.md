@@ -127,7 +127,7 @@ To get the list of objects, select the database, then repository and finally the
 
 > If the Siebel version does not support workspaces, or workspaces are not enabled, the extension will detect it automatically, and the workspace selection list will be empty.
 
-The **Has scripts** checkbox is used to get only objects that have any server scripts. If the checkbox is removed, all objects will be retrieved.
+The **Has scripts** checkbox is used to get only objects that have any server scripts. If the checkbox is removed, all objects will be retrieved. This option only works for Siebel versions without workspaces, for workspace enabled Siebel versions, only objects with scripts will be retrieved, regardless of this setting.
 
 Setting a date in **Newer than** will filter objects that were _created_ after the selected date.
 

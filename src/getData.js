@@ -221,7 +221,6 @@ const getServerScriptsNames = async (params, databaseConf, type, folderObj) => {
 		queryStringSC += ` AND WS_ID IS NULL`;
 	}
 	const scdata = await dbQuery(queryStringSC, databaseConf, bindedValues);
-	console.log(scdata)
 	scdata && scdata.rows && scdata.rows.forEach((row) => {
 		scriptobj[row.NAME] = {
 			id: row.ROW_ID,

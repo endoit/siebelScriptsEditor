@@ -150,21 +150,25 @@ async function activate(context) {
 							thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, selected.db, message.repo, message.ws, backup);
 							if (message.ws) { vscode.window.showInformationMessage(`Selected workspace: ${message.ws}`) };
 
+							//business services
 							busServObj = await getData.getSiebelData(selected, configObj[selected.db], "service", folderPath());
 							const treeDataBS = new treeData.TreeDataProvider(busServObj);
 							const treeViewBS = vscode.window.createTreeView("businessServices", { treeDataProvider: treeDataBS });
 							treeViewBS.onDidChangeSelection(async (e) => treeData.selectionChange(e, "service", selected, configObj[selected.db], busServObj, treeDataBS, folders));
 
+							//business components
 							busCompObj = await getData.getSiebelData(selected, configObj[selected.db], "buscomp", folderPath());
 							const treeDataBC = new treeData.TreeDataProvider(busCompObj);
 							const treeViewBC = vscode.window.createTreeView("businessComponents", { treeDataProvider: treeDataBC });
 							treeViewBC.onDidChangeSelection(async (e) => treeData.selectionChange(e, "buscomp", selected, configObj[selected.db], busCompObj, treeDataBC, folders));
 
+							//applets
 							appletObj = await getData.getSiebelData(selected, configObj[selected.db], "applet", folderPath());
 							const treeDataApplet = new treeData.TreeDataProvider(appletObj);
 							const treeViewApplet = vscode.window.createTreeView("applets", { treeDataProvider: treeDataApplet });
 							treeViewApplet.onDidChangeSelection(async (e) => treeData.selectionChange(e, "applet", selected, configObj[selected.db], appletObj, treeDataApplet, folders));
 
+							//applications
 							applicationObj = await getData.getSiebelData(selected, configObj[selected.db], "application", folderPath());
 							const treeDataApplication = new treeData.TreeDataProvider(applicationObj);
 							const treeViewApplication = vscode.window.createTreeView("applications", { treeDataProvider: treeDataApplication });
