@@ -191,7 +191,7 @@ The following message is displayed after a successful push:
 
 ![infoup](features/documentation/infoup.PNG)
 
-> __IMPORTANT__: In workspace enabled Siebel versions, editing server scripts, then checkpointing the workspace and subsequently editing already edited scripts in Siebel (web)tools creates a new versions of the scripts which are not be the same as the ones edited in the extension. This case (a newer version of a script exists) is detected by the extension and will not allow pushing to the database. The affected scripts must be refreshed (pulled) either with the pull button, or from the the extension's UI (Siebel object tree view). The extension can only push and pull the newest version of server scripts.
+> __IMPORTANT__: In workspace enabled Siebel versions, editing server scripts, then checkpointing the workspace and subsequently editing already edited scripts in Siebel (web)tools creates a new versions of the scripts which are not the same as the ones edited in the extension. This case (a newer version of a script exists) is detected by the extension and will not allow pushing to the database. The affected scripts must be refreshed (pulled) either with the pull button, or from the the extension's UI (Siebel object tree view). The extension can only push and pull the newest version of server scripts.
 
 ![badversion](features/documentation/badversion.PNG)
 
