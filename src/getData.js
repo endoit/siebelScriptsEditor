@@ -14,6 +14,9 @@ async function dbQuery(query, databaseConfig, bindings, commit) {
 	try {
 		databaseConfig.events = true;
 		//if (databaseConfig.configDir) { oracledb.initOracleClient({ configDir: databaseConfig.configDir }) };
+		if (databaseConfig.tableOwner !== "SIEBEL"){
+			query = query.replace(/SIEBEL/g, databaseConfig.tableOwner);
+		}
 		connection = await oracledb.getConnection(databaseConfig);
 		result = await connection.execute(query, bindings || {});
 		if (commit) { connection.commit() };

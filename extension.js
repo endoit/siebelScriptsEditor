@@ -1,20 +1,23 @@
 const vscode = require('vscode');
-const filesRW = require('./src/filesRW.js');
-const getData = require('./src/getData.js');
-const treeData = require('./src/treeData.js');
 const getHTML = require('./src/getHTML.js');
+const dataService = require('./src/dataService.js');
+const treeData = require('./src/treeData.js');
+const { default: axios } = require('axios');
 
 async function activate(context) {
 	let answer;
-	let config;
 	let provider;
-	let workspaces;
 	let extensionView;
-	let dbConfigs = vscode.workspace.getConfiguration('siebelScriptEditor').databaseConfigurations;
-	if (dbConfigs.length === 0) {
-		answer = await vscode.window.showInformationMessage("No database configuration was found in the settings, do you want to go to settings and create one?", ...["Yes", "No"]);
+	let interceptor;
+	let url, username, password;
+	let searchString;
+	const reqParams = { "PageSize": 20, "fields": "Name", "ChildLinks": "None", "uniformresponse": "y" }
+	const connectionConfigs = vscode.workspace.getConfiguration('siebelScriptEditor')["REST EndpointConfigurations"];
+	const workspaces = vscode.workspace.getConfiguration('siebelScriptEditor')["workspaces"];
+	if (connectionConfigs.length === 0) {
+		answer = await vscode.window.showInformationMessage("No database configuration was found in the settings, do you want to go to settings and create one?", "Yes", "No");
 		if (answer === "Yes") {
-			//opens the Settings for the extension file
+			//opens the Settings for the extension
 			vscode.commands.executeCommand("workbench.action.openSettings", "SiebelScriptEditor");
 		}
 		provider = {
@@ -29,15 +32,15 @@ async function activate(context) {
 								const readConfigTest = readConfigTestArr[0].split("@");
 								const userPasswordTest = readConfigTest[0].split("/");
 								const configDataTest = { user: userPasswordTest[1], password: userPasswordTest[2], connectString: readConfigTest[1] };
-								const testResp = await getData.getRepoData(configDataTest);
+								//const testResp = await getData.getRepoData(configDataTest);
 								if (Object.keys(testResp).length > 0) {
-									vscode.window.showInformationMessage("Database connection is working!");
+									vscode.window.showInformationMessage("Connection is working!");
 									thisWebview.webview.html = getHTML.HTMLPage("enablereload");
 								} else {
-									vscode.window.showInformationMessage("Connection error, please check credentials and database status!");
+									vscode.window.showInformationMessage("Connection error, please check credentials and Siebel server status!");
 								}
 							} else {
-								vscode.window.showInformationMessage("Please add at least one database configuration!");
+								vscode.window.showInformationMessage("Please add at least one REST Endpoint configuration!");
 							}
 							break;
 						}
@@ -52,44 +55,23 @@ async function activate(context) {
 		extensionView = vscode.window.registerWebviewViewProvider("extensionView", provider);
 		context.subscriptions.push(extensionView);
 	} else {
-		let defConnection = vscode.workspace.getConfiguration("siebelScriptEditor").defaultConnection.split("/");
-		let safeMode = vscode.workspace.getConfiguration("siebelScriptEditor").safeMode;
-		let configData = { default: {}, DBConnection: {} };
-		for (config of dbConfigs) {
-			let dbParams = config.split("@");
-			let dbNameUserPw = dbParams[0].split("/");
-			let dbObj = { user: dbNameUserPw[1], password: dbNameUserPw[2], connectString: dbParams[1] };
-			workspaces = await getData.checkForWorkspaces(dbObj);
-			if (safeMode) {
-				let safeModeUser = await getData.getUserIdByName(dbObj, dbParams[2] || "");
-				if (safeModeUser) {
-					configData.DBConnection[dbNameUserPw[0]] = dbObj;
-					configData.DBConnection[dbNameUserPw[0]].workspaces = workspaces;
-					configData.DBConnection[dbNameUserPw[0]].safeModeUser = safeModeUser;
-					if (dbNameUserPw[0] === defConnection[0]) {
-						configData.default = { db: defConnection[0], repo: defConnection[1], ws: defConnection[2] || "" }
-					}
-				}
-			} else {
-				configData.DBConnection[dbNameUserPw[0]] = dbObj;
-				configData.DBConnection[dbNameUserPw[0]].workspaces = workspaces;
-				if (dbNameUserPw[0] === defConnection[0]) {
-					configData.default = { db: defConnection[0], repo: defConnection[1], ws: defConnection[2] || "" }
-				}
-			}
+		const defConnNameWSString = vscode.workspace.getConfiguration("siebelScriptEditor").defaultConnection;
+		let [defConnName, defWS] = defConnNameWSString && defConnNameWSString.split(":");
+		const workspaceObject = {}
+		for (let workspace of workspaces) {
+			let [connectionName, workspaceString] = workspace.split(":");
+			workspaceObject[connectionName] = [...workspaceString.split(",")];
 		}
-		const configObj = configData.DBConnection;
-		const defaultObj = configData.default
-		const firstDB = Object.keys(configData.DBConnection)[0];
-		const selected = { date: "", scr: "", db: defaultObj.db || firstDB, ws: "", repo: "", service: { id: "", name: "", wssrcid: "", childId: "" }, buscomp: { id: "", name: "", childId: "" }, applet: { id: "", name: "", childId: "" }, application: { id: "", name: "", childId: "" } };
-		const folders = { db: selected.db, repo: "", ws: "" };
-		const folderPath = () => `${folders.db}_${folders.repo}/${folders.ws}`;
-		const dbRepoWS = { db: "", repo: "", ws: "" }
-		dbRepoWS.db = configObj;
-		dbRepoWS.repo = await getData.getRepoData(configObj[selected.db]);
-		let firstRepo = Object.keys(dbRepoWS.repo)[0];
-		dbRepoWS.ws = await getData.getWSData(dbRepoWS.repo[defaultObj.repo || firstRepo], configObj[selected.db]);
-		let firstWS = Object.keys(dbRepoWS.ws)[0];
+		const configData = {};
+		for (let config of connectionConfigs) {
+			let [connUserPwString, url] = config.split("@");
+			let [connectionName, username, password] = connUserPwString.split("/");
+			let connectionObj = { username, password, url, workspaces: workspaceObject[connectionName] };
+			configData[connectionName] = connectionObj;
+		}
+		const firstConnection = Object.keys(configData)[0];
+		const selected = { connection: defConnName || firstConnection, workspace: defWS || configData[firstConnection].workspaces[0], object: "Business Service", service: { name: "", childName: "" }, buscomp: { name: "", childName: "" }, applet: { name: "", childName: "" }, application: { name: "", childName: "" } };
+		const folderPath = () => `${selected.connection}/${selected.workspace}`;
 		let busServObj = {};
 		let busCompObj = {};
 		let appletObj = {};
@@ -97,21 +79,25 @@ async function activate(context) {
 
 		//button to get the focused script from database
 		let pullButton = vscode.commands.registerCommand('siebelscripteditor.pullScript', async () => {
-			answer = await vscode.window.showInformationMessage("Do you want to overwrite the current script from the Siebel database?", ...["Yes", "No"]);
+			answer = await vscode.window.showInformationMessage("Do you want to overwrite the current script from the Siebel database?", "Yes", "No");
 			if (answer === "Yes") {
-				getData.pushOrPullScript("pull", configObj);
+				dataService.pushOrPullScript("pull", configData);
 			}
 		})
 		context.subscriptions.push(pullButton);
 
 		//button to update the focused script in the database
 		let pushButton = vscode.commands.registerCommand('siebelscripteditor.pushScript', async () => {
-			answer = await vscode.window.showInformationMessage("Do you want to overwrite this script in the Siebel database?", ...["Yes", "No"]);
+			answer = await vscode.window.showInformationMessage("Do you want to overwrite this script in the Siebel database?", "Yes", "No");
 			if (answer === "Yes") {
-				getData.pushOrPullScript("push", configObj);
+				dataService.pushOrPullScript("push", configData);
 			}
 		})
 		context.subscriptions.push(pushButton);
+
+		//create the interceptor for the default/first connection
+		({ url, username, password } = configData[selected.connection]);
+		interceptor = axios.interceptors.request.use((config) => ({ ...config, baseURL: `${url}/workspace/${selected.workspace}`, auth: { username, password } }));
 
 		//handle the datasource selection
 		provider = {
@@ -119,97 +105,72 @@ async function activate(context) {
 				thisWebview.webview.options = { enableScripts: true };
 				thisWebview.webview.onDidReceiveMessage(async (message) => {
 					switch (message.command) {
-						case "selectDB": {
-							//handle database selection
-							folders.db = message.db;
-							selected.db = message.db;
-							vscode.window.showInformationMessage(`Selected database: ${selected.db}`);
-							dbRepoWS.repo = await getData.getRepoData(configObj[selected.db]);
-							dbRepoWS.ws = await getData.getWSData(dbRepoWS.repo[firstRepo], configObj[selected.db]);
-							thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, selected.db, firstRepo);
+						case "selectConnection": {
+							//handle connection selection and create new interceptor
+							selected.connection = message.connectionName;
+							({ url, username, password } = configData[selected.connection]);
+							axios.interceptors.request.eject(interceptor);
+							interceptor = axios.interceptors.request.use((config) => ({ ...config, baseURL: `${url}/workspace/${selected.workspace}`, auth: { username, password } }));
+							vscode.window.showInformationMessage(`Selected connection: ${selected.connection}`);
+							thisWebview.webview.html = getHTML.HTMLPage(configData, selected);
 							break;
 						}
-						case "selectRepo": {
-							//handle repository selection
-							folders.repo = message.repo;
-							selected.repo = dbRepoWS.repo[message.repo];
-							vscode.window.showInformationMessage(`Selected repository: ${message.repo}`);
-							dbRepoWS.ws = await getData.getWSData(selected.repo, configObj[selected.db]);
-							thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, selected.db, message.repo);
+						case "selectWorkspace": {
+							//handle workspace selection and create new interceptor
+							selected.workspace = message.workspace;
+							({ url, username, password } = configData[selected.connection]);
+							axios.interceptors.request.eject(interceptor);
+							interceptor = axios.interceptors.request.use((config) => ({ ...config, baseURL: `${url}/workspace/${selected.workspace}`, auth: { username, password } }));
+							vscode.window.showInformationMessage(`Selected workspace: ${message.workspace}`);
+							thisWebview.webview.html = getHTML.HTMLPage(configData, selected);
 							break;
 						}
-						case "selectWS": {
-							//get data from the workspace and create the tree views
-							folders.repo = message.repo
-							folders.ws = message.ws
-							selected.date = message.date
-							selected.scr = message.scr;
-							selected.repo = dbRepoWS.repo[message.repo];
-							selected.ws = dbRepoWS.ws[message.ws];
-							let backup = true;
-							thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, selected.db, message.repo, message.ws, backup);
-							if (message.ws) { vscode.window.showInformationMessage(`Selected workspace: ${message.ws}`) };
-
-							//business services
-							busServObj = await getData.getSiebelData(selected, configObj[selected.db], "service", folderPath());
-							const treeDataBS = new treeData.TreeDataProvider(busServObj);
-							const treeViewBS = vscode.window.createTreeView("businessServices", { treeDataProvider: treeDataBS });
-							treeViewBS.onDidChangeSelection(async (e) => treeData.selectionChange(e, "service", selected, configObj[selected.db], busServObj, treeDataBS, folders));
-
-							//business components
-							busCompObj = await getData.getSiebelData(selected, configObj[selected.db], "buscomp", folderPath());
-							const treeDataBC = new treeData.TreeDataProvider(busCompObj);
-							const treeViewBC = vscode.window.createTreeView("businessComponents", { treeDataProvider: treeDataBC });
-							treeViewBC.onDidChangeSelection(async (e) => treeData.selectionChange(e, "buscomp", selected, configObj[selected.db], busCompObj, treeDataBC, folders));
-
-							//applets
-							appletObj = await getData.getSiebelData(selected, configObj[selected.db], "applet", folderPath());
-							const treeDataApplet = new treeData.TreeDataProvider(appletObj);
-							const treeViewApplet = vscode.window.createTreeView("applets", { treeDataProvider: treeDataApplet });
-							treeViewApplet.onDidChangeSelection(async (e) => treeData.selectionChange(e, "applet", selected, configObj[selected.db], appletObj, treeDataApplet, folders));
-
-							//applications
-							applicationObj = await getData.getSiebelData(selected, configObj[selected.db], "application", folderPath());
-							const treeDataApplication = new treeData.TreeDataProvider(applicationObj);
-							const treeViewApplication = vscode.window.createTreeView("applications", { treeDataProvider: treeDataApplication });
-							treeViewApplication.onDidChangeSelection(async (e) => treeData.selectionChange(e, "application", selected, configObj[selected.db], applicationObj, treeDataApplication, folders));
+						case "selectObject": {
+							//handle Siebel object selection
+							selected.object = message.object;
+							thisWebview.webview.html = getHTML.HTMLPage(configData, selected);
 							break;
 						}
-						case "backup": {
-							//creates backup from the selected datasource
-							const typeArr = ["service", "buscomp", "applet", "application"];
-							let objType;
-							let timeStamp = new Date();
-							let timeStampStr = `${timeStamp.getFullYear()}${timeStamp.getMonth() + 1}${timeStamp.getDate()}_${timeStamp.getHours()}h${timeStamp.getMinutes()}m`;
-							folders.repo = message.repo
-							folders.ws = `${message.ws || "repo"}_backup_${timeStampStr}`;
-							selected.date = message.date
-							selected.scr = message.scr;
-							selected.repo = dbRepoWS.repo[message.repo];
-							selected.ws = dbRepoWS.ws[message.ws];
-							answer = await vscode.window.showInformationMessage(`Do you want to create backup from the ${message.ws ? message.ws + " workspace," : ""}  ${message.repo},  ${selected.db} database?`, ...["Yes", "No"]);
-							if (answer === "Yes") {
-								vscode.window.withProgress({
-									location: vscode.ProgressLocation.Window,
-									cancellable: false,
-									title: "Creating backup"
-								}, async () => {
-									for (objType of typeArr) {
-										await getData.createBackup(selected, configObj[selected.db], objType, folderPath());
-									}
-									await filesRW.writeInfo(selected, folders, folderPath(), "backup");
-									vscode.window.showInformationMessage(`Backup created in folder ${folders.ws}`);
+						case "search": {
+							//get the Siebel objects and create the tree views
+							({ searchString } = message);
+							switch (selected.object) {
+								case "Business Service": {
+									busServObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "service");
+									const treeDataBS = new treeData.TreeDataProvider(busServObj);
+									const treeViewBS = vscode.window.createTreeView("businessServices", { treeDataProvider: treeDataBS });
+									treeViewBS.onDidChangeSelection(async (e) => treeData.selectionChange(e, "service", selected, busServObj, treeDataBS));
+									break;
 								}
-								);
+								case "Business Component": {
+									busCompObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "buscomp");
+									const treeDataBC = new treeData.TreeDataProvider(busCompObj);
+									const treeViewBC = vscode.window.createTreeView("businessComponents", { treeDataProvider: treeDataBC });
+									treeViewBC.onDidChangeSelection(async (e) => treeData.selectionChange(e, "buscomp", selected, busCompObj, treeDataBC));
+									break;
+								}
+								case "Applet": {
+									appletObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "applet");
+									const treeDataApplet = new treeData.TreeDataProvider(appletObj);
+									const treeViewApplet = vscode.window.createTreeView("applets", { treeDataProvider: treeDataApplet });
+									treeViewApplet.onDidChangeSelection(async (e) => treeData.selectionChange(e, "applet", selected, appletObj, treeDataApplet));
+									break;
+								}
+								case "Application": {
+									applicationObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "application");
+									const treeDataApplication = new treeData.TreeDataProvider(applicationObj);
+									const treeViewApplication = vscode.window.createTreeView("applications", { treeDataProvider: treeDataApplication });
+									treeViewApplication.onDidChangeSelection(async (e) => treeData.selectionChange(e, "application", selected, applicationObj, treeDataApplication));
+									break;
+								}
 							}
 							break;
 						}
 						case "setDefault": {
-							//sets the default database, repository and workspace in the settings
-							answer = await vscode.window.showInformationMessage(`Do you want to set the default database to ${message.db}, the default repository to ${message.repo} and the default workspace to ${message.ws}?`, ...["Yes", "No"]);
+							//sets the default connection and workspace in the settings
+							answer = await vscode.window.showInformationMessage(`Do you want to set the default connection to ${message.connectionName} and the default workspace to ${message.workspace}?`, "Yes", "No");
 							if (answer === "Yes") {
-								configData.default = { "db": message.db, "repo": message.repo, "ws": message.ws };
-								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.db}/${message.repo}${message.ws ? "/" + message.ws : ""}`, vscode.ConfigurationTarget.Global);
+								await vscode.workspace.getConfiguration().update("siebelScriptEditor.defaultConnection", `${message.connectionName}:${message.workspace}`, vscode.ConfigurationTarget.Global);
 							}
 							break;
 						}
@@ -219,12 +180,13 @@ async function activate(context) {
 							break;
 						}
 						case "reload": {
+							//reloads the extension
 							vscode.commands.executeCommand("workbench.action.reloadWindow");
 							break;
 						}
 					}
 				}, undefined, context.subscriptions);
-				thisWebview.webview.html = getHTML.HTMLPage(dbRepoWS, defaultObj.db || firstDB, defaultObj.repo || firstRepo, defaultObj.ws || firstWS);
+				thisWebview.webview.html = getHTML.HTMLPage(configData, selected);
 			}
 		};
 		extensionView = vscode.window.registerWebviewViewProvider("extensionView", provider);

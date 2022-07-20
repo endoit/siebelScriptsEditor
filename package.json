@@ -88,21 +88,23 @@
 		"configuration": {
 			"title": "Siebel Script Editor",
 			"properties": {
-				"siebelScriptEditor.defaultConnection": {
-					"type": "string",
-					"description": "Use the 'Set as default' button in the extension to change it. Name of the default database, repository and workspace to use, in the following format: DATABASENAME/REPOSITORYNAME/WORKSPACENAME, e.g. DEVDB/Siebel Repository/Main."
-				},
-				"siebelScriptEditor.databaseConfigurations": {
+				"siebelScriptEditor.REST EndpointConfigurations": {
 					"type": "array",
 					"items": {
 						"type": "string"
 					},
-					"description": "Parameteres for connection to Siebel databases, use the following format: DATABASENAME/USERNAME/PASSWORD@CONNECTSTRING@SIEBELUSERNAME, e.g. DEVDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL@SIEBUSER.\n The Siebel username is only required for safe mode.\nPress the Reload button on the extension after editing configurations!"
+					"description": "Parameteres for connection to Siebel REST API, use the following format: CUSTOMNAME/USERNAME/PASSWORD@SIEBELRESTENDPOINT, e.g. DEVENV/USERNAME/PASSWORD@https://devclient.devdomain.com/siebel/v1.0.\n Press the Reload button on the extension after editing configurations!"
 				},
-				"siebelScriptEditor.safeMode": {
-					"type": "boolean",
-					"default": "true",
-					"description": "In safe mode, you can only get and update Siebel objects locked by the given Siebel username if workspaces are not in use or not exist.\nIf workspaces are used, then only objects belonging to active workspaces (i.e. their status is either \"Edit-In-Progress\" or \"Checkpointed\") created by the given username can be pulled from or pushed to the database.\nPress the Reload button on the extension after changing this setting!"
+				"siebelScriptEditor.workspaces": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Workspaces to use for the different connections, multiple can be given for each connection, use a colon after the connection, then the workspace names separated by commas, CUSTOMNAME:WORKSPACENAME1,WORKSPACENAME2, e.g. DEVENV:custom_dev_ws,other_dev_ws.\n Press the Reload button on the extension after editing configurations!"
+				},
+				"siebelScriptEditor.defaultConnection": {
+					"type": "string",
+					"description": "Use the 'Set as default' button in the extension to change it. Name of the default REST endpoint and workspace to use, in the following format: CUSTOMNAME@WORKSPACENAME, e.g. DEVENV:custom_dev_ws"
 				}
 			}
 		},
