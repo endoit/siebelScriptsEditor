@@ -1,8 +1,8 @@
-const fs = require('fs');
-const vscode = require('vscode');
-const path = require('path');
-const { constants } = require('buffer');
-const axios = require('axios').default;
+const fs = require("fs");
+const vscode = require("vscode");
+const path = require("path");
+const { constants } = require("buffer");
+const axios = require("axios").default;
 
 const resourceURL = {
   service: { obj: "Business Service", scr: "Business Service Server Script" },
@@ -19,7 +19,7 @@ const getDataFromRESTAPI = async (url, params) => {
       method: "get",
       withCredentials: true,
       headers: {
-        'Content-Type': 'application/json'
+        "Content-Type": "application/json"
       },
       params
     });
@@ -151,7 +151,7 @@ const pushOrPullScript = async (action, configData) => {
       const wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(scrFilePath, { overwrite: true, ignoreIfExists: false });
       await vscode.workspace.applyEdit(wsEdit);
-      const writeData = Buffer.from(scriptStr, 'utf8');
+      const writeData = Buffer.from(scriptStr, "utf8");
       vscode.workspace.fs.writeFile(scrFilePath, writeData);
       if (isWebTemp) {
         infoObj.definitions[scrName]["last update from Siebel"] = new Date().toString();
@@ -190,9 +190,10 @@ const pushOrPullScript = async (action, configData) => {
       break;
     }
   }
-  vscode.workspace.fs.writeFile(infoFilePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
+  vscode.workspace.fs.writeFile(infoFilePath, Buffer.from(JSON.stringify(infoObj, null, 2), "utf8"));
 }
 
+exports.callRESTAPIInstance = callRESTAPIInstance;
 exports.getSiebelData = getSiebelData;
 exports.getServerScripts = getServerScripts;
 exports.getServerScriptMethod = getServerScriptMethod;

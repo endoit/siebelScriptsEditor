@@ -1,7 +1,7 @@
-const vscode = require('vscode');
-const path = require('path');
-const dataService = require('./dataService.js');
-const filesRW = require('./filesRW.js');
+const vscode = require("vscode");
+const path = require("path");
+const dataService = require("./dataService.js");
+const filesRW = require("./filesRW.js");
 
 const messageText = {
     service: "business service",

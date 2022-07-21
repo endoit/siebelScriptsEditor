@@ -1,64 +1,82 @@
 //generates the HTML page for the webview to select REST endpoint, resource and the searchbar
-const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfig) => {	
+const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfig = false, reloadEnabled = false) => {	
+	const css =  `
+		<style>
+			.divitem {
+				margin: 0.2em;
+				display: flex;
+			}
+			.text {
+				text-align: center;
+			}
+			.input-field {
+				flex: 1 1 auto;
+			}
+			label {
+				margin-right: 0.2em;
+			}
+			.opt {
+				background: rgba(83, 89, 93, 1);
+				color: rgb(204, 204, 204);
+			}
+			#connection, #workspace, #object, #search-bar {
+			border-radius: 0.4em;
+			text-align: center;
+			background-color: rgba(83, 89, 93, 0.5);
+			color: rgb(204, 204, 204);
+			border: 0;
+			padding: 0.2em;
+			width: 10em;
+			}
+			.button {
+				margin-top: 0.2em;
+				border: none;
+				padding: 0.5em;
+				width: 100%;
+				text-align: center;
+				outline: 1px solid transparent;
+				outline-offset: 2px!important;
+				color: var(--vscode-button-foreground);
+				background: var(--vscode-button-background);
+				text-align: center;
+				box-sizing: border-box;
+				border-radius: 0.4em;
+			}
+			.button:disabled {
+				background: #9daaab;
+			}
+			.button-small {
+				flex: 1 1 auto;
+				margin: 0.2em;
+				border: none;
+				padding: 0.5em;
+				width: 49%;
+				height: 3em;
+				text-align: center;
+				outline: 1px solid transparent;
+				outline-offset: 2px!important;
+				color: var(--vscode-button-foreground);
+				background: var(--vscode-button-background);
+				text-align: center;
+				border-radius: 0.4em;
+				box-sizing: border-box;
+			}
+		</style>`;
+
 	if (noRESTConfig){
 		return `
 		<!doctype><html>
 			<head>
-				<style>
-				.container {
-					display: flex;
-					flex-direction: column;
-					align-items: left;
-				}
-				.divitem {
-					margin: 0.2em;
-					display: flex;
-				}
-				.text {
-					text-align: center;
-				}
-				.button {
-					margin-top: 0.2em;
-					border: none;
-					padding: 0.5em;
-					width: 100%;
-					text-align: center;
-					outline: 1px solid transparent;
-					outline-offset: 2px!important;
-					color: var(--vscode-button-foreground);
-					background: var(--vscode-button-background);
-					text-align: center;
-					box-sizing: border-box;
-					border-radius: 0.4em;
-				}
-				.button_backup {
-					flex:  1 1 auto;
-					margin-top: 0.2em;
-					border: none;
-					padding: 0.5em;
-					width: 49%;
-					height: 3em;
-					text-align: center;
-					outline: 1px solid transparent;
-					outline-offset: 2px!important;
-					color: var(--vscode-button-foreground);
-					background: var(--vscode-button-background);
-					text-align: center;
-					border-radius: 0.4em;
-					box-sizing: border-box;
-				}
-				.button_backup:disabled {
-						background: #9daaab;
-				}
-				</style>
+				${css}
 			</head>
 			<body>
-				<div class="text">No Siebel REST API configuration/workspace was found, please click the Open settings button and give at least one REST Endpoint configuration, and at least one workspace for that REST configuration! After that, press the Reload button!</div>
+				<div class="text">No Siebel REST API configuration/workspace was found, please click the Open settings button and give at least one REST Endpoint configuration, and at least one workspace for that REST configuration! After that, press the Test connection button! If successful, the Reload button will be enabled, and click on that!</div>
 				<div class="divitem">
-						<Button class="button_backup" id="config" onclick="openConfig()">Open settings</Button>  
+						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>
+						<Button class="button-small" id="test" onclick="testREST()">Test connection</Button>
 				</div>
 					<div class="divitem">
-						<Button class="button" onclick="reload()">Reload</Button>
+						<Button class="button" onclick="reload()" ${reloadEnabled ? "" : "disabled"}>Reload</Button>
 					</div>	
 				</div>
 				<script>
@@ -84,78 +102,7 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 	return `
 		<!doctype><html>
 			<head>
-				<style>
-					.container {
-						display: flex;
-						flex-direction: column;
-						align-items: left;
-					}
-					.divitem {
-						margin: 0.2em;
-						display: flex;
-					}
-					.input-field {
-						flex: 1 1 auto;
-					}
-					label {
-						margin-right: 0.2em;
-					}
-					#connection, #workspace, #object, #search-bar {
-						border-radius: 0.4em;
-						text-align: center;
-						background-color: rgba(83, 89, 93, 0.5);
-						color: rgb(204, 204, 204);
-						border: 0;
-						padding: 0.2em;
-						width: 10em;
-					}
-
-				.opt, #scr {
-					background: rgba(83, 89, 93, 1);
-					color: rgb(204, 204, 204);
-				}
-				.button {
-					margin-top: 0.2em;
-					border: none;
-					padding: 0.5em;
-					width: 100%;
-					text-align: center;
-					outline: 1px solid transparent;
-					outline-offset: 2px!important;
-					color: var(--vscode-button-foreground);
-					background: var(--vscode-button-background);
-					text-align: center;
-					box-sizing: border-box;
-					border-radius: 0.4em;
-				}
-				.button_backup {
-					flex: 1 1 auto;
-					margin: 0.2em;
-					border: none;
-					padding: 0.5em;
-					width: 49%;
-					height: 3em;
-					text-align: center;
-					outline: 1px solid transparent;
-					outline-offset: 2px!important;
-					color: var(--vscode-button-foreground);
-					background: var(--vscode-button-background);
-					text-align: center;
-					border-radius: 0.4em;
-					box-sizing: border-box;
-				}
-				.button_backup:disabled {
-						background: #9daaab;
-				}
-				.button_def {
-					margin-left: 1.3em;
-					color: var(--vscode-button-foreground);
-					background: var(--vscode-button-background);
-					text-align: center;
-					border-radius: 0.4em;
-					border: none;
-				}
-				</style>
+				${css}
 			</head>
 			<body>
 				<div class="container">
@@ -178,12 +125,11 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 						</select>
 					</div>
 					<div class="divitem">
-						<!--label for="search-bar"></label--> 
 						<input type="search" name="search-bar" class="input-field" id="search-bar" oninput="handleSearch()" placeholder="Type here to search">
 					</div>
 					<div class="divitem">
-						<Button class="button_backup" id="config" onclick="openConfig()">Open settings</Button>  
-						<Button class="button_backup" id="default" onclick="setDefault()">Set as default</Button>  
+						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>  
+						<Button class="button-small" id="default" onclick="setDefault()">Set as default</Button>  
 					</div>
 					<div class="divitem">
 						<Button class="button" onclick="reload()">Reload</Button>

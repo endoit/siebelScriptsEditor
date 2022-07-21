@@ -1,8 +1,8 @@
-const vscode = require('vscode');
-const getHTML = require('./src/getHTML.js');
-const dataService = require('./src/dataService.js');
-const treeData = require('./src/treeData.js');
-const { default: axios } = require('axios');
+const vscode = require("vscode");
+const getHTML = require("./src/getHTML.js");
+const dataService = require("./src/dataService.js");
+const treeData = require("./src/treeData.js");
+const { default: axios } = require("axios");
 
 async function activate(context) {
 	let answer;
@@ -13,8 +13,8 @@ async function activate(context) {
 	let searchString;
 
 	const reqParams = { "PageSize": 20, "fields": "Name", "ChildLinks": "None", "uniformresponse": "y" }
-	const connectionConfigs = vscode.workspace.getConfiguration('siebelScriptEditor')["REST EndpointConfigurations"];
-	const workspaces = vscode.workspace.getConfiguration('siebelScriptEditor')["workspaces"];
+	const connectionConfigs = vscode.workspace.getConfiguration("siebelScriptEditor")["REST EndpointConfigurations"];
+	const workspaces = vscode.workspace.getConfiguration("siebelScriptEditor")["workspaces"];
 	if (connectionConfigs.length === 0 || workspaces.length === 0) {
 		answer = await vscode.window.showInformationMessage("No REST Endpoint configuration/workspaces were found in the settings, do you want to go open the settings?", "Yes", "No");
 		if (answer === "Yes") {
@@ -26,17 +26,20 @@ async function activate(context) {
 				thisWebview.webview.options = { enableScripts: true };
 				thisWebview.webview.html = getHTML.HTMLPage({}, {}, true);
 				thisWebview.webview.onDidReceiveMessage(async (message) => {
-					switch (message.command) {
+					switch (message.command) {					
 						case "testREST": {
-							const readConfigTestArr = vscode.workspace.getConfiguration('siebelScriptEditor').databaseConfigurations;
+							const readConfigTestArr = vscode.workspace.getConfiguration("siebelScriptEditor")["REST EndpointConfigurations"];
+							const readWorkspaceTestArr = vscode.workspace.getConfiguration("siebelScriptEditor")["workspaces"];
 							if (readConfigTestArr.length > 0) {
-								const readConfigTest = readConfigTestArr[0].split("@");
-								const userPasswordTest = readConfigTest[0].split("/");
-								const configDataTest = { user: userPasswordTest[1], password: userPasswordTest[2], connectString: readConfigTest[1] };
-								//const testResp = await getData.getRepoData(configDataTest);
-								if (Object.keys(testResp).length > 0) {
+								const [readConfigTest, baseUrl] = readConfigTestArr[0].split("@");
+								const [, username, password] = readConfigTest.split("/");		
+								const workspaceTestArr = readWorkspaceTestArr[0].split(":");
+								const [workspaceTest] = workspaceTestArr[1].split(",");
+								const url = `${baseUrl}/workspace/${workspaceTest}/Application`;
+								const testResp = await dataService.callRESTAPIInstance({ url , username, password }, "get", reqParams);
+								if (testResp.length > 0) {
 									vscode.window.showInformationMessage("Connection is working!");
-									thisWebview.webview.html = getHTML.HTMLPage({}, {}, true);
+									thisWebview.webview.html = getHTML.HTMLPage({}, {}, true, true);
 								} else {
 									vscode.window.showInformationMessage("Connection error, please check connection parameters and Siebel server status!");
 								}
@@ -86,7 +89,7 @@ async function activate(context) {
 		let webTempObj = {};
 
 		//button to get the focused script from database
-		let pullButton = vscode.commands.registerCommand('siebelscripteditor.pullScript', async () => {
+		let pullButton = vscode.commands.registerCommand("siebelscripteditor.pullScript", async () => {
 			answer = await vscode.window.showInformationMessage("Do you want to overwrite the current script from the Siebel database?", "Yes", "No");
 			if (answer === "Yes") {
 				dataService.pushOrPullScript("pull", configData);
@@ -95,7 +98,7 @@ async function activate(context) {
 		context.subscriptions.push(pullButton);
 
 		//button to update the focused script in the database
-		let pushButton = vscode.commands.registerCommand('siebelscripteditor.pushScript', async () => {
+		let pushButton = vscode.commands.registerCommand("siebelscripteditor.pushScript", async () => {
 			answer = await vscode.window.showInformationMessage("Do you want to overwrite this script in the Siebel database?", "Yes", "No");
 			if (answer === "Yes") {
 				dataService.pushOrPullScript("push", configData);
@@ -145,35 +148,35 @@ async function activate(context) {
 							({ searchString } = message);
 							switch (selected.object) {
 								case "Business Service": {
-									busServObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "service");
+									busServObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE "${searchString}*"` }, folderPath(), "service");
 									const treeDataBS = new treeData.TreeDataProvider(busServObj);
 									const treeViewBS = vscode.window.createTreeView("businessServices", { treeDataProvider: treeDataBS });
 									treeViewBS.onDidChangeSelection(async (e) => treeData.selectionChange(e, "service", selected, busServObj, treeDataBS));
 									break;
 								}
 								case "Business Component": {
-									busCompObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "buscomp");
+									busCompObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE "${searchString}*"` }, folderPath(), "buscomp");
 									const treeDataBC = new treeData.TreeDataProvider(busCompObj);
 									const treeViewBC = vscode.window.createTreeView("businessComponents", { treeDataProvider: treeDataBC });
 									treeViewBC.onDidChangeSelection(async (e) => treeData.selectionChange(e, "buscomp", selected, busCompObj, treeDataBC));
 									break;
 								}
 								case "Applet": {
-									appletObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "applet");
+									appletObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE "${searchString}*"` }, folderPath(), "applet");
 									const treeDataApplet = new treeData.TreeDataProvider(appletObj);
 									const treeViewApplet = vscode.window.createTreeView("applets", { treeDataProvider: treeDataApplet });
 									treeViewApplet.onDidChangeSelection(async (e) => treeData.selectionChange(e, "applet", selected, appletObj, treeDataApplet));
 									break;
 								}
 								case "Application": {
-									applicationObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "application");
+									applicationObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE "${searchString}*"` }, folderPath(), "application");
 									const treeDataApplication = new treeData.TreeDataProvider(applicationObj);
 									const treeViewApplication = vscode.window.createTreeView("applications", { treeDataProvider: treeDataApplication });
 									treeViewApplication.onDidChangeSelection(async (e) => treeData.selectionChange(e, "application", selected, applicationObj, treeDataApplication));
 									break;
 								}
 								case "Web Template": {
-									webTempObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE '${searchString}*'` }, folderPath(), "webtemp");
+									webTempObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE "${searchString}*"` }, folderPath(), "webtemp");
 									const treeDataWebTemp = new treeData.TreeDataProvider(webTempObj, true);
 									const treeViewWebTemp = vscode.window.createTreeView("webTemplates", { treeDataProvider: treeDataWebTemp });
 									treeViewWebTemp.onDidChangeSelection(async (e) => treeData.selectionChange(e, "webtemp", selected, webTempObj, treeDataWebTemp));
