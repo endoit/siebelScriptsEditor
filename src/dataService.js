@@ -1,13 +1,15 @@
 const fs = require('fs');
 const vscode = require('vscode');
 const path = require('path');
+const { constants } = require('buffer');
 const axios = require('axios').default;
 
 const resourceURL = {
   service: { obj: "Business Service", scr: "Business Service Server Script" },
   buscomp: { obj: "Business Component", scr: "BusComp Server Script" },
   applet: { obj: "Applet", scr: "Applet Server Script" },
-  application: { obj: "Application", scr: "Application Server Script" }
+  application: { obj: "Application", scr: "Application Server Script" },
+  webtemp: { obj: "Web Template" }
 };
 
 const getDataFromRESTAPI = async (url, params) => {
@@ -30,20 +32,23 @@ const getDataFromRESTAPI = async (url, params) => {
 }
 
 const callRESTAPIInstance = async ({ url, username, password }, method, params, data) => {
-  console.log(data)
   const instance = axios.create({
-    method,
     withCredentials: true,
     auth: { username, password },
     headers: {
       "Content-Type": "application/json"
     },
-    params,
-    data
+    params
   });
   try {
-    const response = await instance(url);
-    return method === "get" ? response.data?.items : response;
+    if (method === "get") {
+      const response = await instance.get(url);
+      return response.data?.items;
+    }
+    if (method === "put") {
+      const response = await instance.put(url, data);
+      return response;
+    }
   } catch (err) {
     vscode.window.showErrorMessage("Error using the Siebel REST API: " + err.message)
   }
@@ -58,21 +63,23 @@ const getSiebelData = async (params, folder, type) => {
   let fileNames;
   const data = await getDataFromRESTAPI(objectUrl, params);
   data?.forEach((row) => {
-    exists = fs.existsSync(`${wsPath}/${folder}/${type}/${row.Name}`);
-    siebObj[row.Name] = {
-      scripts: {},
-      onDisk: exists
-    };
-    if (exists) {
-      fileNames = fs.readdirSync(`${wsPath}/${folder}/${type}/${row.Name}`);
-      fileNames.forEach((file) => { if (path.extname(file) === ".js") { siebObj[row.Name].scripts[path.basename(file, ".js")] = { onDisk: true }; } });
+    if (type !== "webtemp") {
+      exists = fs.existsSync(`${wsPath}/${folder}/${type}/${row.Name}`);
+      siebObj[row.Name] = { scripts: {}, onDisk: exists };
+      if (exists) {
+        fileNames = fs.readdirSync(`${wsPath}/${folder}/${type}/${row.Name}`);
+        fileNames.forEach((file) => { if (path.extname(file) === ".js") { siebObj[row.Name].scripts[path.basename(file, ".js")] = { onDisk: true }; } });
+      }
+    } else {
+      exists = fs.existsSync(`${wsPath}/${folder}/${type}/${row.Name}.html`);
+      siebObj[row.Name] = { definition: "", onDisk: exists };
     }
   });
   return siebObj;
 }
 
 //get all scripts for siebel object, or only the script names
-const getServerScripts = async (selectedObj, type, namesOnly) => {
+const getServerScripts = async (selectedObj, type, namesOnly = false) => {
   const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
   const folderPath = `${selectedObj.connection}/${selectedObj.workspace}/${type}`;
   const scriptObj = {};
@@ -90,57 +97,96 @@ const getServerScriptMethod = async (selectedObj, type) => {
   return scriptStr;
 }
 
+//get web template
+const getWebTemplate = async (selectedObj) => {
+  const objectUrl = `/${resourceURL["webtemp"].obj}/${selectedObj["webtemp"].name}`;
+  const data = await getDataFromRESTAPI(objectUrl, { "fields": "Definition", "uniformresponse": "y" });
+  const definitionStr = data[0]?.Definition;
+  return definitionStr;
+}
+
 //push/pull script from/to database
 const pushOrPullScript = async (action, configData) => {
-  let currentlyOpenTabfilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
-  if (path.basename(currentlyOpenTabfilePath).endsWith(".js") === false) {
-    vscode.window.showErrorMessage("Currently active file is not a Siebel Object script or its extension is not .js!");
+  const currentlyOpenTabfilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
+  if (path.basename(currentlyOpenTabfilePath).endsWith(".js") === false && path.basename(currentlyOpenTabfilePath).endsWith(".html") === false) {
+    vscode.window.showErrorMessage("Currently active file is not a Siebel Object script/webtemplate or its extension is not .js/html!");
     return;
   }
-  let scrName = path.basename(currentlyOpenTabfilePath, ".js");
-  let dirPath = path.dirname(currentlyOpenTabfilePath);
-  let infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
+  const scrName = path.parse(currentlyOpenTabfilePath).name;
+  const dirPath = path.dirname(currentlyOpenTabfilePath);
+  const infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
   if (fs.existsSync(infoFilePath.fsPath) === false) {
     vscode.window.showErrorMessage("File info.json was not found, please get the Siebel Object again from the extension!");
     return;
   }
-  let readData = await vscode.workspace.fs.readFile(infoFilePath);
-  let scrFilePath = vscode.Uri.file(`${dirPath}/${scrName}.js`);
-  let infoObj = JSON.parse(Buffer.from(readData));
-  if (infoObj.scripts.hasOwnProperty(scrName) === false) {
-    vscode.window.showErrorMessage(`Script was not found in info.json, would you like to create this file as a new method of the Siebel Object?`);
+  const readData = await vscode.workspace.fs.readFile(infoFilePath);
+  const infoObj = JSON.parse(Buffer.from(readData));
+  const isWebTemp = infoObj.type === "webtemp";
+  const scrFilePath = vscode.Uri.file(`${dirPath}/${scrName}${isWebTemp ? ".html" : ".js"}`);
+  const isScrInfo = isWebTemp ? infoObj.definitions.hasOwnProperty(scrName) : infoObj.scripts.hasOwnProperty(scrName);
+  let isNewMethod = false;
+  if (isScrInfo === false && isWebTemp === false) {
+    if (action === "push") {
+      const answer = await vscode.window.showInformationMessage(`Script was not found in info.json, would you like to create this file as a new method of the Siebel Object?`, "Yes", "No");
+      if (answer === "Yes") {
+        isNewMethod = true;
+      } else {
+        return;
+      }
+    } else {
+      vscode.window.showErrorMessage(`Script was not found in info.json, please get it again from the extension!`);
+      return;
+    }
+  } else if (isScrInfo === false && isWebTemp === true) {
+    vscode.window.showInformationMessage(`Web template was not found in info.json, please get it again from the extension!`);
     return;
   }
   const { url, username, password } = configData[infoObj.connection];
 
   switch (action) {
     case "pull": {
-      const resourceString = `${resourceURL[infoObj.type].obj}/${infoObj.siebelObjectName}/${resourceURL[infoObj.type].scr}/${scrName}`;
-      const data = await callRESTAPIInstance({ url: `${url}/workspace/${infoObj.workspace}/${resourceString}`, username, password }, "get", { "fields": "Script", "uniformresponse": "y" });
-      const scriptStr = data[0]?.Script;
+      const resourceString = `${resourceURL[infoObj.type].obj}/${isWebTemp ? "" : infoObj.siebelObjectName + "/" + resourceURL[infoObj.type].scr + "/"}${scrName}`;
+      const data = await callRESTAPIInstance({ url: `${url}/workspace/${infoObj.workspace}/${resourceString}`, username, password }, "get", { "fields": isWebTemp ? "Definition" : "Script", "uniformresponse": "y" });
+      const scriptStr = isWebTemp ? data[0]?.Definition : data[0]?.Script;
       const wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(scrFilePath, { overwrite: true, ignoreIfExists: false });
       await vscode.workspace.applyEdit(wsEdit);
       const writeData = Buffer.from(scriptStr, 'utf8');
       vscode.workspace.fs.writeFile(scrFilePath, writeData);
-      infoObj.scripts[scrName]["last update from Siebel"] = new Date().toString();
+      if (isWebTemp) {
+        infoObj.definitions[scrName]["last update from Siebel"] = new Date().toString();
+      } else {
+        infoObj.scripts[scrName]["last update from Siebel"] = new Date().toString();
+      }
       break;
     }
     case "push": {
-      const resourceString = `${resourceURL[infoObj.type].obj}/${infoObj.siebelObjectName}/${resourceURL[infoObj.type].scr}/${scrName}`;
+      const resourceString = `${resourceURL[infoObj.type].obj}/${isWebTemp ? "" : infoObj.siebelObjectName + "/" + resourceURL[infoObj.type].scr}${isNewMethod ? "" : "/" + scrName }`;
       const scrDataRead = await vscode.workspace.fs.readFile(scrFilePath);
       const scrString = Buffer.from(scrDataRead).toString();
-      const resp = await callRESTAPIInstance({ url: `${url}/workspace/${infoObj.workspace}/${resourceString}`, username, password }, "put", {}, {"Name": scrName, "Script": scrString});
-      console.log(resp);
-      /*if (resp.rowsAffected === 1) {
-        vscode.window.showInformationMessage("Successfully updated script in the database!");
-        infoObj.scripts[scrName]["last push to Siebel"] = new Date().toString();
+      const payload = { Name: scrName };
+      if (isWebTemp) {
+        payload.Definition = scrString;
       } else {
-        //vscode.window.showErrorMessage("Update was unsuccessful, check database connection or object locking!");
-      }*/
-      break;
-    }
-    case "new": {
+        payload.Script = scrString;
+        if (isNewMethod){
+          payload["Program Language"] = "JS";
+        }
+      }
+      const response = await callRESTAPIInstance({ url: `${url}/workspace/${infoObj.workspace}/${resourceString}`, username, password }, "put", {}, payload);
+      if (response.status === 200) {
+        vscode.window.showInformationMessage("Successfully updated script in the database!");
+        if (isWebTemp) {
+          infoObj.definitions[scrName]["last push to Siebel"] = new Date().toString();
+        } else {
+          if (isNewMethod){
+            infoObj.scripts[scrName] = {"last update from Siebel": ""};
+          }
+          infoObj.scripts[scrName]["last push to Siebel"] = new Date().toString();
+        }
+      } else {
+        vscode.window.showErrorMessage("Update was unsuccessful, check REST API connection or workspace status!");
+      }
       break;
     }
   }
@@ -150,4 +196,5 @@ const pushOrPullScript = async (action, configData) => {
 exports.getSiebelData = getSiebelData;
 exports.getServerScripts = getServerScripts;
 exports.getServerScriptMethod = getServerScriptMethod;
+exports.getWebTemplate = getWebTemplate;
 exports.pushOrPullScript = pushOrPullScript;

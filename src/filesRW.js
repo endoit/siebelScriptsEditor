@@ -9,9 +9,6 @@ const writeFiles = async (sData, folderPath, objectName, fileName) => {
     let wsPath;
     let filePath;
 
-    /*if (config.workspace) {
-      wsPath = config.workspace;
-    } else */
     if (vscode.workspace.workspaceFolders) {
       wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
     } else {
@@ -19,7 +16,9 @@ const writeFiles = async (sData, folderPath, objectName, fileName) => {
     }
 
     if (bPath) {
-      filePath = vscode.Uri.file(`${wsPath}/${folderPath}/${objectName}/${fileName}.js`);
+      filePath = fileName
+        ? vscode.Uri.file(`${wsPath}/${folderPath}/${objectName}/${fileName}.js`)
+        : vscode.Uri.file(`${wsPath}/${folderPath}/${objectName}.html`);
       const wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(filePath, { overwrite: true, ignoreIfExists: false });
       await vscode.workspace.applyEdit(wsEdit);
@@ -28,7 +27,7 @@ const writeFiles = async (sData, folderPath, objectName, fileName) => {
       vscode.workspace.fs.writeFile(filePath, writeData);
 
       await vscode.window.showTextDocument(filePath, { "preview": false });
-      vscode.window.showInformationMessage(`New files were created in directory: ./${folderPath}/${objectName}`);
+      vscode.window.showInformationMessage(`New files were created in directory: ./${folderPath}${fileName ? "/" + objectName : ""}`);
       
     } else {
       vscode.window.showInformationMessage("Please open a workspace folder!");
@@ -46,25 +45,29 @@ const writeInfo = async (selectedObj, folderPath, type, methodNames) => {
     let wsPath;
     let infoObj;
     let wsEdit;
+    let filePathString;
     let filePath;
     let readData;
     let scrname;
-    /*if (config.workspace) {
-      wsPath = config.workspace;
-    } else*/
+
     if (vscode.workspace.workspaceFolders) {
       wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
     } else {
       bPath = false;
     }
-    if (bPath && type !== "backup") {
-      filePath = vscode.Uri.file(`${wsPath}/${folderPath}/${selectedObj[type].name}/info.json`);
-      if (fs.existsSync(`${wsPath}/${folderPath}/${selectedObj[type].name}/info.json`)) {
+    if (bPath) {
+      filePathString = `${wsPath}/${folderPath}/${type !== "webtemp" ? selectedObj[type].name + "/" : ""}info.json`;   
+      filePath = vscode.Uri.file(filePathString);
+      if (fs.existsSync(filePath.fsPath)) {
         //update info.json if exists
         readData = await vscode.workspace.fs.readFile(filePath);
         infoObj = JSON.parse(Buffer.from(readData));
-        for (scrname of methodNames) {
-          infoObj.scripts[scrname] = { "last update from database": new Date().toString(), "last push to database": "" }
+        if (type !== "webtemp" ){
+          for (scrname of methodNames) {
+            infoObj.scripts[scrname] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" };
+          }
+        } else {
+          infoObj.definitions[methodNames] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" };
         }
         vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), "utf8"));
       } else {
@@ -73,12 +76,17 @@ const writeInfo = async (selectedObj, folderPath, type, methodNames) => {
           "folder created at": new Date().toString(),
           "connection": selectedObj.connection,
           "workspace": selectedObj.workspace,
-          "type": type,
-          "siebelObjectName": selectedObj[type].name,
-          "scripts": {}
+          "type": type
         }
-        for (scrname of methodNames) {
-          infoObj.scripts[scrname] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" }
+        if (type !== "webtemp" ){
+          infoObj.siebelObjectName = selectedObj[type].name,
+          infoObj.scripts = {};
+          for (scrname of methodNames) {
+            infoObj.scripts[scrname] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" };
+          }
+        } else {
+          infoObj.definitions = {};
+          infoObj.definitions[methodNames] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" };
         }
         wsEdit = new vscode.WorkspaceEdit();
         wsEdit.createFile(filePath, { overwrite: false, ignoreIfExists: true });
