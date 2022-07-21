@@ -26,7 +26,7 @@ const getDataFromRESTAPI = async (url, params) => {
     return response.data?.items;
   } catch (err) {
     if (err.response?.status !== 404) {
-      vscode.window.showErrorMessage("Error using the Siebel REST API: " + err.message)
+      vscode.window.showErrorMessage(`Error using the Siebel REST API: ${err.response?.data?.ERROR || err.message}`);
     };
   }
 }
@@ -50,7 +50,7 @@ const callRESTAPIInstance = async ({ url, username, password }, method, params, 
       return response;
     }
   } catch (err) {
-    vscode.window.showErrorMessage("Error using the Siebel REST API: " + err.message)
+    vscode.window.showErrorMessage(`Error using the Siebel REST API: ${err.response?.data?.ERROR || err.message}`);
   }
 }
 
