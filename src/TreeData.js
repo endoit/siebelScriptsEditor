@@ -22,9 +22,9 @@ const selectionChange = async ({ selection: [selItem] }, type, selected, dataObj
 
     if (type === "webtemp") {
         selected[type].name = selItem.label;
-        answer = await vscode.window.showInformationMessage(`Do you want to get the ${selItem.label} ${messageText[type]} definition from the Siebel?`, "Yes", "No");
+        answer = await vscode.window.showInformationMessage(`Do you want to get the ${selItem.label} ${messageText[type]} definition from Siebel?`, "Yes", "No");
         if (answer === "Yes") {
-            dataObj[selItem.label].definition = await dataService.getWebTemplate(selected, type);
+            dataObj[selItem.label].definition = await dataService.getWebTemplate(selected);
             dataObj[selItem.label].onDisk = true;
             filesRW.writeFiles(dataObj[selItem.label].definition, folderPath, selItem.label);
             filesRW.writeInfo(selected, folderPath, type, selItem.label);
@@ -47,7 +47,7 @@ const selectionChange = async ({ selection: [selItem] }, type, selected, dataObj
         return;
     }
     selected[type].name = selItem.label;
-    answer = await vscode.window.showInformationMessage(`Do you want to get the ${selItem.label} ${messageText[type]} from the Siebel database?`, "Yes", "Only method names", "No");
+    answer = await vscode.window.showInformationMessage(`Do you want to get the ${selItem.label} ${messageText[type]} from Siebel?`, "Yes", "Only method names", "No");
     if (answer === "Yes") {
         dataObj[selItem.label].onDisk = true;
         dataObj[selItem.label].scripts = await dataService.getServerScripts(selected, type);
@@ -109,8 +109,8 @@ class TreeItem extends vscode.TreeItem {
         }
         if (onDisk === true) {
             this.iconPath = {
-                light: path.join(__filename, "..", "..", "media", "checkmark.svg"),
-                dark: path.join(__filename, "..", "..", "media", "checkmark.svg")
+                light: path.join(__filename, "..", "..", "media", "checkmark.png"),
+                dark: path.join(__filename, "..", "..", "media", "checkmark.png")
             }
         }
 

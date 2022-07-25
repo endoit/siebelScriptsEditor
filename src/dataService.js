@@ -1,7 +1,6 @@
 const fs = require("fs");
 const vscode = require("vscode");
 const path = require("path");
-const { constants } = require("buffer");
 const axios = require("axios").default;
 
 const resourceURL = {
@@ -138,7 +137,7 @@ const pushOrPullScript = async (action, configData) => {
       return;
     }
   } else if (isScrInfo === false && isWebTemp === true) {
-    vscode.window.showInformationMessage(`Web template was not found in info.json, please get it again from the extension!`);
+    vscode.window.showErrorMessage(`Web template was not found in info.json, please get it again from the extension!`);
     return;
   }
   const { url, username, password } = configData[infoObj.connection];
@@ -175,7 +174,7 @@ const pushOrPullScript = async (action, configData) => {
       }
       const response = await callRESTAPIInstance({ url: `${url}/workspace/${infoObj.workspace}/${resourceString}`, username, password }, "put", {}, payload);
       if (response.status === 200) {
-        vscode.window.showInformationMessage("Successfully updated script in the database!");
+        vscode.window.showInformationMessage(`Successfully updated ${isWebTemp ? "web template" : "script"} in Siebel!`);
         if (isWebTemp) {
           infoObj.definitions[scrName]["last push to Siebel"] = new Date().toString();
         } else {
@@ -185,7 +184,7 @@ const pushOrPullScript = async (action, configData) => {
           infoObj.scripts[scrName]["last push to Siebel"] = new Date().toString();
         }
       } else {
-        vscode.window.showErrorMessage("Update was unsuccessful, check REST API connection or workspace status!");
+        vscode.window.showErrorMessage("Update was unsuccessful, check REST API connection!");
       }
       break;
     }
