@@ -13,20 +13,22 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 				flex: 1 1 auto;
 			}
 			label {
-				margin-right: 0.2em;
+
+				margin: 0.1em;
 			}
 			.opt {
 				background: rgba(83, 89, 93, 1);
 				color: rgb(204, 204, 204);
 			}
 			#connection, #workspace, #object, #search-bar {
-			border-radius: 0.4em;
-			text-align: center;
-			background-color: rgba(83, 89, 93, 0.5);
-			color: rgb(204, 204, 204);
-			border: 0;
-			padding: 0.2em;
-			width: 10em;
+				border-radius: 0.4em;
+				margin: 0.1em;
+				text-align: center;
+				background-color: rgba(83, 89, 93, 0.5);
+				color: rgb(204, 204, 204);
+				border: 0;
+				padding: 0.2em;
+				width: 10em;
 			}
 			.button {
 				margin-top: 0.2em;
