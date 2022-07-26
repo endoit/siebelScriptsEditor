@@ -15,6 +15,7 @@ const messageText = {
 const selectionChange = async ({ selection: [selItem] }, type, selected, dataObj, treeObj) => {
     const folderPath = `${selected.connection}/${selected.workspace}/${type}`;
     const ONLY_METHOD_NAMES = true;
+    const IS_WEBTEMP = true;
     let answer;
     let scrName;
     let scrMethod;
@@ -28,7 +29,7 @@ const selectionChange = async ({ selection: [selItem] }, type, selected, dataObj
             dataObj[selItem.label].onDisk = true;
             filesRW.writeFiles(dataObj[selItem.label].definition, folderPath, selItem.label);
             filesRW.writeInfo(selected, folderPath, type, selItem.label);
-            treeObj.refresh(dataObj, true);
+            treeObj.refresh(dataObj, IS_WEBTEMP);
         }
         return;
     }
@@ -71,7 +72,7 @@ class TreeDataProvider {
     _onDidChangeTreeData = new vscode.EventEmitter();
     onDidChangeTreeData = this._onDidChangeTreeData.event;
 
-    constructor(dataObj, isWebTemplate) {
+    constructor(dataObj, isWebTemplate = false) {
         if (isWebTemplate){
             this.data = Object.keys(dataObj).map((bs) => new TreeItem(bs, vscode.TreeItemCollapsibleState.None, {onDisk: dataObj[bs].onDisk, definition: dataObj[bs].definition}));
         } else {

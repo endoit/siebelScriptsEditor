@@ -96,7 +96,7 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 	}
 
 	const connections = Object.keys(connectionObject).map((item) => `<option class="opt" value="${item}" ${connection === item ? "selected" : ""}>${item}</option>`).join("");
-	const workspaces = connectionObject[connection].workspaces.map((item) => `<option class="opt" value="${item}" ${workspace === item ? "selected" : ""}>${item}</option>`).join("");
+	const workspaces = connectionObject[connection]?.workspaces && connectionObject[connection].workspaces.map((item) => `<option class="opt" value="${item}" ${workspace === item ? "selected" : ""}>${item}</option>`).join("");
 	const objects = ["Business Service", "Business Component", "Applet", "Application", "Web Template"].map((item) => `<option class="opt" value="${item}" ${object === item ? "selected" : ""}>${item}</option>`).join("");
 
 	return `

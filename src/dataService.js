@@ -27,6 +27,7 @@ const getDataFromRESTAPI = async (url, params) => {
     if (err.response?.status !== 404) {
       vscode.window.showErrorMessage(`Error using the Siebel REST API: ${err.response?.data?.ERROR || err.message}`);
     };
+    return [];
   }
 }
 
@@ -50,12 +51,13 @@ const callRESTAPIInstance = async ({ url, username, password }, method, params, 
     }
   } catch (err) {
     vscode.window.showErrorMessage(`Error using the Siebel REST API: ${err.response?.data?.ERROR || err.message}`);
+    return [];
   }
 }
 
 //get siebel objects
 const getSiebelData = async (params, folder, type) => {
-  const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
+  const wsPath = vscode.workspace?.workspaceFolders[0].uri.fsPath;
   const siebObj = {};
   const objectUrl = `/${resourceURL[type].obj}`;
   let exists;

@@ -5,52 +5,75 @@ const treeData = require("./src/treeData.js");
 const { default: axios } = require("axios");
 
 async function activate(context) {
+	const isWSFolderOpen = vscode.workspace.workspaceFolders?.[0];
+	if (!isWSFolderOpen) {
+		vscode.window.showErrorMessage("Please open a Visual Studio Code workspace folder to use the extension!");
+		return;
+	}
+	let isConfigError = false;
 	let answer;
 	let provider;
 	let extensionView;
+	let pullButton, pushButton;
 	let interceptor;
 	let url, username, password;
 	let searchString;
 	let treeDataBS, treeDataBC, treeDataApplet, treeDataApplication, treeDataWebTemp;
-	const reqParams = { "PageSize": 20, "fields": "Name", "ChildLinks": "None", "uniformresponse": "y" }
+	const NO_REST_CONFIG = true;
+	const RELOAD_ENABLED = true;
+	const IS_WEBTEMPLATE = true;
+	const reqParams = { "PageSize": 20, "fields": "Name", "ChildLinks": "None", "uniformresponse": "y" };
 	const connectionConfigs = vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor")["REST EndpointConfigurations"];
 	const workspaces = vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor")["workspaces"];
 	const clearTreeViews = () => {
-		for (let treeDataObj of [treeDataBS, treeDataBC, treeDataApplet, treeDataApplication, treeDataWebTemp]){
+		for (let treeDataObj of [treeDataBS, treeDataBC, treeDataApplet, treeDataApplication, treeDataWebTemp]) {
 			treeDataObj?.refresh({});
 		}
 	}
 
 	if (connectionConfigs.length === 0 || workspaces.length === 0) {
-		answer = await vscode.window.showInformationMessage("No REST Endpoint configuration/workspace was found in the settings, do you want to go open the settings?", "Yes", "No");
-		if (answer === "Yes") {
-			//opens the Settings for the extension
-			vscode.commands.executeCommand("workbench.action.openSettings", "SiebelScriptAndWebTempEditor");
-		}
+		vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptAndWebTempEditor");
+		pullButton = vscode.commands.registerCommand("siebelscriptandwebtempeditor.pullScript", async () => {
+			vscode.window.showErrorMessage("Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings, then reload the extension!");
+			vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptAndWebTempEditor");
+		})
+		context.subscriptions.push(pullButton);
+
+		pushButton = vscode.commands.registerCommand("siebelscriptandwebtempeditor.pushScript", async () => {
+			vscode.window.showErrorMessage("Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings, then reload the extension!");
+			vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptAndWebTempEditor");
+		})
+		context.subscriptions.push(pushButton);
+
+		//create the webview for the first setup
 		provider = {
 			resolveWebviewView: (thisWebview) => {
 				thisWebview.webview.options = { enableScripts: true };
-				thisWebview.webview.html = getHTML.HTMLPage({}, {}, true);
+				thisWebview.webview.html = getHTML.HTMLPage({}, {}, NO_REST_CONFIG);
 				thisWebview.webview.onDidReceiveMessage(async (message) => {
-					switch (message.command) {					
+					switch (message.command) {
 						case "testREST": {
 							const readConfigTestArr = vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor")["REST EndpointConfigurations"];
 							const readWorkspaceTestArr = vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor")["workspaces"];
-							if (readConfigTestArr.length > 0) {
+							if (readConfigTestArr.length > 0 && readWorkspaceTestArr.length > 0) {
 								const [readConfigTest, baseUrl] = readConfigTestArr[0].split("@");
-								const [, username, password] = readConfigTest.split("/");		
-								const workspaceTestArr = readWorkspaceTestArr[0].split(":");
-								const [workspaceTest] = workspaceTestArr[1].split(",");
+								const [connConf, username, password] = readConfigTest.split("/");
+								const [connWS, workspaceTestArr] = readWorkspaceTestArr[0].split(":");
+								const workspaceTest = workspaceTestArr && workspaceTestArr.split(",")[0];
 								const url = `${baseUrl}/workspace/${workspaceTest}/Application`;
-								const testResp = await dataService.callRESTAPIInstance({ url , username, password }, "get", reqParams);
-								if (testResp.length > 0) {
-									vscode.window.showInformationMessage("Connection is working!");
-									thisWebview.webview.html = getHTML.HTMLPage({}, {}, true, true);
+								if (connConf !== connWS || !(baseUrl && username && password && workspaceTest)) {
+									vscode.window.showErrorMessage("Check the format of the REST Endpoint Configurations and the Workspaces settings!");
 								} else {
-									vscode.window.showInformationMessage("Connection error, please check connection parameters and Siebel server status!");
+									const testResp = await dataService.callRESTAPIInstance({ url, username, password }, "get", reqParams);
+									if (testResp.length > 0) {
+										vscode.window.showInformationMessage("Connection is working!");
+										thisWebview.webview.html = getHTML.HTMLPage({}, {}, NO_REST_CONFIG, RELOAD_ENABLED);
+									} else {
+										vscode.window.showErrorMessage("Connection error, please check connection parameters and Siebel server status!");
+									}
 								}
 							} else {
-								vscode.window.showInformationMessage("Please add at least one REST Endpoint configuration and workspace for that configuration!");
+								vscode.window.showErrorMessage("Please add at least one REST Endpoint configuration and workspace for that configuration!");
 							}
 							break;
 						}
@@ -73,20 +96,26 @@ async function activate(context) {
 	} else {
 		const defConnNameWSString = vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor").defaultConnection;
 		let [defConnName, defWS] = defConnNameWSString && defConnNameWSString.split(":");
-		const workspaceObject = {}
-		for (let workspace of workspaces) {
-			let [connectionName, workspaceString] = workspace.split(":");
-			workspaceObject[connectionName] = [...workspaceString.split(",")];
-		}
+		const workspaceObject = {};
 		const configData = {};
-		for (let config of connectionConfigs) {
-			let [connUserPwString, url] = config.split("@");
-			let [connectionName, username, password] = connUserPwString.split("/");
-			let connectionObj = { username, password, url, workspaces: workspaceObject[connectionName] };
-			configData[connectionName] = connectionObj;
+		try {
+			for (let workspace of workspaces) {
+				let [connectionName, workspaceString] = workspace.split(":");
+				workspaceObject[connectionName] = [...workspaceString.split(",")];
+			};
+			for (let config of connectionConfigs) {
+				let [connUserPwString, url] = config.split("@");
+				let [connectionName, username, password] = connUserPwString.split("/");
+				let connectionObj = { username, password, url, workspaces: workspaceObject[connectionName] };
+				configData[connectionName] = connectionObj;
+			}
+		} catch (err) {
+			vscode.window.showErrorMessage("Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings, then reload the extension!");
+			vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptAndWebTempEditor");
+			isConfigError = true;
 		}
 		const firstConnection = Object.keys(configData)[0];
-		const selected = { connection: defConnName || firstConnection, workspace: defWS || configData[firstConnection].workspaces[0], object: "Business Service", service: { name: "", childName: "" }, buscomp: { name: "", childName: "" }, applet: { name: "", childName: "" }, application: { name: "", childName: "" }, webtemp: {name: ""} };
+		const selected = { connection: defConnName || firstConnection, workspace: defWS || configData[firstConnection]?.workspaces?.[0], object: "Business Service", service: { name: "", childName: "" }, buscomp: { name: "", childName: "" }, applet: { name: "", childName: "" }, application: { name: "", childName: "" }, webtemp: { name: "" } };
 		const folderPath = () => `${selected.connection}/${selected.workspace}`;
 		let busServObj = {};
 		let busCompObj = {};
@@ -94,27 +123,42 @@ async function activate(context) {
 		let applicationObj = {};
 		let webTempObj = {};
 
-		//button to get the focused script from database
-		let pullButton = vscode.commands.registerCommand("siebelscriptandwebtempeditor.pullScript", async () => {
-			answer = await vscode.window.showInformationMessage("Do you want to overwrite the current script/web template definition from Siebel?", "Yes", "No");
-			if (answer === "Yes") {
-				dataService.pushOrPullScript("pull", configData);
-			}
-		})
-		context.subscriptions.push(pullButton);
+		//check if there is error in the format of the settings
+		if (!isConfigError) {
+			//button to get the focused script from database
+			pullButton = vscode.commands.registerCommand("siebelscriptandwebtempeditor.pullScript", async () => {
+				answer = await vscode.window.showInformationMessage("Do you want to overwrite the current script/web template definition from Siebel?", "Yes", "No");
+				if (answer === "Yes") {
+					dataService.pushOrPullScript("pull", configData);
+				}
+			})
+			context.subscriptions.push(pullButton);
 
-		//button to update the focused script in the database
-		let pushButton = vscode.commands.registerCommand("siebelscriptandwebtempeditor.pushScript", async () => {
-			answer = await vscode.window.showInformationMessage("Do you want to overwrite this script/web template definition in Siebel?", "Yes", "No");
-			if (answer === "Yes") {
-				dataService.pushOrPullScript("push", configData);
-			}
-		})
-		context.subscriptions.push(pushButton);
+			//button to update the focused script in the database
+			pushButton = vscode.commands.registerCommand("siebelscriptandwebtempeditor.pushScript", async () => {
+				answer = await vscode.window.showInformationMessage("Do you want to overwrite this script/web template definition in Siebel?", "Yes", "No");
+				if (answer === "Yes") {
+					dataService.pushOrPullScript("push", configData);
+				}
+			})
+			context.subscriptions.push(pushButton);
 
-		//create the interceptor for the default/first connection
-		({ url, username, password } = configData[selected.connection]);
-		interceptor = axios.interceptors.request.use((config) => ({ ...config, baseURL: `${url}/workspace/${selected.workspace}`, auth: { username, password } }));
+			//create the interceptor for the default/first connection
+			({ url, username, password } = configData[selected.connection]);
+			interceptor = axios.interceptors.request.use((config) => ({ ...config, baseURL: `${url}/workspace/${selected.workspace}`, auth: { username, password } }));
+		} else {
+			pullButton = vscode.commands.registerCommand("siebelscriptandwebtempeditor.pullScript", async () => {
+				vscode.window.showErrorMessage("Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings, then reload the extension!");
+				vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptAndWebTempEditor");
+			})
+			context.subscriptions.push(pullButton);
+
+			pushButton = vscode.commands.registerCommand("siebelscriptandwebtempeditor.pushScript", async () => {
+				vscode.window.showErrorMessage("Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings, then reload the extension!");
+				vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptAndWebTempEditor");
+			})
+			context.subscriptions.push(pushButton);
+		}
 
 		//handle the datasource selection
 		provider = {
@@ -123,10 +167,10 @@ async function activate(context) {
 				thisWebview.webview.onDidReceiveMessage(async (message) => {
 					switch (message.command) {
 						case "selectConnection": {
-							//handle connection selection and create new interceptor
+							//handle connection selection, create the new interceptor and clear the tree views
 							selected.connection = message.connectionName;
 							selected.workspace = defConnName === selected.connection ? defWS : configData[selected.connection].workspaces[0],
-							({ url, username, password } = configData[selected.connection]);
+								({ url, username, password } = configData[selected.connection]);
 							axios.interceptors.request.eject(interceptor);
 							interceptor = axios.interceptors.request.use((config) => ({ ...config, baseURL: `${url}/workspace/${selected.workspace}`, auth: { username, password } }));
 							vscode.window.showInformationMessage(`Selected connection: ${selected.connection}`);
@@ -135,7 +179,7 @@ async function activate(context) {
 							break;
 						}
 						case "selectWorkspace": {
-							//handle workspace selection and create new interceptor
+							//handle workspace selection, create the new interceptor and clear the tree views
 							selected.workspace = message.workspace;
 							({ url, username, password } = configData[selected.connection]);
 							axios.interceptors.request.eject(interceptor);
@@ -185,7 +229,7 @@ async function activate(context) {
 								}
 								case "Web Template": {
 									webTempObj = await dataService.getSiebelData({ ...reqParams, "searchspec": `Name LIKE "${searchString}*"` }, folderPath(), "webtemp");
-									treeDataWebTemp = new treeData.TreeDataProvider(webTempObj, true);
+									treeDataWebTemp = new treeData.TreeDataProvider(webTempObj, IS_WEBTEMPLATE);
 									const treeViewWebTemp = vscode.window.createTreeView("webTemplates", { treeDataProvider: treeDataWebTemp });
 									treeViewWebTemp.onDidChangeSelection(async (e) => treeData.selectionChange(e, "webtemp", selected, webTempObj, treeDataWebTemp));
 									break;

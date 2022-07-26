@@ -98,14 +98,14 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "Parameteres for connection to the Siebel REST API, use the following format: CUSTOMNAME/USERNAME/PASSWORD@SIEBELRESTENDPOINT, e.g. DEVENV/USERNAME/PASSWORD@https://devclient.devdomain.com/siebel/v1.0.\n Press the Reload button on the extension after editing configurations!"
+					"description": "Parameteres for connection to the Siebel REST API, use the following format: CUSTOMNAME/USERNAME/PASSWORD@SIEBELRESTENDPOINT, e.g.\nDEVENV/USERNAME/PASSWORD@https://devclient.devdomain.com/siebel/v1.0\nPress the Reload button on the extension after editing this setting!"
 				},
 				"siebelScriptAndWebTempEditor.workspaces": {
 					"type": "array",
 					"items": {
 						"type": "string"
 					},
-					"description": "Workspaces to use for the different connections, multiple can be given for each connection, use a colon after the connection, then the workspace names separated by commas, one is mandatory, CUSTOMNAME:WORKSPACENAME1,WORKSPACENAME2, e.g. DEVENV:custom_dev_ws,other_dev_ws.\n Press the Reload button on the extension after editing configurations!"
+					"description": "Workspaces to use for the different connections, multiple can be given for each connection, use a colon after the connection, then the workspace names separated by commas, one is mandatory, CUSTOMNAME:WORKSPACENAME1,WORKSPACENAME2, e.g.\nDEVENV:custom_dev_ws,other_dev_ws\nPress the Reload button on the extension after editing this setting!"
 				},
 				"siebelScriptAndWebTempEditor.defaultConnection": {
 					"type": "string",
