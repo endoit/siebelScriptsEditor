@@ -72,7 +72,7 @@
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.pushScript",
-				"title": "Push script/web template to",
+				"title": "Push script/web template to Siebel",
 				"icon": {
 					"light": "./media/arrowup.png",
 					"dark": "./media/arrowup.png"
