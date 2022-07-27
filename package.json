@@ -3,7 +3,7 @@
 	"displayName": "Siebel Script And Web Template Editor",
 	"description": "Enables the editing of Siebel object server scripts and web templates in VSCode and updating them in Siebel using the Siebel REST API",
 	"version": "1.0.0",
-	"publisher": "endo IT",
+	"publisher": "endoIT",
 	"engines": {
 		"vscode": "^1.62.0"
 	},
