@@ -101,16 +101,27 @@ async function activate(context) {
 		try {
 			for (let workspace of workspaces) {
 				let [connectionName, workspaceString] = workspace.split(":");
+				if (!workspaceString){
+					vscode.window.showErrorMessage(`No workspace was found for the ${connectionName} connection, check the Workspaces setting!`);	
+					throw err;
+				}
 				workspaceObject[connectionName] = [...workspaceString.split(",")];
-			};
+			}
 			for (let config of connectionConfigs) {
 				let [connUserPwString, url] = config.split("@");
 				let [connectionName, username, password] = connUserPwString.split("/");
+				if (!(url && username && password)){
+					vscode.window.showErrorMessage(`Missing parameter(s) for the ${connectionName} connection, check the REST Endpoint Configurations setting!`);
+					throw err;
+				}
+				if (!workspaceObject.hasOwnProperty(connectionName)){
+					vscode.window.showErrorMessage(`No workspace was found for the ${connectionName} connection, check the settings!`);
+					throw err;
+				}
 				let connectionObj = { username, password, url, workspaces: workspaceObject[connectionName] };
 				configData[connectionName] = connectionObj;
 			}
 		} catch (err) {
-			vscode.window.showErrorMessage("Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings, then reload the extension!");
 			vscode.commands.executeCommand("workbench.action.openSettings", "siebelScriptAndWebTempEditor");
 			isConfigError = true;
 		}
@@ -169,7 +180,7 @@ async function activate(context) {
 						case "selectConnection": {
 							//handle connection selection, create the new interceptor and clear the tree views
 							selected.connection = message.connectionName;
-							selected.workspace = defConnName === selected.connection ? defWS : configData[selected.connection].workspaces[0],
+							selected.workspace = defConnName === selected.connection ? defWS : configData[selected.connection]?.workspaces?.[0],
 								({ url, username, password } = configData[selected.connection]);
 							axios.interceptors.request.eject(interceptor);
 							interceptor = axios.interceptors.request.use((config) => ({ ...config, baseURL: `${url}/workspace/${selected.workspace}`, auth: { username, password } }));
