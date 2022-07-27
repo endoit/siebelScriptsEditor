@@ -2,18 +2,17 @@ Siebel Script And Web Template Editor is a Visual Studio Code extension, which e
 
 # 1. Installation
 
-Prerequisites:
-- SiebelScriptAndWebTemplateEditor-\<VERSION_NUMBER\>.vsix extension file [__Download Link__](../../raw/main/SiebelScriptAndWebTemplateEditor-1.0.0.vsix)
+The Siebel Script And Web Template Editor can be installed from the Visual Studio Code Extensions Marketplace.
 
-To install the extension (downloaded .vsix file) run the following command:
+Alternatively, it can be installed with the siebelscriptandwebtempeditor-\<VERSION_NUMBER\>.vsix extension file, which can be found in the repository. To install the extension from the .vsix file, run the following command:
 ```
-code --install-extension <DOWNLOAD_PATH>\SiebelScriptAndWebTemplateEditor-1.0.0.vsix
+code --install-extension <DOWNLOAD_PATH>\siebelscriptandwebtempeditor-<VERSION_NUMBER>.vsix
 ```
 
 The command shall respond with:
 
 ```
-Extension 'SiebelScriptAndWebTemplateEditor-1.0.0.vsix' was successfully installed.
+Extension 'siebelscriptandwebtempeditor-<VERSION_NUMBER>.vsix' was successfully installed.
 ```
 
 > Some other/warning messages may be displayed, but that's OK as long as the installation is successful.
