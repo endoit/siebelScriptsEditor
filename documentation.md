@@ -1,4 +1,4 @@
-Siebel Script And Web Template Editor is a Visual Studio Code extension, which enables editing Siebel object server scripts and web templates directly in VS Code, using the Siebel REST APIe.
+Siebel Script And Web Template Editor is a Visual Studio Code extension, which enables editing Siebel object server scripts and web templates directly in VS Code, using the Siebel REST API.
 
 # 1. Installation
 
@@ -29,11 +29,7 @@ Start VS Code (or if it was already running, restart it). A new icon will appear
 
 ## 2.1. Configuration
 
-After clicking on the extension's icon, a pop-up window tells that you do not have any connections configured yet:
-
-![noconf](features/documentation/noconf.PNG)
-
-Click Yes to open to the extension's settings:
+After clicking on the extension's icon and you do not have any connections configured yet, the settings for the extension will open:
 
 ![settings](features/documentation/settings.PNG)
 
@@ -126,7 +122,7 @@ To get the list of objects, select the connection, the workspace and the desired
 Other buttons:
 - __Set as default__ saves the current connection and workspace the default, the extension will set these values on next startup or reload.
 - __Open settings__ opens the Siebel Script Editor extension's settings.
-- __Reload__: Reloads the extension.
+- __Reload__ reloads the extension.
 
 ## 2.2.1. Getting server scripts from Siebel
 
@@ -152,7 +148,7 @@ A checkmark is displayed in front of each object if there is at least one downlo
 
 ![checkmark](features/documentation/checkmark.PNG)
 
-The scripts are saved as javascript files with `.js` extension, and an `info.json` is created for each object to store the connection, workspace, siebel object and scripts names. For the individual scripts, the last update from and last push to Siebel timestamp is also stored in `info.json`:
+The scripts are saved as javascript files with `.js` extension, and an `info.json` file is created for each object to store the connection, workspace, siebel object and scripts names. For the individual scripts, the last update from and last push to Siebel timestamp is also stored in `info.json`:
 
 ![infojson](features/documentation/infojson.PNG)
 
@@ -202,6 +198,7 @@ The following message is displayed after a successful push:
 ![infoup](features/documentation/infoup.PNG)
 
 For server scripts, if the script is not found `info.json`, the extension will give the option to create the script as a new method for the Siebel object:
+
 ![newmethod](features/documentation/newmethod.PNG)
 
 > The name of the file should be the same as the function name:
