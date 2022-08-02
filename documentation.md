@@ -216,7 +216,7 @@ Possible errors when pushing scripts/web templates to the database:
 
 # 3. Folder structure
 
-Folder structure for the scripts:
+Folder structure for the scripts and web templates:
 ```
 Visual Studio Code Workspace folder
 ├── Connection Name
