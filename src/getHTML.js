@@ -1,10 +1,35 @@
-//generates the HTML page for the webview to select database/repository/workspace
-const HTMLPage = (dbwsrepo, db, rp, ws, backup) => {
-	if (!dbwsrepo || dbwsrepo === "enablereload"){
-		return `
-		<!doctype><html>
-		<head>
-			<style>
+//generates the HTML page for the webview to select REST endpoint, resource and the searchbar
+const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfig = false, reloadEnabled = false) => {	
+	const css =  `
+		<style>
+			.divitem {
+				margin: 0.2em;
+				display: flex;
+			}
+			.text {
+				text-align: center;
+			}
+			.input-field {
+				flex: 1 1 auto;
+			}
+			label {
+
+				margin: 0.1em;
+			}
+			.opt {
+				background: rgba(83, 89, 93, 1);
+				color: rgb(204, 204, 204);
+			}
+			#connection, #workspace, #object, #search-bar {
+				border-radius: 0.4em;
+				margin: 0.1em;
+				text-align: center;
+				background-color: rgba(83, 89, 93, 0.5);
+				color: rgb(204, 204, 204);
+				border: 0;
+				padding: 0.2em;
+				width: 10em;
+			}
 			.button {
 				margin-top: 0.2em;
 				border: none;
@@ -22,131 +47,91 @@ const HTMLPage = (dbwsrepo, db, rp, ws, backup) => {
 			.button:disabled {
 				background: #9daaab;
 			}
-			</style>
-		</head>
-		<body>
-		<p>Please add at least one database configuration in the settings, test it, and then press reload.</p>
-			<Button class="button" onclick="testdb()">Test database connection</Button>
-			<Button class="button" onclick="reload()" ${dbwsrepo === "enablereload" ? "" : "disabled"}>Reload</Button>
-			<script>
-			const vscode = acquireVsCodeApi();
-			const testdb = () => {vscode.postMessage({command: "testdb"});}
-			const reload = () => {vscode.postMessage({command: "reload"});}
-			</script>
-		</body>
-		</html>`
+			.button-small {
+				flex: 1 1 auto;
+				margin: 0.2em;
+				border: none;
+				padding: 0.5em;
+				width: 49%;
+				height: 3em;
+				text-align: center;
+				outline: 1px solid transparent;
+				outline-offset: 2px!important;
+				color: var(--vscode-button-foreground);
+				background: var(--vscode-button-background);
+				text-align: center;
+				border-radius: 0.4em;
+				box-sizing: border-box;
+			}
+		</style>`;
+
+	if (noRESTConfig){
+		return `
+		<!doctype><html>
+			<head>
+				${css}
+			</head>
+			<body>
+				<div class="text">No Siebel REST API configuration/workspace was found, please click the Open settings button and give at least one REST Endpoint configuration, and at least one workspace for that REST configuration! After that, press the Test connection button! If successful, the Reload button will be enabled, and click on that!</div>
+				<div class="divitem">
+						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>
+						<Button class="button-small" id="test" onclick="testREST()">Test connection</Button>
+				</div>
+					<div class="divitem">
+						<Button class="button" onclick="reload()" ${reloadEnabled ? "" : "disabled"}>Reload</Button>
+					</div>	
+				</div>
+				<script>
+					const vscode = acquireVsCodeApi();
+					const openConfig = () => {
+						vscode.postMessage({command: "openConfig"});
+					}
+					const testREST = () => {
+						vscode.postMessage({command: "testREST"});
+					}
+					const reload = () => {
+						vscode.postMessage({command: "reload"});
+					}
+				</script>
+			</body>
+		</html>`;
 	}
-	
-	let dbs = Object.keys(dbwsrepo.db).map((item) => `<option class="opt" value="${item}" ${item === db ? "selected" : ""}>${item}</option>`).join('');
-	let repos = Object.keys(dbwsrepo.repo).map((item) => `<option class="opt" value="${item}" ${item === rp ? "selected" : ""}>${item}</option>`).join('');
-	let wss = Object.keys(dbwsrepo.ws).map((item) => `<option class="opt" value="${item}" ${item === ws ? "selected" : ""}>${item}</option>`).join('');
+
+	const connections = Object.keys(connectionObject).map((item) => `<option class="opt" value="${item}" ${connection === item ? "selected" : ""}>${item}</option>`).join("");
+	const workspaces = connectionObject[connection]?.workspaces && connectionObject[connection].workspaces.map((item) => `<option class="opt" value="${item}" ${workspace === item ? "selected" : ""}>${item}</option>`).join("");
+	const objects = ["Business Service", "Business Component", "Applet", "Application", "Web Template"].map((item) => `<option class="opt" value="${item}" ${object === item ? "selected" : ""}>${item}</option>`).join("");
 
 	return `
 		<!doctype><html>
 			<head>
-				<style>
-					.container {
-						display: flex;
-						flex-direction: column;
-						align-items: left;
-					}
-					.divitem {
-						margin: 0.2em;
-					}
-					#ws, #repo, #db, #datepick {
-						border-radius: 0.4em;
-						text-align: center;
-						background-color: rgba(83, 89, 93, 0.5);
-						color: rgb(204, 204, 204);
-						border: 0;
-						padding: 0.2em;
-						width: 10em;
-					}
-					#datepick {
-						width: 9em;
-						font-family: inherit;
-						text-align: right;
-				}
-				.opt, #scr {
-					background: rgba(83, 89, 93, 1);
-					color: rgb(204, 204, 204);
-				}
-				.button {
-					margin-top: 0.2em;
-					border: none;
-					padding: 0.5em;
-					width: 100%;
-					text-align: center;
-					outline: 1px solid transparent;
-					outline-offset: 2px!important;
-					color: var(--vscode-button-foreground);
-					background: var(--vscode-button-background);
-					text-align: center;
-					box-sizing: border-box;
-					border-radius: 0.4em;
-				}
-				.button_backup {
-					margin-top: 0.2em;
-					border: none;
-					padding: 0.5em;
-					width: 49%;
-					height: 3em;
-					text-align: center;
-					outline: 1px solid transparent;
-					outline-offset: 2px!important;
-					color: var(--vscode-button-foreground);
-					background: var(--vscode-button-background);
-					text-align: center;
-					border-radius: 0.4em;
-					box-sizing: border-box;
-				}
-				.button_backup:disabled {
-						background: #9daaab;
-				}
-				.button_def {
-					margin-left: 1.3em;
-					color: var(--vscode-button-foreground);
-					background: var(--vscode-button-background);
-					text-align: center;
-					border-radius: 0.4em;
-					border: none;
-				}
-				</style>
+				${css}
 			</head>
 			<body>
 				<div class="container">
 					<div class="divitem">
-						<label for="db">&nbsp;&nbsp;&nbsp;&nbsp;DATABASE:</label>
-						<select name="dbs" id="db" onchange="selectDB()">
-								${dbs}
+						<label for="connection">Connection</label>
+						<select name="connection" class="input-field" id="connection" onchange="selectConnection()">
+							${connections}
 						</select>
 					</div>
 					<div class="divitem">
-						<label for="repo">REPOSITORY:</label> 
-						<select name="wss" id="repo" value="Siebel Repository" onchange="selectRepo()">                       
-								${repos}
+						<label for="workspace">Workspace</label>
+					  <select name="workspace" class="input-field" id="workspace" onchange="selectWorkspace()" >
+							${workspaces}
 						</select>
 					</div>
 					<div class="divitem">
-						<label for="ws">WORKSPACE:</label> 
-						<select name="wss" id="ws" value="MAIN">
-								${wss}
+						<label for="object">Object type</label> 
+						<select name="object" class="input-field" id="object" onchange="selectObject()">                       
+							${objects}
 						</select>
 					</div>
 					<div class="divitem">
-					<label for="cb">HAS SCRIPTS:</label>
-						<input type="checkbox" id="scr" checked><Button class="button_def" onclick="setDefault()">Set as default</Button>
+						<input type="search" name="search-bar" class="input-field" id="search-bar" oninput="handleSearch()" placeholder="Type here to search">
 					</div>
 					<div class="divitem">
-						<label for="datepick">NEWER THAN:</label>
-						<input type="date" id="datepick">
-					</div>
-					<div class="divitem">
-						<Button class="button" onclick="selectWS()">Get Siebel Data</Button>
-					</div>
-					<div class="divitem">
-						<Button class="button_backup" id="backup" ${backup ? "" : "disabled"} onclick="createBackup()">Create backup</Button>
-						<Button class="button_backup" id="config" onclick="openConfig()">Open settings</Button>  
+						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>  
+						<Button class="button-small" id="default" onclick="setDefault()">Set as default</Button>  
 					</div>
 					<div class="divitem">
 						<Button class="button" onclick="reload()">Reload</Button>
@@ -154,36 +139,29 @@ const HTMLPage = (dbwsrepo, db, rp, ws, backup) => {
 				</div>
 				<script>
 					const vscode = acquireVsCodeApi();
-					const selectDB = () => {
-						let db = document.getElementById("db").value;
-						vscode.postMessage({command: "selectDB", db});
+					const selectConnection = () => {
+						const connectionName = document.getElementById("connection").value;
+						vscode.postMessage({command: "selectConnection", connectionName});
 					}
-					const selectRepo = () => {
-						let repo = document.getElementById("repo").value;
-						vscode.postMessage({command: "selectRepo", repo});
+					const selectWorkspace= () => {
+						const workspace = document.getElementById("workspace").value;
+						vscode.postMessage({command: "selectWorkspace", workspace});
 					}
-					const selectWS = () => {
-						let repo = document.getElementById("repo").value;
-						let ws = document.getElementById("ws").value;
-						let scr = document.getElementById("scr").checked;
-						let date = document.getElementById("datepick").value;
-						vscode.postMessage({command: "selectWS", repo, ws, scr, date});
+					const selectObject = () => {
+						const object = document.getElementById("object").value;
+						vscode.postMessage({command: "selectObject", object});
 					}
-					const createBackup = () => {
-						let repo = document.getElementById("repo").value;
-						let ws = document.getElementById("ws").value;
-						let scr = document.getElementById("scr").checked;
-						let date = document.getElementById("datepick").value;
-						vscode.postMessage({command: "backup", repo, ws, scr, date});
-					}
-					const setDefault = () => {
-						let db = document.getElementById("db").value;
-						let repo = document.getElementById("repo").value;
-						let ws = document.getElementById("ws").value;
-						vscode.postMessage({command: "setDefault", db, repo, ws});
+					const handleSearch = () => {					
+						const searchString = document.getElementById("search-bar").value;
+						vscode.postMessage({command: "search", searchString});
 					}
 					const openConfig = () => {
 						vscode.postMessage({command: "openConfig"});
+					}
+					const setDefault = () => {
+						const connectionName = document.getElementById("connection").value;
+						const workspace = document.getElementById("workspace").value;
+						vscode.postMessage({command: "setDefault", connectionName, workspace});
 					}
 					const reload = () => {
 						vscode.postMessage({command: "reload"});

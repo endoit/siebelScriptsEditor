@@ -1,17 +1,14 @@
-const vscode = require('vscode');
-const fs = require('fs');
+const vscode = require("vscode");
+const fs = require("fs");
 
 //create method files for siebel objects
-const writeFiles = async (sData, wsName, bsName, fileName, backup) => {
+const writeFiles = async (sData, folderPath, objectName, fileName) => {
   try {
     vscode.workspace.saveAll(false);
     let bPath = true;
     let wsPath;
     let filePath;
 
-    /*if (config.workspace) {
-      wsPath = config.workspace;
-    } else */
     if (vscode.workspace.workspaceFolders) {
       wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
     } else {
@@ -19,20 +16,21 @@ const writeFiles = async (sData, wsName, bsName, fileName, backup) => {
     }
 
     if (bPath) {
-      filePath = vscode.Uri.file(wsPath + '/' + wsName + '/' + bsName + '/' + fileName + '.js');
+      filePath = fileName
+        ? vscode.Uri.file(`${wsPath}/${folderPath}/${objectName}/${fileName}.js`)
+        : vscode.Uri.file(`${wsPath}/${folderPath}/${objectName}.html`);
       const wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(filePath, { overwrite: true, ignoreIfExists: false });
       await vscode.workspace.applyEdit(wsEdit);
 
-      const writeData = Buffer.from(sData, 'utf8');
+      const writeData = Buffer.from(sData, "utf8");
       vscode.workspace.fs.writeFile(filePath, writeData);
 
-      if (!backup) {
-        await vscode.window.showTextDocument(filePath, { "preview": false });
-        vscode.window.showInformationMessage('New files were created in directory: ./' + wsName + '/' + bsName);
-      }
+      await vscode.window.showTextDocument(filePath, { "preview": false });
+      vscode.window.showInformationMessage(`New files were created in directory: ./${folderPath}${fileName ? "/" + objectName : ""}`);
+      
     } else {
-      vscode.window.showInformationMessage('Open a WorkSpace or define a WorkSpace path in config file');
+      vscode.window.showInformationMessage("Please open a workspace folder!");
     }
   } catch (err) {
     return err.message;
@@ -40,69 +38,63 @@ const writeFiles = async (sData, wsName, bsName, fileName, backup) => {
 }
 
 //write info.json
-const writeInfo = async (selectedObj, folderObj, folderPath, type, methodName) => {
+const writeInfo = async (selectedObj, folderPath, type, methodNames) => {
   try {
     vscode.workspace.saveAll(false);
     let bPath = true;
     let wsPath;
     let infoObj;
     let wsEdit;
+    let filePathString;
     let filePath;
     let readData;
     let scrname;
-    let scrid;
-    /*if (config.workspace) {
-      wsPath = config.workspace;
-    } else*/
+
     if (vscode.workspace.workspaceFolders) {
       wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
     } else {
       bPath = false;
     }
-    if (bPath && type !== "backup") {
-      filePath = vscode.Uri.file(`${wsPath}/${folderPath}/${selectedObj[type].name}/info.json`);
-      if (fs.existsSync(`${wsPath}/${folderPath}/${selectedObj[type].name}/info.json`)) {
+    if (bPath) {
+      filePathString = `${wsPath}/${folderPath}/${type !== "webtemp" ? selectedObj[type].name + "/" : ""}info.json`;   
+      filePath = vscode.Uri.file(filePathString);
+      if (fs.existsSync(filePath.fsPath)) {
         //update info.json if exists
         readData = await vscode.workspace.fs.readFile(filePath);
         infoObj = JSON.parse(Buffer.from(readData));
-        for ([scrname, scrid] of Object.entries(methodName)) {
-          infoObj.scripts[scrname] = { "id": scrid, "last update from database": new Date().toString(), "last push to database": "" }
+        if (type !== "webtemp" ){
+          for (scrname of methodNames) {
+            infoObj.scripts[scrname] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" };
+          }
+        } else {
+          infoObj.definitions[methodNames] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" };
         }
-        vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
+        vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), "utf8"));
       } else {
         //create info.json if not exists
         infoObj = {
           "folder created at": new Date().toString(),
-          "db": folderObj.db,
-          "repo": { "name": folderObj.repo, "id": selectedObj.repo },
-          "ws": { "name": folderObj.ws || "", "id": selectedObj.ws || "" },
-          "type": type,
-          "siebelObject": { "name": selectedObj[type].name, "id": selectedObj[type].id },
-          "scripts": {}
+          "connection": selectedObj.connection,
+          "workspace": selectedObj.workspace,
+          "type": type
         }
-        for ([scrname, scrid] of Object.entries(methodName)) {
-          infoObj.scripts[scrname] = { "id": scrid, "last update from database": new Date().toString(), "last push to database": "" }
+        if (type !== "webtemp" ){
+          infoObj.siebelObjectName = selectedObj[type].name,
+          infoObj.scripts = {};
+          for (scrname of methodNames) {
+            infoObj.scripts[scrname] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" };
+          }
+        } else {
+          infoObj.definitions = {};
+          infoObj.definitions[methodNames] = { "last update from Siebel": new Date().toString(), "last push to Siebel": "" };
         }
         wsEdit = new vscode.WorkspaceEdit();
         wsEdit.createFile(filePath, { overwrite: false, ignoreIfExists: true });
         await vscode.workspace.applyEdit(wsEdit);
-        vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
+        vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), "utf8"));
       }
-    } else if (bPath && type === "backup") {
-      //create backupinfo.json
-      filePath = vscode.Uri.file(`${wsPath}/${folderPath}/backupinfo.json`);
-      infoObj = {
-        "backup created at": new Date().toString(),
-        "db": folderObj.db,
-        "repo": { "name": folderObj.repo, "id": selectedObj.repo },
-        "ws": { "name": selectedObj.ws ? folderObj.ws.split("_backup_")[0] : "", "id": selectedObj.ws || "" }
-      }
-      wsEdit = new vscode.WorkspaceEdit();
-      wsEdit.createFile(filePath, { overwrite: true, ignoreIfExists: false });
-      await vscode.workspace.applyEdit(wsEdit);
-      vscode.workspace.fs.writeFile(filePath, Buffer.from(JSON.stringify(infoObj, null, 2), 'utf8'));
     } else {
-      vscode.window.showInformationMessage('Open a WorkSpace folder!');
+      vscode.window.showInformationMessage("Open a WorkSpace folder!");
     }
   } catch (err) {
     return err.message;

@@ -1,8 +1,10 @@
 {
-	"name": "siebelscripteditor",
-	"displayName": "Siebel Script Editor",
-	"description": "",
-	"version": "0.0.1",
+	"name": "siebelscriptandwebtempeditor",
+	"displayName": "Siebel Script And Web Template Editor",
+	"description": "Enables the editing of Siebel object server scripts and web templates in VSCode and updating them in Siebel using the Siebel REST API",
+	"version": "1.0.0",
+	"publisher": "endoIT",
+	"icon": "./media/icon.png",
 	"engines": {
 		"vscode": "^1.62.0"
 	},
@@ -15,8 +17,8 @@
 		"url": "https://github.com/endoit/siebelScriptsEditor"
 	},
 	"activationEvents": [
-		"onCommand:siebelscripteditor.pullScript",
-		"onCommand:siebelscripteditor.pushScript",
+		"onCommand:siebelscriptandwebtempeditor.pullScript",
+		"onCommand:siebelscriptandwebtempeditor.pushScript",
 		"onView:extensionView"
 	],
 	"main": "./extension.js",
@@ -24,14 +26,14 @@
 		"viewsContainers": {
 			"activitybar": [
 				{
-					"id": "siebelScriptEditor",
-					"title": "Siebel Script Editor",
+					"id": "siebelScriptAndWebTempEditor",
+					"title": "Siebel Script And Web Template Editor",
 					"icon": "./media/icon.png"
 				}
 			]
 		},
 		"views": {
-			"siebelScriptEditor": [
+			"siebelScriptAndWebTempEditor": [
 				{
 					"type": "webview",
 					"id": "extensionView",
@@ -52,57 +54,63 @@
 				{
 					"id": "applications",
 					"name": "Applications"
+				},
+				{
+					"id": "webTemplates",
+					"name": "Web Templates"
 				}
 			]
 		},
 		"commands": [
 			{
-				"command": "siebelscripteditor.pullScript",
-				"title": "Get script from Siebel database",
+				"command": "siebelscriptandwebtempeditor.pullScript",
+				"title": "Get script/web template from Siebel",
 				"icon": {
-					"light": "./media/arrowdown.svg",
-					"dark": "./media/arrowdown.svg"
+					"light": "./media/arrowdown.png",
+					"dark": "./media/arrowdown.png"
 				}
 			},
 			{
-				"command": "siebelscripteditor.pushScript",
-				"title": "Push script to Siebel database",
+				"command": "siebelscriptandwebtempeditor.pushScript",
+				"title": "Push script/web template to Siebel",
 				"icon": {
-					"light": "./media/arrowup.svg",
-					"dark": "./media/arrowup.svg"
+					"light": "./media/arrowup.png",
+					"dark": "./media/arrowup.png"
 				}
 			}
 		],
 		"menus": {
 			"editor/title": [
 				{
-					"command": "siebelscripteditor.pullScript",
+					"command": "siebelscriptandwebtempeditor.pullScript",
 					"group": "navigation"
 				},
 				{
-					"command": "siebelscripteditor.pushScript",
+					"command": "siebelscriptandwebtempeditor.pushScript",
 					"group": "navigation"
 				}
 			]
 		},
 		"configuration": {
-			"title": "Siebel Script Editor",
+			"title": "Siebel Script And Web Template Editor",
 			"properties": {
-				"siebelScriptEditor.defaultConnection": {
-					"type": "string",
-					"description": "Use the 'Set as default' button in the extension to change it. Name of the default database, repository and workspace to use, in the following format: DATABASENAME/REPOSITORYNAME/WORKSPACENAME, e.g. DEVDB/Siebel Repository/Main."
-				},
-				"siebelScriptEditor.databaseConfigurations": {
+				"siebelScriptAndWebTempEditor.REST EndpointConfigurations": {
 					"type": "array",
 					"items": {
 						"type": "string"
 					},
-					"description": "Parameteres for connection to Siebel databases, use the following format: DATABASENAME/USERNAME/PASSWORD@CONNECTSTRING@SIEBELUSERNAME, e.g. DEVDB/USER1/PASSWORD1@111.111.111.111:1111/SIEBEL@SIEBUSER.\n The Siebel username is only required for safe mode.\nPress the Reload button on the extension after editing configurations!"
+					"description": "Parameteres for connection to the Siebel REST API, use the following format: CUSTOMNAME/USERNAME/PASSWORD@SIEBELRESTENDPOINT, e.g.\nDEVENV/USERNAME/PASSWORD@https://devclient.devdomain.com/siebel/v1.0\nPress the Reload button on the extension after editing this setting!"
 				},
-				"siebelScriptEditor.safeMode": {
-					"type": "boolean",
-					"default": "true",
-					"description": "In safe mode, you can only get and update Siebel objects locked by the given Siebel username if workspaces are not in use or not exist.\nIf workspaces are used, then only objects belonging to active workspaces (i.e. their status is either \"Edit-In-Progress\" or \"Checkpointed\") created by the given username can be pulled from or pushed to the database.\nPress the Reload button on the extension after changing this setting!"
+				"siebelScriptAndWebTempEditor.workspaces": {
+					"type": "array",
+					"items": {
+						"type": "string"
+					},
+					"description": "Workspaces to use for the different connections, multiple can be given for each connection, use a colon after the connection, then the workspace names separated by commas, one is mandatory, CUSTOMNAME:WORKSPACENAME1,WORKSPACENAME2, e.g.\nDEVENV:custom_dev_ws,other_dev_ws\nPress the Reload button on the extension after editing this setting!"
+				},
+				"siebelScriptAndWebTempEditor.defaultConnection": {
+					"type": "string",
+					"description": "Use the 'Set as default' button in the extension to change it. Name of the default REST connection and workspace to use, e.g. DEVENV:custom_dev_ws"
 				}
 			}
 		},
@@ -119,7 +127,7 @@
 		"test": "node ./test/runTest.js"
 	},
 	"dependencies": {
-		"oracledb": "^5.3.0"
+		"axios": "^0.27.2"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.4",
@@ -130,7 +138,6 @@
 		"eslint": "^8.1.0",
 		"glob": "^7.1.7",
 		"mocha": "^9.1.3",
-		"oracledb": "^5.3.0",
 		"typescript": "^4.4.4"
 	}
 }

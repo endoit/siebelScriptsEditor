@@ -1,21 +1,18 @@
-Siebel Script Editor is a Visual Studio Code extension, which enables editing Siebel object server scripts directly in VS Code, using a direct connection to the Siebel database.
+Siebel Script And Web Template Editor is a Visual Studio Code extension, which enables editing Siebel object server scripts and web templates directly in VS Code, using the Siebel REST API.
 
 # 1. Installation
 
-Prerequisites:
-- siebelscripteditor-\<VERSION_NUMBER\>.vsix extension file [__Download Link__](../../raw/main/siebelscripteditor-1.0.0.vsix)
--	Visual Studio Code should be up-to-date
--	[64-bit Oracle Client](https://www.oracle.com/database/technologies/instant-client/downloads.html), follow installation instructions at the bottom of the link.
+The Siebel Script And Web Template Editor can be installed from the Visual Studio Code Extensions Marketplace.
 
-To install the extension (downloaded .vsix file) run the following command:
+Alternatively, it can be installed with the siebelscriptandwebtempeditor-\<VERSION_NUMBER\>.vsix extension file, which can be found in the repository. To install the extension from the .vsix file, run the following command:
 ```
-code --install-extension <DOWNLOAD_PATH>\siebelscripteditor-1.0.0.vsix
+code --install-extension <DOWNLOAD_PATH>\siebelscriptandwebtempeditor-<VERSION_NUMBER>.vsix
 ```
 
 The command shall respond with:
 
 ```
-Extension 'siebelscripteditor-1.0.0.vsix' was successfully installed.
+Extension 'siebelscriptandwebtempeditor-<VERSION_NUMBER>.vsix' was successfully installed.
 ```
 
 > Some other/warning messages may be displayed, but that's OK as long as the installation is successful.
@@ -32,120 +29,106 @@ Start VS Code (or if it was already running, restart it). A new icon will appear
 
 ## 2.1. Configuration
 
-After clicking on the extension's icon, a pop-up window tells that you do not have any database connections configured yet:
-
-![wsfolder](features/documentation/nodbconf.PNG)
-
-Click Yes to open to the extension's settings:
+After clicking on the extension's icon and you do not have any connections configured yet, the settings for the extension will open:
 
 ![settings](features/documentation/settings.PNG)
 
 Currently there are three settings for the extension:
-- __Database Configurations__: used for connecting to the Siebel databases. See [configuring database connections](#211-configuring-database-connections).
-- __Default Connection__: the default database/repository/workspace to use on startup. Normally it should be set using the __Set as default__ button on the extension's UI.
-- __Safe Mode__: turns safe mode on and off. In safe mode:
-  - In Siebel versions without workspaces (pre-17): you can only get and update Siebel objects locked by the Siebel user provided in the database connection configuration's `SiebelUsername` component (see [configuring database connections](#211-configuring-database-connections)).
-  - In workspaced Siebel versions (17+): you can only get and update Siebel objects belonging to active (Edit-In-Progress or Checkpointed) workspaces created by the Siebel user provided in the database connection configuration's `SiebelUsername` component (see [configuring database connections](#211-configuring-database-connections)).
+- __REST Endpoint Configurations__: used for communicating with the Siebel REST API. See [Configuring Siebel REST API connections](#211-configuring-siebel-rest-api-connections).
+- __Workspaces__: the different workspaces used for the different connections. See [Configuring workspaces for connections](#212-configuring-workspaces-for-connections).
+- __Default Connection__: the default connection and workspace to use on startup. Normally it should be set using the __Set as default__ button on the extension's UI.
 
-### 2.1.1. Configuring database connections
+### 2.1.1. Configuring Siebel REST API connections
 
-To use the extension, at least one database connection must be configured. The connection is represented by a string of the following format:
+To use the extension, at least one REST Endpoint Connection must be configured in the **REST Endpoint Configurations** setting, and a workspace for that as well. The connection is represented by a string of the following format:
 
 ```
-ConnectionName/DBUsername/DBPassword@ConnectionString@SiebelUsername
+ConnectionName/SiebelUsername/SiebelPassword@SiebelRestEndpoint
 ```
 
 Where:
-- `ConnectionName` is a unique name to identify the connection. It is the name displayed in the extension's UI when selecting the connection. Use something that identifies the connection for you easily, such as SANDBOX, DEV, INT, etc.
-- `DBUsername` is the Oracle database user name used to access the Siebel repository tables.
-- `DBPassword` is the password of the Oracle database user given in `DBUsername`.
-- `SiebelUsername` is used in safe mode to restrict access to objects "owned" by this user (see chapter above).
+- `ConnectionName` is a unique name to identify the connection. It is the name displayed in the extension's UI when selecting the connection, and this name is used to identify the workspaces which belong to this connection. Use something that identifies the connection for you easily, such as SANDBOX, DEV, INT, etc.
+- `SiebelUsername` is the username used to access the Siebel with basic authentication.
+- `SiebelPasswordPassword` is the password used to access the Siebel with basic authentication with `SiebelUsername`.
 
-`ConnectionString` defines access to the Oracle database in the following format:
+
+`SiebelRestEndpoint` defines access to the Siebel REST API in the following format:
 
 ```
-Host:Port/ServiceName
+https://Server Name:Port/siebel/v1.0
 ```
 
 Where:
-- `Host` is the URL of the Oracle database server.
-- `Port` is the HTTP port where the Oracle database listens for connections.
-- `ServiceName` is the SERVICE_NAME (not TNS name) of the Oracle database service.
+- `Server Name` is the URL of the Siebel server.
+- `Port` is the HTTP port where the Siebel listens for connections.
 
-For example, if the connection descriptor in `TNSNAMES.ORA` contains:
+For example, if the Siebel Server URL is https://dev.testserver.local and the port is 443, then `SiebelRestEndpoint` shall be `https://dev.testserver.local:443/siebel/v1.0`
+
+> Assuming the Siebel User is SADMIN, it's password is SECRET, the complete REST Endpoint Configuration connection string is `DEV/SADMIN/SECRET@https://dev.testserver.local:443/siebel/v1.0`. The extension will display this connection as `DEV` in the connection dropdown.
+
+You can provide multiple connections, which is useful if you have access to different environments/clients/etc.
+
+### 2.1.2. Configuring workspaces for connections
+
+In the **Workspaces** setting, the workspaces should be given in the following format:
 
 ```
-DEVDB=
-  (DESCRIPTION =
-    (ADDRESS = (PROTOCOL = TCP)(HOST = dbora01.dev.local)(PORT = 1521))
-    (CONNECT_DATA =
-      (SERVER = DEDICATED)
-      (SERVICE_NAME = SBDEV)
-    )
-  )
+ConnectionName:Workspace1,Workspace2,Workspace3
 ```
 
-then `ConnectionString` shall be `dbora01.dev.local:1521/SBDEV`, composed of the `HOST`, `PORT` and `SERVICE_NAME` values of the `TNSNAMES.ORA` entry.
+- ConncectionName is the name of the REST Endpoint Configuration, to which the workspaces belong.
+- WorkspaceX are the name of the workspaces to use, multiple can be given, one is mandatory, separated by commas.
 
-> Assuming the DB user is SADMIN, it's password is SECRET and the developer's Siebel username is DEV_JOHN, the complete database connection config string is `DEV/SADMIN/SECRET@dbora01.dev.local:1521/SBDEV@DEV_JOHN`. The extension will display this connection as `DEV` in the database dropdown.
+For example, if the REST Endpoint configuration is `DEV/SADMIN/SECRET@https://dev.testserver.local:443/siebel/v1.0`, and the name of the workspaces which are desired to use are `dev_sadmin_test_ws` and `dev_sadmin_other_test_ws`, then the Workspaces setting string should be `DEV:dev_sadmin_test_ws,dev_sadmin_other_test_ws`. For each connection, only one Workspaces setting should be given.
 
-The connection is configured in the **Database Configuration** setting. You can provide multiple connections, which is useful if you have access to different environments/clients/etc.
+![conf](features/documentation/conf.PNG)
 
-![dbconf](features/documentation/dbconf.PNG)
-
-Use the **Add Item** button to add a database configuration. When done, click the **Test database connection** button in the extension's **SELECT DATASOURCE** panel:
+Use the **Add Item** button to add a REST Endpoint Connection configuration, and add one workspace for that connection with **Add Item** on the Workspaces setting. When done, click the **Test connection** button in the extension's **SELECT DATASOURCE** panel:
 
 ![testcon](features/documentation/testcon.PNG)
 
 If the connection was established, the following message appears in the bottom right corner:
 
-![dbconok](features/documentation/dbconok.PNG)
+![conok](features/documentation/conok.PNG)
 
-If the connection was unsuccessful, the error message will appear instead:
+If the connection was unsuccessful, an error message will appear instead:
 
-![dbconnotok](features/documentation/dbconnotok.PNG)
+![connotok](features/documentation/connotok.PNG)
 
 A successful connection enables the **Reload** button.
 
-![dbconreload](features/documentation/dbconreload.PNG)
+![conreload](features/documentation/conreload.PNG)
 
-Add further connection configurations when necessary. Finally, click **Reload** to restart the extension. It will then read the connections and you can start working with the scripts.
+Add further connection configurations and workspaces when necessary. Finally, click **Reload** to restart the extension. It will then read the connections and you can start working with the Siebel objects.
 
 In the future, when changing any setting, the extension should be reloaded with the **Reload** button.
 
 > Alternatively, you can also restart VS Code.
 
-## 2.2. User interface
+## 2.3. User interface
 
-Once a database connection is configured, the user interface of the extension becomes visible. The UI consists of five different panels, the uppermost selecting the datasource:
+Once a REST Endpoint connection and workspace is configured, the user interface of the extension becomes visible. The UI consists of six different panels, the uppermost is used for selecting the datasource:
 
 ![selectds](features/documentation/selectds.PNG)
 
-The other four panels display the list of Siebel objects (Business Services, Business Components, Applets and Applications) and their respective server scripts.
+The other five panels display the list of Siebel objects (Business Services, Business Components, Applets, Applications and Web Templates) and for the first four, their respective server scripts.
 
-To get the list of objects, select the database, then repository and finally the workspace.
+To get the list of objects, select the connection, the workspace and the desired Siebel object. Start typing the name of the object into the search field, and the objects will be shown in the list.
 
-> If the Siebel version does not support workspaces, or workspaces are not enabled, the extension will detect it automatically, and the workspace selection list will be empty.
-
-The **Has scripts** checkbox is used to get only objects that have any server scripts. If the checkbox is removed, all objects will be retrieved. This option only works for Siebel versions without workspaces, for workspace enabled Siebel versions, only objects with scripts will be retrieved, regardless of this setting.
-
-Setting a date in **Newer than** will filter objects that were _created_ after the selected date.
-
-Click the **Get Siebel Data** button to retrieve the list of Business Services, Business Components, Applets and Applications from the database:
+> Wildcard character `*` can be used in the search bar
 
 ![fullui](features/documentation/fullui.PNG)
 
 Other buttons:
-- __Set as default__ saves the current connection (database, repository and workspace) as the default. The extension will set these values on next startup or reload.
-- __Create backup__ creates a backup of all server scripts for the current query (see [](#223-creating-backups)).
+- __Set as default__ saves the current connection and workspace the default, the extension will set these values on next startup or reload.
 - __Open settings__ opens the Siebel Script Editor extension's settings.
-- __Reload__: Reloads the extension.
+- __Reload__ reloads the extension.
 
-## 2.2.1. Getting scripts from the server
+## 2.2.1. Getting server scripts from Siebel
 
 Click on an object and a dialog opens in the bottom right corner with three buttons:
 
-![getbspopup](features/documentation/getbspopup.PNG)
+![getscrpopup](features/documentation/getscrpopup.PNG)
 
 - __Yes__ gets and downloads all server scripts for the object.
 - __Only method names__ gets only the method names. Methods can be downloaded individually by clicking on their names.
@@ -154,10 +137,8 @@ Click on an object and a dialog opens in the bottom right corner with three butt
 Scripts are downloaded into the first VSCode workspace folder (only one should be open) in the following folder structure:
 
 ```
-DatabaseName_RepositoryName\WorkspaceName\ObjectType\ObjectName
+ConnectionName\WorkspaceName\ObjectType\ObjectName\MethodName.js
 ```
-
-> For non-workspace enabled Siebel versions, the `WorkspaceName` component is omitted.
 
 Refer to the [folder structure chapter](#3-folder-structure) for complete folder layout reference.
 
@@ -167,13 +148,38 @@ A checkmark is displayed in front of each object if there is at least one downlo
 
 ![checkmark](features/documentation/checkmark.PNG)
 
-The scripts are saved as javascript files with `.js` extension, and an `info.json` is created for each object to store the database name, repository name and id, workspace name and id (if used), and row ids of the siebel object and scripts. For the individual scripts, the last update from and last push to the database timestamp is also stored in `info.json`:
+The scripts are saved as javascript files with `.js` extension, and an `info.json` file is created for each object to store the connection, workspace, siebel object and scripts names. For the individual scripts, the last update from and last push to Siebel timestamp is also stored in `info.json`:
 
 ![infojson](features/documentation/infojson.PNG)
 
-## 2.2.2. Refreshing (pulling) and updating (pushing) scripts
+## 2.2.2. Getting web templates from Siebel
 
-Two command buttons are shown in top right corner of the VS Code editor. The downward pointing arrow downloads (pulls) the script being edited from the database, while the upward pointing arrow uploads (pushes) it to the database, also updating the timestamp in the `updated` column:
+Click on a web template and a dialog opens in the bottom right corner with two buttons:
+
+![getwtpopup](features/documentation/getwtpopup.PNG)
+
+- __Yes__ gets and downloads the web template definition.
+- __No__ closes the dialog.
+
+Scripts are downloaded into the first VSCode workspace folder (only one should be open) in the following folder structure:
+
+```
+ConnectionName\WorkspaceName\webtemp\WebTemplateName.html
+```
+
+Refer to the [folder structure chapter](#3-folder-structure) for complete folder layout reference.
+
+![getwts](features/documentation/getwts.PNG)
+
+A checkmark is displayed in front of each web template if it is downloaded.
+
+The web template definitions are saved as html files with `.html` extension, and an `info.json` file is created to store the connection name, workspace name and web template names. For the individual web templates, the last update from and last push to Siebel timestamp is also stored in `info.json`:
+
+![infojsonwt](features/documentation/infojsonwt.PNG)
+
+## 2.2.3. Refreshing (pulling) and updating (pushing) scripts/web templates
+
+Two command buttons are shown in top right corner of the VS Code editor. The downward pointing arrow downloads (pulls) the script being edited from Siebel, while the upward pointing arrow uploads (pushes) it to Siebel, also updating the timestamp in the `updated` column:
 
 ![pushpullbutton](features/documentation/pushpullbutton.PNG)
 
@@ -191,11 +197,14 @@ The following message is displayed after a successful push:
 
 ![infoup](features/documentation/infoup.PNG)
 
-> __IMPORTANT__: In workspace enabled Siebel versions, editing server scripts, then checkpointing the workspace and subsequently editing already edited scripts in Siebel (web)tools creates a new versions of the scripts which are not the same as the ones edited in the extension. This case (a newer version of a script exists) is detected by the extension and will not allow pushing to the database. The affected scripts must be refreshed (pulled) either with the pull button, or from the the extension's UI (Siebel object tree view). The extension can only push and pull the newest version of server scripts.
+For server scripts, if the script is not found `info.json`, the extension will give the option to create the script as a new method for the Siebel object:
 
-![badversion](features/documentation/badversion.PNG)
+![newmethod](features/documentation/newmethod.PNG)
 
-Possible errors when pushing scripts to the database:
+> The name of the file should be the same as the function name:
+![newmethodname](features/documentation/newmethodname.PNG)
+
+Possible errors when pushing scripts/web templates to the database:
 
 ![perr1](features/documentation/perr1.PNG)
 
@@ -203,35 +212,14 @@ Possible errors when pushing scripts to the database:
 
 ![perr3](features/documentation/perr3.PNG)
 
-## 2.2.3. Creating backups
-The **Create backup** button downloads all objects and their respective scripts from the current query after confirmation:
-
-![backupq](features/documentation/backupq.PNG)
-
-The backup is ready after the busy marker disappears:
-
-![crbck](features/documentation/crbck.PNG)
-
-The backup is saved into the currently open folder with a timestamp in the following structure:
-
-```
-DatabaseName_RepositoryName\WorkspaceName_backup_timestamp:
-```
-
-> For non-workspace enabled Siebel versions, the `WorkspaceName` component is omitted.
-
-![bckst](features/documentation/bckst.PNG)
-
-A `backupinfo.json` file is also created:
-
-![bckinf](features/documentation/bckinf.PNG)
+![perr4](features/documentation/perr4.PNG)
 
 # 3. Folder structure
 
-Folder structure for the scripts:
+Folder structure for the scripts and web templates:
 ```
 Visual Studio Code Workspace folder
-├── Database Name_Repository Name
+├── Connection Name
 │   ├── Workspace Name
 │   │   ├── service
 │   │   │   └── Business Service Name
@@ -252,16 +240,11 @@ Visual Studio Code Workspace folder
 │   │   │   └───Siebel Application Name
 │   │   │       ├── CustomMethod.js
 │   │   │       └── info.json
-│   │   └── Workspace Name_backup_timestamp
-│   │       │   └───backupinfo.json
-│   │       ├───sevice
-│   │       ├───buscomp
-│   │       ├───applet
-│   │       └───application
+│   │   └── webtemp
+│   │       ├── Custom Web Template.html
+│   │       └── info.json
 │   └── Other Workspace Name
-└── Other Database Name_Other Repository Name
+└── Another Connection Name
     └── Another Workspace Name
         ...
 ```
-
-[More information about `info.json` in this chapter.](#221-getting-scripts-from-the-server)
