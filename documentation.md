@@ -33,10 +33,11 @@ After clicking on the extension's icon and you do not have any connections confi
 
 ![settings](features/documentation/settings.PNG)
 
-Currently there are three settings for the extension:
+Currently there are four settings for the extension:
 - __REST Endpoint Configurations__: used for communicating with the Siebel REST API. See [Configuring Siebel REST API connections](#211-configuring-siebel-rest-api-connections).
 - __Workspaces__: the different workspaces used for the different connections. See [Configuring workspaces for connections](#212-configuring-workspaces-for-connections).
 - __Default Connection__: the default connection and workspace to use on startup. Normally it should be set using the __Set as default__ button on the extension's UI.
+- __Get Workspaces From REST__: this is currently an experimental feature. If this checkbox is set to true, the workspaces for the connections will be fetched from the Siebel REST API, without manually writing the Workspaces setting. In order for this feature to work, an integration object has to be imported into Siebel. See [Getting workspace data from REST](#213-getting-workspace-data-from-rest) for more details.
 
 ### 2.1.1. Configuring Siebel REST API connections
 
@@ -104,6 +105,10 @@ Add further connection configurations and workspaces when necessary. Finally, cl
 In the future, when changing any setting, the extension should be reloaded with the **Reload** button.
 
 > Alternatively, you can also restart VS Code.
+
+### 2.1.3. Getting workspace data from REST
+
+This feature needs an integration object imported into Siebel, which can be found in the repository, under the name [BaseWorkspaceIOB.sif](BaseWorkspaceIOB.sif). The integration object makes it possible to get information about workspaces (name, status and who created it) using the Siebel REST API. Then the workspace, into which the integration object was imported should be merged into the primary branch (this workspace is the value given for the EAI Object Manager component, Workspace Branch Name parameter, usually MAIN).
 
 ## 2.3. User interface
 

@@ -99,18 +99,23 @@
 					"items": {
 						"type": "string"
 					},
-					"description": "Parameteres for connection to the Siebel REST API, use the following format: CUSTOMNAME/USERNAME/PASSWORD@SIEBELRESTENDPOINT, e.g.\nDEVENV/USERNAME/PASSWORD@https://devclient.devdomain.com/siebel/v1.0\nPress the Reload button on the extension after editing this setting!"
+					"markdownDescription": "Parameteres for connection to the Siebel REST API, use the following format:  \n`CUSTOMNAME/USERNAME/PASSWORD@SIEBELRESTENDPOINT`, e.g.  \n`DEVENV/USERNAME/PASSWORD@https://devclient.devdomain.com/siebel/v1.0`  \nPress the Reload button on the extension after editing this setting!"
 				},
 				"siebelScriptAndWebTempEditor.workspaces": {
 					"type": "array",
 					"items": {
 						"type": "string"
 					},
-					"description": "Workspaces to use for the different connections, multiple can be given for each connection, use a colon after the connection, then the workspace names separated by commas, one is mandatory, CUSTOMNAME:WORKSPACENAME1,WORKSPACENAME2, e.g.\nDEVENV:custom_dev_ws,other_dev_ws\nPress the Reload button on the extension after editing this setting!"
+					"markdownDescription": "Workspaces to use for the different connections, multiple can be given for each connection, use a colon after the connection, then the workspace names separated by commas, one is mandatory:  \n`CUSTOMNAME:WORKSPACENAME1,WORKSPACENAME2`, e.g.  \n`DEVENV:custom_dev_ws,other_dev_ws`  \nPress the Reload button on the extension after editing this setting!"
 				},
 				"siebelScriptAndWebTempEditor.defaultConnection": {
 					"type": "string",
-					"description": "Use the 'Set as default' button in the extension to change it. Name of the default REST connection and workspace to use, e.g. DEVENV:custom_dev_ws"
+					"markdownDescription": "Use the 'Set as default' button in the extension to change it. Name of the default REST connection and workspace to use, e.g. `DEVENV:custom_dev_ws`"
+				},
+				"siebelScriptAndWebTempEditor.getWorkspacesFromREST": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "__EXPERIMENTAL FEATURE__. If you have the 'Base Workspace' integration object in your Siebel primary branch, by checking this you can get the workspaces from the Siebel REST API, no need to fill them manually under the Workspaces setting. The integration object to import can be found in the repository of the extension, under the name `BaseWorkspaceIOB.sif`. See the [documentation](https://github.com/endoit/siebelScriptsEditor/blob/main/documentation.md#213-getting-workspace-data-from-rest) for more information.  \nPress the Reload button on the extension after editing this setting!"
 				}
 			}
 		},

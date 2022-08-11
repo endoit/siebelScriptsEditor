@@ -106,6 +106,17 @@ const getWebTemplate = async (selectedObj) => {
   return definitionStr;
 }
 
+//get workspaces from REST
+const getWorkspaces = async ({ url, username, password }) => {
+  const workspacesUrl = `${url}/data/Workspace/Repository Workspace`;
+  const workspaces = [];
+  const data = await callRESTAPIInstance({ url: workspacesUrl, username, password }, "get", { "fields": "Name", "searchspec": `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`, "uniformresponse": "y" });
+  for (let workspace of data) {
+    workspaces.push(workspace.Name);
+  }
+  return workspaces;
+}
+
 //push/pull script from/to database
 const pushOrPullScript = async (action, configData) => {
   const currentlyOpenTabfilePath = vscode.window.activeTextEditor?.document.uri.fsPath;
@@ -162,7 +173,7 @@ const pushOrPullScript = async (action, configData) => {
       break;
     }
     case "push": {
-      const resourceString = `${resourceURL[infoObj.type].obj}/${isWebTemp ? "" : infoObj.siebelObjectName + "/" + resourceURL[infoObj.type].scr}${isNewMethod ? "" : "/" + scrName }`;
+      const resourceString = `${resourceURL[infoObj.type].obj}/${isWebTemp ? "" : infoObj.siebelObjectName + "/" + resourceURL[infoObj.type].scr}${isNewMethod ? "" : "/" + scrName}`;
       const scrDataRead = await vscode.workspace.fs.readFile(scrFilePath);
       const scrString = Buffer.from(scrDataRead).toString();
       const payload = { Name: scrName };
@@ -170,7 +181,7 @@ const pushOrPullScript = async (action, configData) => {
         payload.Definition = scrString;
       } else {
         payload.Script = scrString;
-        if (isNewMethod){
+        if (isNewMethod) {
           payload["Program Language"] = "JS";
         }
       }
@@ -180,8 +191,8 @@ const pushOrPullScript = async (action, configData) => {
         if (isWebTemp) {
           infoObj.definitions[scrName]["last push to Siebel"] = new Date().toString();
         } else {
-          if (isNewMethod){
-            infoObj.scripts[scrName] = {"last update from Siebel": ""};
+          if (isNewMethod) {
+            infoObj.scripts[scrName] = { "last update from Siebel": "" };
           }
           infoObj.scripts[scrName]["last push to Siebel"] = new Date().toString();
         }
@@ -199,4 +210,5 @@ exports.getSiebelData = getSiebelData;
 exports.getServerScripts = getServerScripts;
 exports.getServerScriptMethod = getServerScriptMethod;
 exports.getWebTemplate = getWebTemplate;
+exports.getWorkspaces = getWorkspaces;
 exports.pushOrPullScript = pushOrPullScript;
