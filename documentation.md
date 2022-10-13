@@ -37,7 +37,7 @@ Currently there are four settings for the extension:
 - __REST Endpoint Configurations__: used for communicating with the Siebel REST API. See [Configuring Siebel REST API connections](#211-configuring-siebel-rest-api-connections).
 - __Workspaces__: the different workspaces used for the different connections. See [Configuring workspaces for connections](#212-configuring-workspaces-for-connections).
 - __Default Connection__: the default connection and workspace to use on startup. Normally it should be set using the __Set as default__ button on the extension's UI.
-- __Get Workspaces From REST__: this is currently an experimental feature. If this checkbox is set to true, the workspaces for the connections will be fetched from the Siebel REST API, without manually writing the Workspaces setting. In order for this feature to work, an integration object has to be imported into Siebel. See [Getting workspace data from REST](#213-getting-workspace-data-from-rest) for more details.
+- __Get Workspaces From REST__: if this checkbox is set to true, the workspaces for the connections will be fetched from the Siebel REST API, without manually writing the Workspaces setting. In order for this feature to work, an integration object has to be imported into Siebel. See [Getting workspace data from REST](#213-getting-workspace-data-from-rest) for more details.
 
 ### 2.1.1. Configuring Siebel REST API connections
 
@@ -110,7 +110,7 @@ In the future, when changing any setting, the extension should be reloaded with 
 
 This feature needs an integration object imported into Siebel, which can be found in the repository, under the name [BaseWorkspaceIOB.sif](BaseWorkspaceIOB.sif). The integration object makes it possible to get information about workspaces (name, status and who created it) using the Siebel REST API. Then the workspace, into which the integration object was imported should be merged into the primary branch (this workspace is the value given for the EAI Object Manager component, Workspace Branch Name parameter, usually MAIN).
 
-## 2.3. User interface
+## 2.2. User interface
 
 Once a REST Endpoint connection and workspace is configured, the user interface of the extension becomes visible. The UI consists of six different panels, the uppermost is used for selecting the datasource:
 
@@ -219,7 +219,17 @@ Possible errors when pushing scripts/web templates to the database:
 
 ![perr4](features/documentation/perr4.PNG)
 
-# 3. Folder structure
+# 3. Autocompletion and semantic checking
+
+An index.d.ts file will be created in the Siebel VSCode workspace folder. It contains type definitions for Siebel specific constans, objects and interfaces, so the Visual Studio Code will have greatly improved autocompletion features. If the Check JS setting is enabled (see below), the semantic checking will raise error if it detects any problem, e.g. using non-existing methods on a given Siebel object.
+
+For the best experience, ensure the following settings are set to true in the Visual Studio Code preferences:
+- JavaScript > Suggest > Complete Function Calls
+- JS/TS > Implicit Project Config> Check JS
+
+![autocomplete](features/snippetgif.gif)
+
+# 4. Folder structure
 
 Folder structure for the scripts and web templates:
 ```

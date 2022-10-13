@@ -115,7 +115,7 @@
 				"siebelScriptAndWebTempEditor.getWorkspacesFromREST": {
 					"type": "boolean",
 					"default": false,
-					"markdownDescription": "__EXPERIMENTAL FEATURE__. If you have the 'Base Workspace' integration object in your Siebel primary branch, by checking this you can get the workspaces from the Siebel REST API, no need to fill them manually under the Workspaces setting. The integration object to import can be found in the repository of the extension, under the name `BaseWorkspaceIOB.sif`. See the [documentation](https://github.com/endoit/siebelScriptsEditor/blob/main/documentation.md#213-getting-workspace-data-from-rest) for more information.  \nPress the Reload button on the extension after editing this setting!"
+					"markdownDescription": "If you have the 'Base Workspace' integration object in your Siebel primary branch, by checking this setting you can get the workspaces from the Siebel REST API, no need to fill them manually under the Workspaces setting. The integration object to import can be found in the repository of the extension, under the name `BaseWorkspaceIOB.sif`. See the [documentation](https://github.com/endoit/siebelScriptsEditor/blob/main/documentation.md#213-getting-workspace-data-from-rest) for more information.  \nPress the Reload button on the extension after editing this setting!"
 				}
 			}
 		},

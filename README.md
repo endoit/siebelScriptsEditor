@@ -14,9 +14,9 @@ Siebel Script And Web Template Editor is a Visual Studio Code extension, which e
 
   ![Push and pull server scripts](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/main/features/pushpull.gif "Push and pull server scripts")
 
-- Snippets included for Siebel eScript autocompletion:
+- Type definitions are included for Siebel eScript autocompletion and semantic checking:
 
-  ![Snippet in action](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/main/features/snippetgif.gif "Snippet in action")
+  ![Autocompletion](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/main/features/snippetgif.gif "Autocompletion")
 
 - Supports multiple Siebel connections, with multiple workspaces for each.
 

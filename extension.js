@@ -2,6 +2,7 @@ const vscode = require("vscode");
 const getHTML = require("./src/getHTML.js");
 const dataService = require("./src/dataService.js");
 const treeData = require("./src/treeData.js");
+const filesRW = require("./src/filesRW.js");
 const { default: axios } = require("axios");
 
 async function activate(context) {
@@ -100,6 +101,9 @@ async function activate(context) {
 		const workspaceObject = {};
 		const configData = {};
 		try {
+			//create index.d.ts if does not exist
+			filesRW.copyTypeDefFile(context); 
+			
 			//get workspaces object from the Workspaces setting
 			if (!isWorkspaceREST) {
 				for (let workspace of workspaces) {
@@ -132,11 +136,11 @@ async function activate(context) {
 					const workspaces = await dataService.getWorkspaces(connParams);
 					configData[connectionName].workspaces = workspaces;
 					if (workspaces.length === 0){
-						delete configData[connectionName]
+						delete configData[connectionName];
 					}
 				}
 				if (Object.keys(configData).length === 0) {
-					vscode.window.showErrorMessage(`No workspace with status Checkpointed or Edith-In-Progress was found for any connection with the given username or the Base Workspace integration object is missing or was not merged into the primary branch in Siebel!`);
+					vscode.window.showErrorMessage(`No workspace with status Checkpointed or Edit-In-Progress was found for any connection with the given username or the Base Workspace integration object is missing or was not merged into the primary branch in Siebel!`);
 					throw err;
 				}
 			}
