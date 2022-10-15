@@ -259,7 +259,8 @@ Visual Studio Code Workspace folder
 │   │       ├── Custom Web Template.html
 │   │       └── info.json
 │   └── Other Workspace Name
-└── Another Connection Name
-    └── Another Workspace Name
-        ...
+├── Another Connection Name
+│    └── Another Workspace Name
+│        ...
+└── index.d.ts
 ```
