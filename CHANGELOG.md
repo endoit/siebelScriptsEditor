@@ -1,6 +1,6 @@
 **Changelog**
 
-# v1.2.1 - 2022-10-17
+# v1.2.2 - 2022-10-17
 
 - File index.d.ts no longer needs to be opened to use the autocompletion and semantic checking features
 
