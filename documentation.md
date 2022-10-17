@@ -221,11 +221,10 @@ Possible errors when pushing scripts/web templates to the database:
 
 # 3. Autocompletion and semantic checking
 
-An index.d.ts file will be created in the Siebel VSCode workspace folder. It contains type definitions for Siebel specific constans, objects and interfaces, so the Visual Studio Code will have greatly improved autocompletion features. In order for these features to work, __the index.d.ts file should be opened or previewed in Visual Studio Code__. If the Check JS setting is enabled (see below), the semantic checking will raise error if it detects any problem, e.g. using non-existing methods on a given Siebel object.
+Files index.d.ts and jsconfig.json will be created in the Siebel VSCode workspace folder. The index.d.ts contains type definitions for Siebel specific constans, objects and interfaces, so the Visual Studio Code will have greatly improved autocompletion and semantic checking features. Errors will be raised if problems are deteced, e.g. using non-existing methods on a given Siebel object.
 
-For the best experience, ensure the following settings are set to true in the Visual Studio Code preferences:
+For the best experience, ensure the following setting is set to true in the Visual Studio Code preferences:
 - JavaScript > Suggest > Complete Function Calls
-- JS/TS > Implicit Project Config> Check JS
 
 ![autocomplete](features/snippetgif.gif)
 
@@ -262,5 +261,6 @@ Visual Studio Code Workspace folder
 ├── Another Connection Name
 │    └── Another Workspace Name
 │        ...
-└── index.d.ts
+├── index.d.ts
+└── jsconfig.json
 ```

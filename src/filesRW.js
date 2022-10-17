@@ -101,19 +101,29 @@ const writeInfo = async (selectedObj, folderPath, type, methodNames) => {
   }
 }
 
-//copy index.d.ts to the VSCode workspace folder if it does not exist
+//copy index.d.ts and create jsconfig.json to the VSCode workspace folder if they do not exist
 const copyTypeDefFile = async (context) => {
   try {
     const wsPath = vscode.workspace.workspaceFolders[0].uri.fsPath;
-    if (fs.existsSync(vscode.Uri.file(`${wsPath}/index.d.ts`).fsPath)) return;
     const wsEdit = new vscode.WorkspaceEdit();
-    const data = await vscode.workspace.fs.readFile(
-      vscode.Uri.file(context.asAbsolutePath("src/index.d.ts"))
-    );
-    const filePath = vscode.Uri.file(`${wsPath}/index.d.ts`);
-    wsEdit.createFile(filePath, { ignoreIfExists: true });
-    await vscode.workspace.fs.writeFile(filePath, data);
-    vscode.window.showInformationMessage(`File index.d.ts was created in ${wsPath} folder!`)
+    const typeDefFilePath = vscode.Uri.file(`${wsPath}/index.d.ts`);
+    if (!fs.existsSync(typeDefFilePath.fsPath)) {
+      const data = await vscode.workspace.fs.readFile(
+        vscode.Uri.file(context.asAbsolutePath("src/index.d.ts"))
+      );
+      wsEdit.createFile(typeDefFilePath, { ignoreIfExists: true });
+      await vscode.workspace.fs.writeFile(typeDefFilePath, data);
+      await vscode.workspace.applyEdit(wsEdit);
+      vscode.window.showInformationMessage(`File index.d.ts was created in ${wsPath} folder!`);
+    }
+    const jsconfigFilePath = vscode.Uri.file(`${wsPath}/jsconfig.json`);
+    if (!fs.existsSync(jsconfigFilePath.fsPath)) {
+      const jsConfig = {"compilerOptions": {"allowJs": true, "checkJs": true }};
+      wsEdit.createFile(jsconfigFilePath, { ignoreIfExists: true });
+      await vscode.workspace.fs.writeFile(jsconfigFilePath, Buffer.from(JSON.stringify(jsConfig, null, 2), "utf8"));
+      await vscode.workspace.applyEdit(wsEdit);
+      vscode.window.showInformationMessage(`File jsconfig.json was created in ${wsPath} folder!`)
+    }
   } catch (err) {
     vscode.window.showErrorMessage(err.message);
   }

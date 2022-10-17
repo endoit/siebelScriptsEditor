@@ -1,5 +1,9 @@
 **Changelog**
 
+# v1.2.1 - 2022-10-17
+
+- File index.d.ts no longer needs to be opened to use the autocompletion and semantic checking features
+
 # v1.2.0 - 2022-10-13
 
 - Vastly improved autocompletion and semantic checking for the scripts, [see documentation for more information](documentation.md#3-autocompletion-and-semantic-checking)
