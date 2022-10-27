@@ -184,7 +184,7 @@ The web template definitions are saved as html files with `.html` extension, and
 
 ## 2.2.3. Refreshing (pulling) and updating (pushing) scripts/web templates
 
-Two command buttons are shown in top right corner of the VS Code editor. The downward pointing arrow downloads (pulls) the script being edited from Siebel, while the upward pointing arrow uploads (pushes) it to Siebel, also updating the timestamp in the `updated` column:
+Two command buttons are shown in top right corner of the VS Code editor. The downward pointing arrow downloads (pulls) the script being edited from Siebel, while the upward pointing arrow uploads (pushes) it to Siebel:
 
 ![pushpullbutton](features/documentation/pushpullbutton.PNG)
 
