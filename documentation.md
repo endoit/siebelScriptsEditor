@@ -51,9 +51,7 @@ Where:
 - `ConnectionName` is a unique name to identify the connection. It is the name displayed in the extension's UI when selecting the connection, and this name is used to identify the workspaces which belong to this connection. Use something that identifies the connection for you easily, such as SANDBOX, DEV, INT, etc.
 - `SiebelUsername` is the username used to access the Siebel with basic authentication.
 - `SiebelPassword` is the password used to access the Siebel with basic authentication with `SiebelUsername`.
-
-
-`SiebelRestEndpoint` defines access to the Siebel REST API in the following format:
+- `SiebelRestEndpoint` defines access to the Siebel REST API in the following format:
 
 ```
 https://Server Name:Port/siebel/v1.0
