@@ -6,8 +6,8 @@
 
 //Siebel eScript specific objects
 declare function TheApplication(): TheApplication;
-declare function Clib(): Clib;
-declare function SElib(): SElib;
+declare const Clib: Clib;
+declare const SElib: SElib;
 
 //Siebel eScript specific conversion methods
 declare function ToBoolean(value: any): boolean;
