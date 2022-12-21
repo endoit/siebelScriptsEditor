@@ -51,9 +51,7 @@ Where:
 - `ConnectionName` is a unique name to identify the connection. It is the name displayed in the extension's UI when selecting the connection, and this name is used to identify the workspaces which belong to this connection. Use something that identifies the connection for you easily, such as SANDBOX, DEV, INT, etc.
 - `SiebelUsername` is the username used to access the Siebel with basic authentication.
 - `SiebelPassword` is the password used to access the Siebel with basic authentication with `SiebelUsername`.
-
-
-`SiebelRestEndpoint` defines access to the Siebel REST API in the following format:
+- `SiebelRestEndpoint` defines access to the Siebel REST API in the following format:
 
 ```
 https://Server Name:Port/siebel/v1.0
@@ -221,7 +219,7 @@ Possible errors when pushing scripts/web templates to the database:
 
 # 3. Autocompletion and semantic checking
 
-Files index.d.ts and jsconfig.json will be created in the Siebel VSCode workspace folder. The index.d.ts contains type definitions for Siebel specific constans, objects and interfaces, so the Visual Studio Code will have greatly improved autocompletion and semantic checking features. Errors will be raised if problems are deteced, e.g. using non-existing methods on a given Siebel object.
+Files index.d.ts and jsconfig.json will be created in the Siebel VSCode workspace folder. The index.d.ts contains type definitions for Siebel specific constans, objects and interfaces, so the Visual Studio Code will have greatly improved autocompletion and semantic checking features. Errors will be raised if problems are detected, e.g. using non-existing methods on a given Siebel object.
 
 For the best experience, ensure the following setting is set to true in the Visual Studio Code preferences:
 - JavaScript > Suggest > Complete Function Calls
