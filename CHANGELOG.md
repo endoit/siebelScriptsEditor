@@ -3,7 +3,7 @@
 # v1.3.0 - 2022-12-21
 
 - Added debounce for the search field to reduce the amount of requests
-- Minor fixes in the code and in the Siebel type definitions, delete the index.d.ts from the workspace folder to create an updated file
+- Minor fixes in the code and in the Siebel type definitions, delete the index.d.ts from the workspace folder and reload the extension to create an updated file
 - Source code is now in TypeScript
 
 # v1.2.2 - 2022-10-17
