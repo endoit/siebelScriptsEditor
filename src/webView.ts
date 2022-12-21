@@ -1,6 +1,19 @@
+import {
+  SERVICE_LONG,
+  BUSCOMP_LONG,
+  APPLET_LONG,
+  APPLICATION_LONG,
+  WEBTEMP_LONG,
+} from "./constants";
+
 //generates the HTML page for the webview to select REST endpoint, resource and the searchbar
-const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfig = false, reloadEnabled = false) => {	
-	const css =  `
+export const webViewHTML = (
+  connectionObject: Connections,
+  { connection, workspace, object }: Partial<Selected>,
+  noRESTConfig = false,
+  reloadEnabled = false
+): string => {
+  const css = `
 		<style>
 			.divitem {
 				margin: 0.2em;
@@ -13,7 +26,6 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 				flex: 1 1 auto;
 			}
 			label {
-
 				margin: 0.1em;
 			}
 			.opt {
@@ -65,8 +77,8 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 			}
 		</style>`;
 
-	if (noRESTConfig){
-		return `
+  if (noRESTConfig) {
+    return `
 		<!doctype><html>
 			<head>
 				${css}
@@ -78,7 +90,9 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 						<Button class="button-small" id="test" onclick="testREST()">Test connection</Button>
 				</div>
 					<div class="divitem">
-						<Button class="button" onclick="reload()" ${reloadEnabled ? "" : "disabled"}>Reload</Button>
+						<Button class="button" onclick="reload()" ${
+              reloadEnabled ? "" : "disabled"
+            }>Reload</Button>
 					</div>	
 				</div>
 				<script>
@@ -95,13 +109,42 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 				</script>
 			</body>
 		</html>`;
-	}
+  }
 
-	const connections = Object.keys(connectionObject).map((item) => `<option class="opt" value="${item}" ${connection === item ? "selected" : ""}>${item}</option>`).join("");
-	const workspaces = connectionObject[connection]?.workspaces && connectionObject[connection].workspaces.map((item) => `<option class="opt" value="${item}" ${workspace === item ? "selected" : ""}>${item}</option>`).join("");
-	const objects = ["Business Service", "Business Component", "Applet", "Application", "Web Template"].map((item) => `<option class="opt" value="${item}" ${object === item ? "selected" : ""}>${item}</option>`).join("");
+  const connections = Object.keys(connectionObject)
+    .map(
+      (item) =>
+        `<option class="opt" value="${item}" ${
+          connection === item ? "selected" : ""
+        }>${item}</option>`
+    )
+    .join("");
+  const workspaces =
+    connectionObject[connection!]?.workspaces &&
+    connectionObject[connection!].workspaces
+      .map(
+        (item) =>
+          `<option class="opt" value="${item}" ${
+            workspace === item ? "selected" : ""
+          }>${item}</option>`
+      )
+      .join("");
+  const objects = [
+    SERVICE_LONG,
+    BUSCOMP_LONG,
+    APPLET_LONG,
+    APPLICATION_LONG,
+    WEBTEMP_LONG,
+  ]
+    .map(
+      (item) =>
+        `<option class="opt" value="${item}" ${
+          object === item ? "selected" : ""
+        }>${item}</option>`
+    )
+    .join("");
 
-	return `
+  return `
 		<!doctype><html>
 			<head>
 				${css}
@@ -169,6 +212,4 @@ const HTMLPage = (connectionObject, {connection, workspace, object}, noRESTConfi
 				</script>
 			</body>
 		</html>`;
-}
-
-exports.HTMLPage = HTMLPage;
+};
