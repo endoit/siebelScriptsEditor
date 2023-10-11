@@ -17,11 +17,12 @@ type SiebelObjectLong =
   | "Web Template";
 
 //Connections object
-type Connections = {
-  [env: string]: Connection & {
+type Connections = Record<
+  string,
+  Connection & {
     workspaces: string[];
-  };
-};
+  }
+>;
 
 type Connection = {
   username: string;
@@ -30,9 +31,7 @@ type Connection = {
 };
 
 //Workspaces object
-type Workspaces = {
-  [env: string]: string[];
-};
+type Workspaces = Record<string, string[]>;
 
 //Selected object
 type Selected = {
@@ -47,31 +46,31 @@ type Selected = {
 };
 
 type SelectedScript = { name: string; childName: string };
-type SelectedWebTemp = { name: string}
+type SelectedWebTemp = { name: string };
 
 //Data objects
-type ScriptObject = {
-  [name: string]: {
+type ScriptObject = Record<
+  string,
+  {
     onDisk: boolean;
     scripts: Scripts;
-  };
-};
+  }
+>;
 
-type Scripts = {
-  [name: string]: Script;
-};
+type Scripts = Record<string, Script>;
 
 type Script = {
   onDisk: boolean;
   script?: string;
 };
 
-type WebTempObject = {
-  [name: string]: {
+type WebTempObject = Record<
+  string,
+  {
     onDisk: boolean;
     definition: string;
-  };
-};
+  }
+>;
 
 //Query parameters
 type QueryParams = {
@@ -79,7 +78,7 @@ type QueryParams = {
   fields?: string;
   childLinks?: string;
   uniformresponse?: string;
-  searchspec?: string;
+  searchSpec?: string;
 };
 
 //Response scripts from Siebel
@@ -105,16 +104,12 @@ type InfoObjectBase = {
 //info.json as object for scripts
 type ScriptInfo = InfoObjectBase & {
   siebelObjectName: string;
-  scripts: {
-    [name: string]: UpdatePushDate;
-  };
+  scripts: Record<string, UpdatePushDate>;
 };
 
 //info.json as object for web templates
 type WebTempInfo = InfoObjectBase & {
-  definitions: {
-    [name: string]: UpdatePushDate;
-  };
+  definitions: Record<string, UpdatePushDate>;
 };
 
 //date fields in the info.json
@@ -150,11 +145,10 @@ type MessageCommand =
   | "reload"
   | "testREST";
 
-
-  //TreeItem object properties
-  type TreeItemProps = {
-    onDisk: boolean;
-    scripts?: Scripts;
-    parent?: string;
-    definition?: string;
-  };
+//TreeItem object properties
+type TreeItemProps = {
+  onDisk: boolean;
+  scripts?: Record<string, Script>;
+  parent?: string;
+  definition?: string;
+};

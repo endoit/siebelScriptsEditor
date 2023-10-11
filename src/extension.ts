@@ -39,7 +39,7 @@ import {
   getWorkspaces,
   pushOrPullScript,
 } from "./dataService";
-import { copyTypeDefFile } from "./filesRW";
+import { copyTypeDefFile } from "./fileRW";
 import { selectionChange, TreeDataProvider, TreeItem } from "./treeData";
 import { webViewHTML } from "./webView";
 
@@ -59,30 +59,6 @@ export async function activate(context: vscode.ExtensionContext) {
   let treeDataWebTemp: TreeDataProvider;
   let timeoutId = 0;
 
-  const reqParams: QueryParams = {
-    pageSize: 20,
-    fields: "Name",
-    childLinks: "None",
-    uniformresponse: "y",
-  } as const;
-
-  //debounce the search input
-  const debounceAsync = <T, Callback extends (...args: any[]) => Promise<T>>(
-    callback: Callback
-  ): ((...args: Parameters<Callback>) => Promise<T>) => {
-    return (...args: any[]) => {
-      clearTimeout(timeoutId);
-      return new Promise<T>((resolve) => {
-        const timeoutPromise = new Promise<void>((resolve) => {
-          timeoutId = setTimeout(resolve, 300);
-        });
-        timeoutPromise.then(async () => {
-          resolve(await callback(...args));
-        });
-      });
-    };
-  };
-
   const connectionConfigs: string[] = vscode.workspace.getConfiguration(
     "siebelScriptAndWebTempEditor"
   )["REST EndpointConfigurations"];
@@ -95,6 +71,24 @@ export async function activate(context: vscode.ExtensionContext) {
     "siebelScriptAndWebTempEditor"
   )["workspaces"];
 
+  //debounce the search input
+  const debounceAsync =
+    <T, Callback extends (...args: any[]) => Promise<T>>(
+      callback: Callback
+    ): ((...args: Parameters<Callback>) => Promise<T>) =>
+    (...args: any[]) => {
+      clearTimeout(timeoutId);
+      return new Promise<T>((resolve) => {
+        const timeoutPromise = new Promise<void>((resolve) => {
+          timeoutId = setTimeout(resolve, 300);
+        });
+        timeoutPromise.then(async () => {
+          resolve(await callback(...args));
+        });
+      });
+    };
+
+  //clears the tree views
   const clearTreeViews = () => {
     for (let treeDataObj of [
       treeDataBS,
@@ -107,22 +101,27 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  if (
-    connectionConfigs.length === 0 ||
-    (workspaces.length === 0 && !isWorkspaceREST)
-  ) {
+  //open the extension settings
+  const openSettings = () =>
     vscode.commands.executeCommand(
       "workbench.action.openSettings",
       "siebelScriptAndWebTempEditor"
     );
+
+  //reload the window
+  const reloadWindow = () =>
+    vscode.commands.executeCommand("workbench.action.reloadWindow");
+
+  if (
+    connectionConfigs.length === 0 ||
+    (workspaces.length === 0 && !isWorkspaceREST)
+  ) {
+    openSettings();
     const pullButton = vscode.commands.registerCommand(
       "siebelscriptandwebtempeditor.pullScript",
       async () => {
         vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
-        vscode.commands.executeCommand(
-          "workbench.action.openSettings",
-          "siebelScriptAndWebTempEditor"
-        );
+        openSettings();
       }
     );
     context.subscriptions.push(pullButton);
@@ -131,10 +130,7 @@ export async function activate(context: vscode.ExtensionContext) {
       "siebelscriptandwebtempeditor.pushScript",
       async () => {
         vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
-        vscode.commands.executeCommand(
-          "workbench.action.openSettings",
-          "siebelScriptAndWebTempEditor"
-        );
+        openSettings();
       }
     );
     context.subscriptions.push(pushButton);
@@ -177,7 +173,12 @@ export async function activate(context: vscode.ExtensionContext) {
                   const testResp = await callRESTAPIInstance(
                     { url, username, password },
                     GET,
-                    reqParams
+                    {
+                      pageSize: 20,
+                      fields: "Name",
+                      childLinks: "None",
+                      uniformresponse: "y",
+                    }
                   );
                   if (testResp.length > 0) {
                     vscode.window.showInformationMessage(
@@ -200,15 +201,12 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             case OPEN_CONFIG: {
               //opens the Settings for the extension
-              vscode.commands.executeCommand(
-                "workbench.action.openSettings",
-                "siebelScriptAndWebTempEditor"
-              );
+              openSettings();
               break;
             }
             case RELOAD: {
               //reloads the extension
-              vscode.commands.executeCommand("workbench.action.reloadWindow");
+              reloadWindow();
               break;
             }
           }
@@ -287,10 +285,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
       }
     } catch (err: any) {
-      vscode.commands.executeCommand(
-        "workbench.action.openSettings",
-        "siebelScriptAndWebTempEditor"
-      );
+      openSettings();
       isConfigError = true;
     }
     const firstConnection = Object.keys(configData).includes(defConnName)
@@ -359,10 +354,7 @@ export async function activate(context: vscode.ExtensionContext) {
         "siebelscriptandwebtempeditor.pullScript",
         async () => {
           vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
-          vscode.commands.executeCommand(
-            "workbench.action.openSettings",
-            "siebelScriptAndWebTempEditor"
-          );
+          openSettings();
         }
       );
       context.subscriptions.push(pullButton);
@@ -371,10 +363,7 @@ export async function activate(context: vscode.ExtensionContext) {
         "siebelscriptandwebtempeditor.pushScript",
         async () => {
           vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
-          vscode.commands.executeCommand(
-            "workbench.action.openSettings",
-            "siebelScriptAndWebTempEditor"
-          );
+          openSettings();
         }
       );
       context.subscriptions.push(pushButton);
@@ -435,18 +424,12 @@ export async function activate(context: vscode.ExtensionContext) {
               case SEARCH: {
                 //get the Siebel objects and create the tree views
                 const { searchString = "" } = message;
+                const searchSpec = `Name LIKE "${searchString}*"`;
                 const folderPath = `${selected.connection}/${selected.workspace}`;
                 switch (selected.object) {
                   case SERVICE_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(
-                        {
-                          ...reqParams,
-                          searchspec: `Name LIKE "${searchString}*"`,
-                        },
-                        folderPath,
-                        SERVICE
-                      )
+                      getSiebelData(searchSpec, folderPath, SERVICE)
                     );
                     const busServObj =
                       (await debouncedSearch()) as ScriptObject;
@@ -468,14 +451,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   }
                   case BUSCOMP_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(
-                        {
-                          ...reqParams,
-                          searchspec: `Name LIKE "${searchString}*"`,
-                        },
-                        folderPath,
-                        BUSCOMP
-                      )
+                      getSiebelData(searchSpec, folderPath, BUSCOMP)
                     );
                     const busCompObj =
                       (await debouncedSearch()) as ScriptObject;
@@ -497,14 +473,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   }
                   case APPLET_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(
-                        {
-                          ...reqParams,
-                          searchspec: `Name LIKE "${searchString}*"`,
-                        },
-                        folderPath,
-                        APPLET
-                      )
+                      getSiebelData(searchSpec, folderPath, APPLET)
                     );
                     const appletObj = (await debouncedSearch()) as ScriptObject;
                     treeDataApplet = new TreeDataProvider(appletObj);
@@ -526,14 +495,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   }
                   case APPLICATION_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(
-                        {
-                          ...reqParams,
-                          searchspec: `Name LIKE "${searchString}*"`,
-                        },
-                        folderPath,
-                        APPLICATION
-                      )
+                      getSiebelData(searchSpec, folderPath, APPLICATION)
                     );
                     const applicationObj =
                       (await debouncedSearch()) as ScriptObject;
@@ -555,14 +517,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   }
                   case WEBTEMP_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(
-                        {
-                          ...reqParams,
-                          searchspec: `Name LIKE "${searchString}*"`,
-                        },
-                        folderPath,
-                        WEBTEMP
-                      )
+                      getSiebelData(searchSpec, folderPath, WEBTEMP)
                     );
                     const webTempObj =
                       (await debouncedSearch()) as WebTempObject;
@@ -591,8 +546,9 @@ export async function activate(context: vscode.ExtensionContext) {
               }
               case SET_DEFAULT: {
                 //sets the default connection and workspace in the settings
+                const { connectionName, workspace } = message;
                 const answer = await vscode.window.showInformationMessage(
-                  `Do you want to set the default connection to ${message.connectionName} and the default workspace to ${message.workspace}?`,
+                  `Do you want to set the default connection to ${connectionName} and the default workspace to ${workspace}?`,
                   "Yes",
                   "No"
                 );
@@ -601,7 +557,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     .getConfiguration()
                     .update(
                       "siebelScriptAndWebTempEditor.defaultConnection",
-                      `${message.connectionName}:${message.workspace}`,
+                      `${connectionName}:${workspace}`,
                       vscode.ConfigurationTarget.Global
                     );
                 }
@@ -609,15 +565,12 @@ export async function activate(context: vscode.ExtensionContext) {
               }
               case OPEN_CONFIG: {
                 //opens the Settings for the extension
-                vscode.commands.executeCommand(
-                  "workbench.action.openSettings",
-                  "siebelScriptAndWebTempEditor"
-                );
+                openSettings();
                 break;
               }
               case RELOAD: {
                 //reloads the extension
-                vscode.commands.executeCommand("workbench.action.reloadWindow");
+                reloadWindow();
                 break;
               }
             }

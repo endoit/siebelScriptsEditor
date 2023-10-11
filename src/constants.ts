@@ -49,3 +49,4 @@ export const ERR_NO_INFO_JSON = "File info.json was not found, please get the Si
 export const ERR_NO_SCRIPT_INFO = "Script was not found in info.json, please get it again from the extension!";
 export const ERR_NO_WEBTEMP_INFO = "Web template was not found in info.json, please get it again from the extension!";
 export const ERR_NO_UPDATE = "Update was unsuccessful, check REST API connection!";
+export const ERR_FILE_FUNCTION_NAME_DIFF = "Unable to create new method, name of the file and the function is not the same!";

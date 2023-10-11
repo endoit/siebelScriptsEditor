@@ -1,5 +1,9 @@
 **Changelog**
 
+# v1.3.1 - 2023-10-11
+
+- Minor fixes in the code and the push/pull script icons have been changed
+
 # v1.3.0 - 2022-12-21
 
 - Added debounce for the search field to reduce the amount of requests

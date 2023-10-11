@@ -3,7 +3,7 @@ import * as vscode from "vscode";
 import { WEBTEMP } from "./constants";
 
 //create method files for siebel objects
-export const writeFiles = async (
+export const writeFile = async (
   fileContent: string,
   folderPath: string,
   objectName: string,

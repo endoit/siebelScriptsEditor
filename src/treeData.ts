@@ -15,7 +15,7 @@ import {
   getServerScripts,
   getWebTemplate,
 } from "./dataService";
-import { writeFiles, writeInfo } from "./filesRW";
+import { writeFile, writeInfo } from "./fileRW";
 
 const messageText = {
   service: SERVICE_LONG,
@@ -51,7 +51,7 @@ export const selectionChange = async (
     if (answer === "Yes") {
       dataObj[selItem.label].definition = await getWebTemplate(selected);
       dataObj[selItem.label].onDisk = true;
-      await writeFiles(dataObj[selItem.label].definition, folderPath, selItem.label);
+      await writeFile(dataObj[selItem.label].definition, folderPath, selItem.label);
       await writeInfo(selected, folderPath, type, [selItem.label]);
       treeObj.refresh(dataObj, IS_WEBTEMPLATE);
     }
@@ -71,7 +71,7 @@ export const selectionChange = async (
       dataObj[selItem.parent!].scripts[selItem.label].script =
         await getServerScriptMethod(selected, type);
       dataObj[selItem.parent!].scripts[selItem.label].onDisk = true;
-      await writeFiles(
+      await writeFile(
         dataObj[selItem.parent!].scripts[selItem.label].script!,
         folderPath,
         selItem.parent!,
@@ -96,7 +96,7 @@ export const selectionChange = async (
     for ([scrName, scrMethod] of Object.entries(
       dataObj[selItem.label].scripts
     )) {
-      await writeFiles(scrMethod.script!, folderPath, selItem.label, scrName);
+      await writeFile(scrMethod.script!, folderPath, selItem.label, scrName);
       scrNames.push(scrName);
     }
     await writeInfo(selected, folderPath, type, scrNames);

@@ -52,7 +52,7 @@ interface TheApplication {
   GetProfileAttr(profAttrName: string): string;
   GetService(svcName: string): Service;
   GetSharedGlobal(shGlobalName: string): string;
-  GotoView(viewName: string, busObjName: string): void;
+  GotoView(viewName: string, busObjName?: string): void;
   InvokeMethod(
     methodName: string,
     ...args: string[]
@@ -191,6 +191,7 @@ interface Clib {
   rand(): number;
   srand(seed: number): void;
   system(command: string): number;
+  mkdir(folder: string): void;
 }
 
 interface FilePointer {}

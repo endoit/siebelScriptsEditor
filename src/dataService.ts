@@ -4,6 +4,7 @@ import { existsSync, readdirSync } from "fs";
 import { basename, dirname, extname, parse } from "path";
 import * as vscode from "vscode";
 import {
+  ERR_FILE_FUNCTION_NAME_DIFF,
   ERR_FILE_NOT_SIEBEL_OBJ,
   ERR_NO_INFO_JSON,
   ERR_NO_SCRIPT_INFO,
@@ -86,10 +87,9 @@ export const callRESTAPIInstance = async (
   }
 };
 
-
 //get siebel objects
 export const getSiebelData = async (
-  params: QueryParams,
+  searchSpec: string,
   folder: string,
   type: SiebelObject
 ): Promise<ScriptObject | WebTempObject> => {
@@ -98,7 +98,13 @@ export const getSiebelData = async (
   const objectUrl = `/${resourceURL[type].obj}`;
   let exists: boolean;
   let fileNames: string[];
-  const data = await getDataFromRESTAPI(objectUrl, params);
+  const data = await getDataFromRESTAPI(objectUrl, {
+    pageSize: 20,
+    fields: "Name",
+    childLinks: "None",
+    uniformresponse: "y",
+    searchSpec,
+  });
   data?.forEach((row) => {
     if (type !== WEBTEMP) {
       siebObj = siebObj as ScriptObject;
@@ -188,7 +194,7 @@ export const getWorkspaces = async ({
     GET,
     {
       fields: "Name",
-      searchspec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
+      searchSpec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
       uniformresponse: "y",
     }
   );
@@ -254,7 +260,6 @@ export const pushOrPullScript = async (
   }
   const { url, username, password }: Connection =
     configData[infoObj.connection];
-
   switch (action) {
     case PULL: {
       const resourceString = `${resourceURL[infoObj.type].obj}/${
@@ -306,6 +311,13 @@ export const pushOrPullScript = async (
       }${isNewMethod ? "" : `/${fileName}`}`;
       const dataRead = await vscode.workspace.fs.readFile(filePath);
       const fileContent = Buffer.from(dataRead).toString();
+      if (isNewMethod){
+        const pattern = new RegExp(`function\\s+${fileName}\\s*\\(`);
+        if (!pattern.test(fileContent)){
+          vscode.window.showErrorMessage(ERR_FILE_FUNCTION_NAME_DIFF);
+          return;
+        }
+      }
       const payload: Payload = { Name: fileName };
       if (isWebTemp) {
         payload.Definition = fileContent;
