@@ -141,7 +141,7 @@
 		"run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
 	},
 	"dependencies": {
-		"axios": "^0.27.2"
+		"axios": "^1.6.0"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.4",
