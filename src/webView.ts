@@ -196,7 +196,7 @@ export const webViewHTML = (
 					}
 					const handleSearch = () => {					
 						const searchString = document.getElementById("search-bar").value;
-						vscode.postMessage({command: "search", searchString});
+						if (searchString !== "") vscode.postMessage({command: "search", searchString});
 					}
 					const openConfig = () => {
 						vscode.postMessage({command: "openConfig"});

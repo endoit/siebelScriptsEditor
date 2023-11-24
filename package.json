@@ -66,8 +66,8 @@
 				"command": "siebelscriptandwebtempeditor.pullScript",
 				"title": "Get script/web template from Siebel",
 				"icon": {
-					"light": "./media/arrowdown.png",
-					"dark": "./media/arrowdown.png"
+					"light": "./media/arrowdown_light.png",
+					"dark": "./media/arrowdown_dark.png"
 				},
 				"when": "workspaceFolderCount > 0"
 			},
@@ -75,8 +75,8 @@
 				"command": "siebelscriptandwebtempeditor.pushScript",
 				"title": "Push script/web template to Siebel",
 				"icon": {
-					"light": "./media/arrowup.png",
-					"dark": "./media/arrowup.png"
+					"light": "./media/arrowup_light.png",
+					"dark": "./media/arrowup_dark.png"
 				},
 				"when": "workspaceFolderCount > 0"
 			}
@@ -119,7 +119,7 @@
 				"siebelScriptAndWebTempEditor.getWorkspacesFromREST": {
 					"type": "boolean",
 					"default": false,
-					"markdownDescription": "If you have the 'Base Workspace' integration object in your Siebel primary branch, by checking this setting you can get the workspaces from the Siebel REST API, no need to fill them manually under the Workspaces setting. The integration object to import can be found in the repository of the extension, under the name `BaseWorkspaceIOB.sif`. See the [documentation](https://github.com/endoit/siebelScriptsEditor/blob/main/documentation.md#213-getting-workspace-data-from-rest) for more information.  \nPress the Reload button on the extension after editing this setting!"
+					"markdownDescription": "If you have the 'Base Workspace' integration object merged into your Siebel MAIN workspace, by checking this setting you can get the workspaces from the Siebel REST API, no need to fill them manually under the Workspaces setting. The integration object to import can be found in the repository of the extension, under the name `BaseWorkspaceIOB.sif`. See the [documentation](https://github.com/endoit/siebelScriptsEditor/blob/main/documentation.md#213-getting-workspace-data-from-rest) for more information.  \nPress the Reload button on the extension after editing this setting!"
 				}
 			}
 		},

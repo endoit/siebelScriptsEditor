@@ -79,6 +79,7 @@ type QueryParams = {
   childLinks?: string;
   uniformresponse?: string;
   searchSpec?: string;
+  workspace?: string;
 };
 
 //Response scripts from Siebel

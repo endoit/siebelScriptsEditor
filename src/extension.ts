@@ -59,6 +59,12 @@ export async function activate(context: vscode.ExtensionContext) {
   let treeDataWebTemp: TreeDataProvider;
   let timeoutId = 0;
 
+  for (let objectType of [SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP]) {
+    vscode.window.createTreeView(objectType, {
+      treeDataProvider: new TreeDataProvider({}),
+    });
+  }
+
   const connectionConfigs: string[] = vscode.workspace.getConfiguration(
     "siebelScriptAndWebTempEditor"
   )["REST EndpointConfigurations"];

@@ -1,5 +1,10 @@
 **Changelog**
 
+# v1.3.2 - 2023-11-24
+
+- Fixed the color of the pull/push script buttons in light and dark themes
+- Minor corrections in the code
+
 # v1.3.1 - 2023-10-11
 
 - Minor fixes in the code and the icons of the push/pull script buttons have been changed

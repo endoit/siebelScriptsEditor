@@ -196,6 +196,7 @@ export const getWorkspaces = async ({
       fields: "Name",
       searchSpec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
       uniformresponse: "y",
+      workspace: "MAIN"
     }
   );
   for (let workspace of data) {

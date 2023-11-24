@@ -106,7 +106,7 @@ In the future, when changing any setting, the extension should be reloaded with 
 
 ### 2.1.3. Getting workspace data from REST
 
-This feature needs an integration object imported into Siebel, which can be found in the repository, under the name [BaseWorkspaceIOB.sif](BaseWorkspaceIOB.sif). The integration object makes it possible to get information about workspaces (name, status and who created it) using the Siebel REST API. Then the workspace, into which the integration object was imported should be merged into the primary branch (this workspace is the value given for the EAI Object Manager component, Workspace Branch Name parameter, usually MAIN).
+This feature needs an integration object imported into Siebel, which can be found in the GitHub repository, under the name [BaseWorkspaceIOB.sif](BaseWorkspaceIOB.sif). This integration object makes it possible to get information about workspaces (name, status and who created it) using the Siebel REST API. Then the workspace, into which the integration object was imported should be merged into the MAIN workspace. The extension will try all your listed REST endpoints, and if it is not possible to get workspace data for a given connection, that one will not show up in the connections list. When using this option, only the workspaces created by the given username and having Checkpointed or Edit-In-Progress statuses will be available.
 
 ## 2.2. User interface
 
