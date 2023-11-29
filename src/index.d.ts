@@ -1,6 +1,3 @@
-//module declaration for the axios adapter
-declare module "axios/lib/adapters/http";
-
 //Siebel object types
 type SiebelObject =
   | "service"

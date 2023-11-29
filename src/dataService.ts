@@ -1,5 +1,4 @@
 import { default as axios } from "axios";
-import adapter from "axios/lib/adapters/http";
 import { existsSync, readdirSync } from "fs";
 import { basename, dirname, extname, parse } from "path";
 import * as vscode from "vscode";
@@ -37,8 +36,7 @@ const getDataFromRESTAPI = async (
       headers: {
         "Content-Type": "application/json",
       },
-      params,
-      adapter,
+      params
     });
     return response.data?.items;
   } catch (err: any) {
@@ -65,8 +63,7 @@ export const callRESTAPIInstance = async (
     headers: {
       "Content-Type": "application/json",
     },
-    params,
-    adapter,
+    params
   });
   try {
     if (method === GET) {

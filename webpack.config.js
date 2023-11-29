@@ -41,20 +41,20 @@ const webExtensionConfig = {
 	},
 	module: {
 		rules: [{
-			test: /\.ts$/,
-			exclude: /node_modules/,
-			use: [{
-				loader: 'ts-loader'
-			}]
-		}]
+				test: /\.ts$/,
+				use: "ts-loader",
+				exclude: /node_modules/
+			}
+		]
 	},
 	plugins: [
 		new webpack.optimize.LimitChunkCountPlugin({
 			maxChunks: 1 // disable chunks by default since web extensions must be a single bundle
-		}),
+		})
+		/*,
 		new webpack.ProvidePlugin({
 			process: 'process/browser', // provide a shim for the global `process` variable
-		}),
+		}),*/
 	],
 	externals: {
 		'vscode': 'commonjs vscode' // ignored because it doesn't exist
@@ -66,7 +66,7 @@ const webExtensionConfig = {
 	devtool: 'nosources-source-map', // create a source map that points to the original source file
 	infrastructureLogging: {
 		level: "log", // enables logging required for problem matchers
-	},
+	}
 };
 
-module.exports = [ webExtensionConfig ];
+module.exports = [webExtensionConfig];
