@@ -1,6 +1,6 @@
 **Changelog**
 
-# v1.3.2 - 2023-11-29
+# v1.3.3 - 2023-11-29
 
 - Fixed the color of the pull/push script buttons in light and dark themes
 - Updated dependencies
