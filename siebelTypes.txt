@@ -89,7 +89,7 @@ interface BusComp {
   DeactivateFields(): void;
   DeleteRecord(): void;
   ExecuteQuery(cursorMode?: number): void;
-  ExecuteQuery2(cursorMode: number, ignoreMaxCursorSize: boolean): void;
+  ExecuteQuery2(cursorMode: number, ignoreMaxCursorSize: "TRUE" | "FALSE"): void;
   FirstRecord(): boolean;
   FirstSelected(): boolean;
   GetAssocBusComp(): BusComp;

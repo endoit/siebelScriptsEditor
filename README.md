@@ -1,6 +1,6 @@
 Siebel Script And Web Template Editor is a Visual Studio Code extension, which enables editing Siebel object server scripts and web templates directly in VS Code, using the Siebel REST API.
 
-[__See the full documentation for detailed installation and usage instructions__](documentation.md)
+[__See the full documentation for detailed installation and usage instructions__](https://github.com/endoit/siebelScriptsEditor/wiki)
 
 [Changelog](CHANGELOG.md)
 
@@ -24,7 +24,7 @@ Siebel Script And Web Template Editor is a Visual Studio Code extension, which e
 # 2. Requirements
 
 - Siebel REST API and workspaces should be enabled.
-[See full documentation for detailed installation instructions](documentation.md).
+[See full documentation for detailed installation instructions](https://github.com/endoit/siebelScriptsEditor/wiki).
 
 # 3. Known Issues
 

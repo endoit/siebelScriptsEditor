@@ -61,7 +61,7 @@ Where:
 - `Server Name` is the URL of the Siebel server.
 - `Port` is the HTTP port where the Siebel listens for connections.
 
-For example, if the Siebel Server URL is https://dev.testserver.local and the port is 443, then `SiebelRestEndpoint` shall be `https://dev.testserver.local:443/siebel/v1.0`
+For example, if the Siebel Server URL is https​://dev.testserver.local and the port is 443, then `SiebelRestEndpoint` shall be `https://dev.testserver.local:443/siebel/v1.0`
 
 > Assuming the Siebel User is SADMIN, it's password is SECRET, the complete REST Endpoint Configuration connection string is `DEV/SADMIN/SECRET@https://dev.testserver.local:443/siebel/v1.0`. The extension will display this connection as `DEV` in the connection dropdown.
 
@@ -143,7 +143,7 @@ Scripts are downloaded into the first VSCode workspace folder (only one should b
 ConnectionName\WorkspaceName\ObjectType\ObjectName\MethodName.js
 ```
 
-Refer to the [folder structure chapter](#3-folder-structure) for complete folder layout reference.
+Refer to the [folder structure chapter](#4-folder-structure) for complete folder layout reference.
 
 ![getscripts](features/documentation/getscripts.PNG)
 
@@ -170,7 +170,7 @@ Scripts are downloaded into the first VSCode workspace folder (only one should b
 ConnectionName\WorkspaceName\webtemp\WebTemplateName.html
 ```
 
-Refer to the [folder structure chapter](#3-folder-structure) for complete folder layout reference.
+Refer to the [folder structure chapter](#4-folder-structure) for complete folder layout reference.
 
 ![getwts](features/documentation/getwts.PNG)
 
