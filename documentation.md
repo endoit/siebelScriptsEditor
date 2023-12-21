@@ -127,7 +127,7 @@ Other buttons:
 - __Open settings__ opens the Siebel Script Editor extension's settings.
 - __Reload__ reloads the extension.
 
-## 2.2.1. Getting server scripts from Siebel
+### 2.2.1. Getting server scripts from Siebel
 
 Click on an object and a dialog opens in the bottom right corner with three buttons:
 
@@ -155,7 +155,7 @@ The scripts are saved as javascript files with `.js` extension, and an `info.jso
 
 ![infojson](features/documentation/infojson.PNG)
 
-## 2.2.2. Getting web templates from Siebel
+### 2.2.2. Getting web templates from Siebel
 
 Click on a web template and a dialog opens in the bottom right corner with two buttons:
 
@@ -180,7 +180,7 @@ The web template definitions are saved as html files with `.html` extension, and
 
 ![infojsonwt](features/documentation/infojsonwt.PNG)
 
-## 2.2.3. Refreshing (pulling) and updating (pushing) scripts/web templates
+### 2.2.3. Refreshing (pulling) and updating (pushing) scripts/web templates
 
 Two command buttons are shown in top right corner of the VS Code editor. The downward pointing arrow downloads (pulls) the script being edited from Siebel, while the upward pointing arrow uploads (pushes) it to Siebel:
 
