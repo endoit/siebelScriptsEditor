@@ -73,6 +73,18 @@ export async function activate(context: vscode.ExtensionContext) {
     "siebelScriptAndWebTempEditor"
   )["getWorkspacesFromREST"];
 
+  const dfltScriptFetching: "Yes" | "No" | "Only method names" | "Full scripts" | "None - always ask" | undefined = vscode.workspace.getConfiguration(
+    "siebelScriptAndWebTempEditor"
+  )["defaultScriptFetching"];
+
+  const sglFileAutoDwnld: boolean = vscode.workspace.getConfiguration(
+    "siebelScriptAndWebTempEditor"
+  )["singleFileAutoDownload"];
+
+  const localFileExtension: string = vscode.workspace.getConfiguration(
+    "siebelScriptAndWebTempEditor"
+  )["localFileExtension"];
+
   const workspaces: string[] = vscode.workspace.getConfiguration(
     "siebelScriptAndWebTempEditor"
   )["workspaces"];
@@ -450,7 +462,10 @@ export async function activate(context: vscode.ExtensionContext) {
                         SERVICE,
                         selected,
                         busServObj,
-                        treeDataBS
+                        treeDataBS,
+                        sglFileAutoDwnld,
+                        localFileExtension,
+                        dfltScriptFetching
                       )
                     );
                     break;
@@ -472,7 +487,10 @@ export async function activate(context: vscode.ExtensionContext) {
                         BUSCOMP,
                         selected,
                         busCompObj,
-                        treeDataBC
+                        treeDataBC,
+                        sglFileAutoDwnld,
+                        localFileExtension,
+                        dfltScriptFetching
                       )
                     );
                     break;
@@ -494,7 +512,10 @@ export async function activate(context: vscode.ExtensionContext) {
                         APPLET,
                         selected,
                         appletObj,
-                        treeDataApplet
+                        treeDataApplet,
+                        sglFileAutoDwnld,
+                        localFileExtension,
+                        dfltScriptFetching
                       )
                     );
                     break;
@@ -516,7 +537,10 @@ export async function activate(context: vscode.ExtensionContext) {
                         APPLICATION,
                         selected,
                         applicationObj,
-                        treeDataApplication
+                        treeDataApplication,
+                        sglFileAutoDwnld,
+                        localFileExtension,
+                        dfltScriptFetching
                       )
                     );
                     break;
@@ -542,7 +566,10 @@ export async function activate(context: vscode.ExtensionContext) {
                         WEBTEMP,
                         selected,
                         webTempObj,
-                        treeDataWebTemp
+                        treeDataWebTemp,
+                        sglFileAutoDwnld,
+                        localFileExtension,
+                        dfltScriptFetching
                       )
                     );
                     break;

@@ -120,6 +120,30 @@
 					"type": "boolean",
 					"default": false,
 					"markdownDescription": "If you have the 'Base Workspace' integration object merged into your Siebel MAIN workspace, by checking this setting you can get the workspaces from the Siebel REST API, no need to fill them manually under the Workspaces setting. The integration object to import can be found in the repository of the extension, under the name `BaseWorkspaceIOB.sif`. See the [documentation](https://github.com/endoit/siebelScriptsEditor/blob/main/documentation.md#213-getting-workspace-data-from-rest) for more information.  \nPress the Reload button on the extension after editing this setting!"
+				},
+				"siebelScriptAndWebTempEditor.defaultScriptFetching": {
+					"type": "string",
+					"enum": [
+						"None - always ask",
+						"Only method names",
+						"Full scripts"
+					],
+					"default": "Only method names",
+					"markdownDescription": " Default method for fetching sections in the tree-view:\nNone: always asks how to fetch.\nOnly method names: fetches only the method names of the section.\nFull scripts: always fetches all scripts of the section."
+				},
+				"siebelScriptAndWebTempEditor.singleFileAutoDownload": {
+					"type": "boolean",
+					"default": false,
+					"markdownDescription": "If you set this to true, scripts will always download, without asking for permission.\nWARNING: this overwrites files witch are already opened!"
+				},
+				"siebelScriptAndWebTempEditor.localFileExtension": {
+					"type": "string",
+					"enum": [
+						".js",
+						".ts"
+					],
+					"default": ".js",
+					"markdownDescription": "The default file extension for downoaded scripts."
 				}
 			}
 		},
@@ -161,6 +185,6 @@
 		"ts-loader": "^9.4.1",
 		"typescript": "^4.9.3",
 		"webpack": "^5.75.0",
-		"webpack-cli": "^5.0.0"
+		"webpack-cli": "^5.1.4"
 	}
 }

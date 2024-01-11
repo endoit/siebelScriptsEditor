@@ -31,11 +31,14 @@ export const selectionChange = async (
   type: SiebelObject,
   selected: Selected,
   dataObj: ScriptObject | WebTempObject,
-  treeObj: TreeDataProvider
+  treeObj: TreeDataProvider,
+  sglFileAutoDwnld: boolean,
+  localFileExtension: string,
+  dfltScriptFetching: "Yes" | "No" | "Only method names" | "Full scripts" | "None - always ask" | undefined
 ) => {
   const selItem = e.selection[0];
   const folderPath = `${selected.connection}/${selected.workspace}/${type}`;
-  let answer: "Yes" | "No" | "Only method names" | undefined;
+  let answer: "Yes" | "No" | "Only method names" | "Full scripts" | "None - always ask" | undefined;
   let scrName: string;
   let scrMethod: Script;
   let scrNames: string[] = [];
@@ -43,7 +46,7 @@ export const selectionChange = async (
   if (type === WEBTEMP) {
     dataObj = dataObj as WebTempObject;
     selected[type].name = selItem.label;
-    answer = await vscode.window.showInformationMessage(
+    answer = sglFileAutoDwnld ? "Yes" : await vscode.window.showInformationMessage(
       `Do you want to get the ${selItem.label} ${messageText[type]} definition from Siebel?`,
       "Yes",
       "No"
@@ -51,7 +54,7 @@ export const selectionChange = async (
     if (answer === "Yes") {
       dataObj[selItem.label].definition = await getWebTemplate(selected);
       dataObj[selItem.label].onDisk = true;
-      await writeFile(dataObj[selItem.label].definition, folderPath, selItem.label);
+      await writeFile(dataObj[selItem.label].definition, folderPath, selItem.label, localFileExtension);
       await writeInfo(selected, folderPath, type, [selItem.label]);
       treeObj.refresh(dataObj, IS_WEBTEMPLATE);
     }
@@ -60,7 +63,7 @@ export const selectionChange = async (
   if (selItem.hasOwnProperty("scripts") === false) {
     selected[type].name = selItem.parent!;
     selected[type].childName = selItem.label;
-    answer = await vscode.window.showInformationMessage(
+    answer = sglFileAutoDwnld ? "Yes" : await vscode.window.showInformationMessage(
       `Do you want to get the ${selItem.label} ${messageText[type]} method from Siebel?`,
       "Yes",
       "No"
@@ -75,6 +78,7 @@ export const selectionChange = async (
         dataObj[selItem.parent!].scripts[selItem.label].script!,
         folderPath,
         selItem.parent!,
+        localFileExtension,
         selItem.label
       );
       await writeInfo(selected, folderPath, type, [selItem.label]);
@@ -83,20 +87,20 @@ export const selectionChange = async (
     return;
   }
   selected[type].name = selItem.label;
-  answer = await vscode.window.showInformationMessage(
+  answer = (dfltScriptFetching !== "None - always ask") ? dfltScriptFetching : await vscode.window.showInformationMessage(
     `Do you want to get the ${selItem.label} ${messageText[type]} from Siebel?`,
     "Yes",
     "Only method names",
     "No"
   );
   dataObj = dataObj as ScriptObject;
-  if (answer === "Yes") {
+  if (answer === "Yes" || answer === "Full scripts") {
     dataObj[selItem.label].onDisk = true;
     dataObj[selItem.label].scripts = await getServerScripts(selected, type);
     for ([scrName, scrMethod] of Object.entries(
       dataObj[selItem.label].scripts
     )) {
-      await writeFile(scrMethod.script!, folderPath, selItem.label, scrName);
+      await writeFile(scrMethod.script!, folderPath, selItem.label, localFileExtension, scrName);
       scrNames.push(scrName);
     }
     await writeInfo(selected, folderPath, type, scrNames);
