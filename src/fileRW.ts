@@ -7,6 +7,7 @@ export const writeFile = async (
   fileContent: string,
   folderPath: string,
   objectName: string,
+  localFileExtension: string,
   fileName?: string
 ): Promise<void> => {
   try {
@@ -14,7 +15,7 @@ export const writeFile = async (
     const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath!;
     const filePath = vscode.Uri.file(
       `${wsPath}/${folderPath}/${objectName}${
-        fileName !== undefined ? `/${fileName}.js` : ".html"
+        fileName !== undefined ? `/${fileName}.${localFileExtension}` : ".html"
       }`
     );
     const wsEdit = new vscode.WorkspaceEdit();
