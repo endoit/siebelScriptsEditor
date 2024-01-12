@@ -2,7 +2,7 @@
 
 # v1.4.0 - 2024-01-12
 
-- Three more settings was added, thanks [DarkenCreature](https://github.com/DarkenCreature) for the contribution! Now scripts can be saved as .ts files (as you can use types in eScript similarly to TypeScript), and the fetching behavior can be customized when clicking on a Siebel object in the tree view. For more information, read the [documentation](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration) 
+- Three more settings were added, thanks [DarkenCreature](https://github.com/DarkenCreature) for the contribution! Now scripts can be saved as .ts files (as you can use types in eScript similarly to TypeScript), and the fetching behavior can be customized when clicking on a Siebel object in the tree view. For more information, read the [documentation](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration) 
 - The push and pull buttons now only appear when the currently opened file is a .js/.ts/.html file 
 
 # v1.3.3 - 2023-11-29
