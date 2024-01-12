@@ -32,13 +32,17 @@ export const selectionChange = async (
   selected: Selected,
   dataObj: ScriptObject | WebTempObject,
   treeObj: TreeDataProvider,
-  sglFileAutoDwnld: boolean,
-  localFileExtension: string,
-  dfltScriptFetching: "Yes" | "No" | "Only method names" | "Full scripts" | "None - always ask" | undefined
+  { sglFileAutoDwnld, localFileExtension, dfltScriptFetching }: ExtendedSettings
 ) => {
   const selItem = e.selection[0];
   const folderPath = `${selected.connection}/${selected.workspace}/${type}`;
-  let answer: "Yes" | "No" | "Only method names" | "Full scripts" | "None - always ask" | undefined;
+  let answer:
+    | "Yes"
+    | "No"
+    | "Only method names"
+    | "All scripts"
+    | "None - always ask"
+    | undefined;
   let scrName: string;
   let scrMethod: Script;
   let scrNames: string[] = [];
@@ -46,28 +50,36 @@ export const selectionChange = async (
   if (type === WEBTEMP) {
     dataObj = dataObj as WebTempObject;
     selected[type].name = selItem.label;
-    answer = sglFileAutoDwnld ? "Yes" : await vscode.window.showInformationMessage(
-      `Do you want to get the ${selItem.label} ${messageText[type]} definition from Siebel?`,
-      "Yes",
-      "No"
-    );
+    answer = sglFileAutoDwnld
+      ? "Yes"
+      : await vscode.window.showInformationMessage(
+          `Do you want to get the ${selItem.label} ${messageText[type]} definition from Siebel?`,
+          "Yes",
+          "No"
+        );
     if (answer === "Yes") {
       dataObj[selItem.label].definition = await getWebTemplate(selected);
       dataObj[selItem.label].onDisk = true;
-      await writeFile(dataObj[selItem.label].definition, folderPath, selItem.label, localFileExtension);
+      await writeFile(
+        dataObj[selItem.label].definition,
+        folderPath,
+        selItem.label
+      );
       await writeInfo(selected, folderPath, type, [selItem.label]);
       treeObj.refresh(dataObj, IS_WEBTEMPLATE);
     }
     return;
   }
-  if (selItem.hasOwnProperty("scripts") === false) {
+  if (!selItem.hasOwnProperty("scripts")) {
     selected[type].name = selItem.parent!;
     selected[type].childName = selItem.label;
-    answer = sglFileAutoDwnld ? "Yes" : await vscode.window.showInformationMessage(
-      `Do you want to get the ${selItem.label} ${messageText[type]} method from Siebel?`,
-      "Yes",
-      "No"
-    );
+    answer = sglFileAutoDwnld
+      ? "Yes"
+      : await vscode.window.showInformationMessage(
+          `Do you want to get the ${selItem.label} ${messageText[type]} method from Siebel?`,
+          "Yes",
+          "No"
+        );
     if (answer === "Yes") {
       dataObj = dataObj as ScriptObject;
       dataObj[selItem.parent!].onDisk = true;
@@ -87,20 +99,29 @@ export const selectionChange = async (
     return;
   }
   selected[type].name = selItem.label;
-  answer = (dfltScriptFetching !== "None - always ask") ? dfltScriptFetching : await vscode.window.showInformationMessage(
-    `Do you want to get the ${selItem.label} ${messageText[type]} from Siebel?`,
-    "Yes",
-    "Only method names",
-    "No"
-  );
+  answer =
+    dfltScriptFetching !== "None - always ask"
+      ? dfltScriptFetching
+      : await vscode.window.showInformationMessage(
+          `Do you want to get the ${selItem.label} ${messageText[type]} from Siebel?`,
+          "Yes",
+          "Only method names",
+          "No"
+        );
   dataObj = dataObj as ScriptObject;
-  if (answer === "Yes" || answer === "Full scripts") {
+  if (answer === "Yes" || answer === "All scripts") {
     dataObj[selItem.label].onDisk = true;
     dataObj[selItem.label].scripts = await getServerScripts(selected, type);
     for ([scrName, scrMethod] of Object.entries(
       dataObj[selItem.label].scripts
     )) {
-      await writeFile(scrMethod.script!, folderPath, selItem.label, localFileExtension, scrName);
+      await writeFile(
+        scrMethod.script!,
+        folderPath,
+        selItem.label,
+        localFileExtension,
+        scrName
+      );
       scrNames.push(scrName);
     }
     await writeInfo(selected, folderPath, type, scrNames);
@@ -191,12 +212,7 @@ export class TreeItem extends vscode.TreeItem {
   constructor(
     label: string,
     collabsibleState: vscode.TreeItemCollapsibleState,
-    {
-      onDisk,
-      scripts,
-      parent,
-      definition,
-    }: TreeItemProps
+    { onDisk, scripts, parent, definition }: TreeItemProps
   ) {
     super(label, collabsibleState);
     this.label = label;

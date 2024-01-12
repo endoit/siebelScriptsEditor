@@ -4,7 +4,6 @@ import { basename, dirname, extname, parse } from "path";
 import * as vscode from "vscode";
 import {
   ERR_FILE_FUNCTION_NAME_DIFF,
-  ERR_FILE_NOT_SIEBEL_OBJ,
   ERR_NO_INFO_JSON,
   ERR_NO_SCRIPT_INFO,
   ERR_NO_UPDATE,
@@ -36,7 +35,7 @@ const getDataFromRESTAPI = async (
       headers: {
         "Content-Type": "application/json",
       },
-      params
+      params,
     });
     return response.data?.items;
   } catch (err: any) {
@@ -63,7 +62,7 @@ export const callRESTAPIInstance = async (
     headers: {
       "Content-Type": "application/json",
     },
-    params
+    params,
   });
   try {
     if (method === GET) {
@@ -110,9 +109,12 @@ export const getSiebelData = async (
       if (exists) {
         fileNames = readdirSync(`${wsPath}/${folder}/${type}/${row.Name}`);
         fileNames.forEach((file) => {
-          if (extname(file) === ".js") {
+          const fileExtension = extname(file);
+          if (fileExtension === ".js" || fileExtension === ".ts") {
             siebObj = siebObj as ScriptObject;
-            siebObj[row.Name].scripts[basename(file, ".js")] = { onDisk: true };
+            siebObj[row.Name].scripts[basename(file, fileExtension)] = {
+              onDisk: true,
+            };
           }
         });
       }
@@ -141,12 +143,11 @@ export const getServerScripts = async (
     uniformresponse: "y",
   });
   data?.forEach((row) => {
+    const fileNameNoExt = `${wsPath}/${folderPath}/${selectedObj[type].name}/${row.Name}`;
     scriptObj[row.Name] = {
       script: row.Script || "",
       onDisk: namesOnly
-        ? existsSync(
-            `${wsPath}/${folderPath}/${selectedObj[type].name}/${row.Name}.js`
-          )
+        ? existsSync(`${fileNameNoExt}.js`) || existsSync(`${fileNameNoExt}.ts`)
         : true,
     };
   });
@@ -193,7 +194,7 @@ export const getWorkspaces = async ({
       fields: "Name",
       searchSpec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
       uniformresponse: "y",
-      workspace: "MAIN"
+      workspace: "MAIN",
     }
   );
   for (let workspace of data) {
@@ -208,19 +209,12 @@ export const pushOrPullScript = async (
   configData: Connections
 ): Promise<void> => {
   const currentlyOpenTabfilePath =
-    vscode.window.activeTextEditor?.document?.uri?.fsPath;
-  if (
-    currentlyOpenTabfilePath === undefined ||
-    (basename(currentlyOpenTabfilePath).endsWith(".js") === false &&
-      basename(currentlyOpenTabfilePath).endsWith(".html") === false)
-  ) {
-    vscode.window.showErrorMessage(ERR_FILE_NOT_SIEBEL_OBJ);
-    return;
-  }
-  const fileName = parse(currentlyOpenTabfilePath).name;
+    vscode.window.activeTextEditor?.document?.uri?.fsPath!;
   const dirPath = dirname(currentlyOpenTabfilePath);
+  const fileName = parse(currentlyOpenTabfilePath).name;
+  const fileExtension = parse(currentlyOpenTabfilePath).ext;
   const infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
-  if (existsSync(infoFilePath.fsPath) === false) {
+  if (!existsSync(infoFilePath.fsPath)) {
     vscode.window.showErrorMessage(ERR_NO_INFO_JSON);
     return;
   }
@@ -229,14 +223,12 @@ export const pushOrPullScript = async (
     Buffer.from(readData).toString()
   );
   const isWebTemp = infoObj.type === WEBTEMP;
-  const filePath = vscode.Uri.file(
-    `${dirPath}/${fileName}${isWebTemp ? ".html" : ".js"}`
-  );
+  const filePath = vscode.Uri.file(`${dirPath}/${fileName}${fileExtension}`);
   const isInfo = isWebTemp
     ? (infoObj as WebTempInfo).definitions.hasOwnProperty(fileName)
     : (infoObj as ScriptInfo).scripts.hasOwnProperty(fileName);
   let isNewMethod = false;
-  if (isInfo === false && isWebTemp === false) {
+  if (!(isInfo || isWebTemp)) {
     if (action === "push") {
       const answer = await vscode.window.showInformationMessage(
         `Script was not found in info.json, would you like to create this file as a new method of the Siebel Object?`,
@@ -252,7 +244,7 @@ export const pushOrPullScript = async (
       vscode.window.showErrorMessage(ERR_NO_SCRIPT_INFO);
       return;
     }
-  } else if (isInfo === false && isWebTemp === true) {
+  } else if (!isInfo && isWebTemp) {
     vscode.window.showErrorMessage(ERR_NO_WEBTEMP_INFO);
     return;
   }
@@ -309,9 +301,9 @@ export const pushOrPullScript = async (
       }${isNewMethod ? "" : `/${fileName}`}`;
       const dataRead = await vscode.workspace.fs.readFile(filePath);
       const fileContent = Buffer.from(dataRead).toString();
-      if (isNewMethod){
+      if (isNewMethod) {
         const pattern = new RegExp(`function\\s+${fileName}\\s*\\(`);
-        if (!pattern.test(fileContent)){
+        if (!pattern.test(fileContent)) {
           vscode.window.showErrorMessage(ERR_FILE_FUNCTION_NAME_DIFF);
           return;
         }

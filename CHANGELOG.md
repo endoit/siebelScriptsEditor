@@ -1,5 +1,10 @@
 **Changelog**
 
+# v1.4.0 - 2024-01-12
+
+- Three more settings was added, thanks [DarkenCreature](https://github.com/DarkenCreature) for the contribution! Now scripts can be saved as .ts files (as you can use types in eScript similarly to TypeScript), and the fetching behavior can be customized when clicking on a Siebel object in the tree view. For more information, read the [documentation](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration) 
+- The push and pull buttons now only appear when the currently opened file is a .js/.ts/.html file 
+
 # v1.3.3 - 2023-11-29
 
 - Fixed the color of the pull/push script buttons in light and dark themes
@@ -22,7 +27,7 @@
 
 # v1.2.0 - 2022-10-13
 
-- Vastly improved autocompletion and semantic checking for the scripts, [see documentation for more information](documentation.md#3-autocompletion-and-semantic-checking)
+- Vastly improved autocompletion and semantic checking for the scripts, [see documentation for more information](https://github.com/endoit/siebelScriptsEditor/wiki#3-autocompletion-and-semantic-checking)
 
 # v1.1.0 - 2022-08-11
 

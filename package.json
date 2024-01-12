@@ -69,7 +69,7 @@
 					"light": "./media/arrowdown_light.png",
 					"dark": "./media/arrowdown_dark.png"
 				},
-				"when": "workspaceFolderCount > 0"
+				"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename == index.d.ts"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.pushScript",
@@ -78,7 +78,7 @@
 					"light": "./media/arrowup_light.png",
 					"dark": "./media/arrowup_dark.png"
 				},
-				"when": "workspaceFolderCount > 0"
+				"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts"
 			}
 		],
 		"menus": {
@@ -86,12 +86,12 @@
 				{
 					"command": "siebelscriptandwebtempeditor.pullScript",
 					"group": "navigation",
-					"when": "workspaceFolderCount > 0"
+					"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.pushScript",
 					"group": "navigation",
-					"when": "workspaceFolderCount > 0"
+					"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts"
 				}
 			]
 		},
@@ -126,15 +126,15 @@
 					"enum": [
 						"None - always ask",
 						"Only method names",
-						"Full scripts"
+						"All scripts"
 					],
-					"default": "Only method names",
-					"markdownDescription": " Default method for fetching sections in the tree-view:\nNone: always asks how to fetch.\nOnly method names: fetches only the method names of the section.\nFull scripts: always fetches all scripts of the section."
+					"default": "None - always ask",
+					"markdownDescription": "Default method for fetching server scripts in the tree views when clicking on a Siebel object: None - always ask: always asks how to fetch. Only method names: fetches only the method names of the Siebel object. All scripts: always downloads all scripts of the Siebel object. WARNING: this overwrites files which are already downloaded!"
 				},
 				"siebelScriptAndWebTempEditor.singleFileAutoDownload": {
 					"type": "boolean",
 					"default": false,
-					"markdownDescription": "If you set this to true, scripts will always download, without asking for permission.\nWARNING: this overwrites files witch are already opened!"
+					"markdownDescription": "If you set this to true, scripts and web templates will be downloaded when clicking on one, without asking for permission. WARNING: this overwrites files which are already downloaded!"
 				},
 				"siebelScriptAndWebTempEditor.localFileExtension": {
 					"type": "string",
@@ -143,7 +143,7 @@
 						".ts"
 					],
 					"default": ".js",
-					"markdownDescription": "The default file extension for downoaded scripts."
+					"markdownDescription": "The default file extension for the downloaded server scripts."
 				}
 			}
 		},

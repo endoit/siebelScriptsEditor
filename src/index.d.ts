@@ -150,3 +150,16 @@ type TreeItemProps = {
   parent?: string;
   definition?: string;
 };
+
+//Extended settings
+type ExtendedSettings = {
+  sglFileAutoDwnld: boolean;
+  localFileExtension: ".js" | ".ts";
+  dfltScriptFetching:
+    | "Yes"
+    | "No"
+    | "Only method names"
+    | "All scripts"
+    | "None - always ask"
+    | undefined;
+};

@@ -44,7 +44,6 @@ export const ERR_CONN_PARAM_FORMAT = "Check the format of the REST Endpoint Conf
 export const ERR_CONN_ERROR = "Connection error, please check connection parameters and Siebel server status!";
 export const ERR_NO_CONFIG = "Please add at least one REST Endpoint configuration and workspace for that configuration!";
 export const ERR_NO_EDITABLE_WS = "No workspace with status Checkpointed or Edit-In-Progress was found for any connection with the given username or the Base Workspace integration object is missing or was not merged into the primary branch in Siebel!";
-export const ERR_FILE_NOT_SIEBEL_OBJ = "Currently active file is not a Siebel Object script/webtemplate or its extension is not .js/html!";
 export const ERR_NO_INFO_JSON = "File info.json was not found, please get the Siebel Object again from the extension!";
 export const ERR_NO_SCRIPT_INFO = "Script was not found in info.json, please get it again from the extension!";
 export const ERR_NO_WEBTEMP_INFO = "Web template was not found in info.json, please get it again from the extension!";

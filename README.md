@@ -6,7 +6,7 @@ Siebel Script And Web Template Editor is a Visual Studio Code extension, which e
 
 # 1. Features
 
-- Download Business Service, Business Component, Applet, Application server scripts and Web Templates from a specified Siebel workspace, and edit them with Visual Studio Code, scripts as javascript and web templates as html files.
+- Download Business Service, Business Component, Applet, Application server scripts and Web Templates from a specified Siebel workspace, and edit them with Visual Studio Code, scripts as javascript/typescript and web templates as html files.
 
   ![Get server scripts](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/main/features/getscripts.gif "Get server scripts")
 
