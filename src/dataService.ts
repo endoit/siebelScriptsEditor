@@ -88,7 +88,8 @@ export const callRESTAPIInstance = async (
 export const getSiebelData = async (
   searchSpec: string,
   folder: string,
-  type: SiebelObject
+  type: SiebelObject,
+  localFileExtension: string
 ): Promise<ScriptObject | WebTempObject> => {
   const wsPath = vscode.workspace?.workspaceFolders?.[0].uri.fsPath!;
   let siebObj: ScriptObject | WebTempObject = {};
@@ -110,9 +111,9 @@ export const getSiebelData = async (
       if (exists) {
         fileNames = readdirSync(`${wsPath}/${folder}/${type}/${row.Name}`);
         fileNames.forEach((file) => {
-          if (extname(file) === ".js") {
+          if (extname(file) === localFileExtension) {
             siebObj = siebObj as ScriptObject;
-            siebObj[row.Name].scripts[basename(file, ".js")] = { onDisk: true };
+            siebObj[row.Name].scripts[basename(file, localFileExtension)] = { onDisk: true };
           }
         });
       }
@@ -129,7 +130,8 @@ export const getSiebelData = async (
 export const getServerScripts = async (
   selectedObj: Selected,
   type: Exclude<SiebelObject, "webtemp">,
-  namesOnly = false
+  namesOnly = false,
+  localFileExtension: string
 ): Promise<Scripts> => {
   const wsPath = vscode.workspace?.workspaceFolders?.[0].uri.fsPath!;
   const folderPath = `${selectedObj.connection}/${selectedObj.workspace}/${type}`;
@@ -145,7 +147,7 @@ export const getServerScripts = async (
       script: row.Script || "",
       onDisk: namesOnly
         ? existsSync(
-            `${wsPath}/${folderPath}/${selectedObj[type].name}/${row.Name}.js`
+            `${wsPath}/${folderPath}/${selectedObj[type].name}/${row.Name}${localFileExtension}`
           )
         : true,
     };
@@ -205,13 +207,14 @@ export const getWorkspaces = async ({
 //push/pull script from/to database
 export const pushOrPullScript = async (
   action: typeof PUSH | typeof PULL,
-  configData: Connections
+  configData: Connections,
+  localFileExtension: string
 ): Promise<void> => {
   const currentlyOpenTabfilePath =
     vscode.window.activeTextEditor?.document?.uri?.fsPath;
   if (
     currentlyOpenTabfilePath === undefined ||
-    (basename(currentlyOpenTabfilePath).endsWith(".js") === false &&
+    (basename(currentlyOpenTabfilePath).endsWith(localFileExtension) === false &&
       basename(currentlyOpenTabfilePath).endsWith(".html") === false)
   ) {
     vscode.window.showErrorMessage(ERR_FILE_NOT_SIEBEL_OBJ);
@@ -230,7 +233,7 @@ export const pushOrPullScript = async (
   );
   const isWebTemp = infoObj.type === WEBTEMP;
   const filePath = vscode.Uri.file(
-    `${dirPath}/${fileName}${isWebTemp ? ".html" : ".js"}`
+    `${dirPath}/${fileName}${isWebTemp ? ".html" : localFileExtension}`
   );
   const isInfo = isWebTemp
     ? (infoObj as WebTempInfo).definitions.hasOwnProperty(fileName)

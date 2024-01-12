@@ -338,7 +338,7 @@ export async function activate(context: vscode.ExtensionContext) {
             "No"
           );
           if (answer === "Yes") {
-            pushOrPullScript(PULL, configData);
+            pushOrPullScript(PULL, configData, localFileExtension);
           }
         }
       );
@@ -354,7 +354,7 @@ export async function activate(context: vscode.ExtensionContext) {
             "No"
           );
           if (answer === "Yes") {
-            pushOrPullScript(PUSH, configData);
+            pushOrPullScript(PUSH, configData, localFileExtension);
           }
         }
       );
@@ -447,7 +447,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 switch (selected.object) {
                   case SERVICE_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, SERVICE)
+                      getSiebelData(searchSpec, folderPath, SERVICE, localFileExtension)
                     );
                     const busServObj =
                       (await debouncedSearch()) as ScriptObject;
@@ -472,7 +472,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   }
                   case BUSCOMP_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, BUSCOMP)
+                      getSiebelData(searchSpec, folderPath, BUSCOMP, localFileExtension)
                     );
                     const busCompObj =
                       (await debouncedSearch()) as ScriptObject;
@@ -497,7 +497,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   }
                   case APPLET_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, APPLET)
+                      getSiebelData(searchSpec, folderPath, APPLET, localFileExtension)
                     );
                     const appletObj = (await debouncedSearch()) as ScriptObject;
                     treeDataApplet = new TreeDataProvider(appletObj);
@@ -522,7 +522,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   }
                   case APPLICATION_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, APPLICATION)
+                      getSiebelData(searchSpec, folderPath, APPLICATION, localFileExtension)
                     );
                     const applicationObj =
                       (await debouncedSearch()) as ScriptObject;
@@ -547,7 +547,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   }
                   case WEBTEMP_LONG: {
                     const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, WEBTEMP)
+                      getSiebelData(searchSpec, folderPath, WEBTEMP, localFileExtension)
                     );
                     const webTempObj =
                       (await debouncedSearch()) as WebTempObject;

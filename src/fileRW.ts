@@ -15,7 +15,7 @@ export const writeFile = async (
     const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath!;
     const filePath = vscode.Uri.file(
       `${wsPath}/${folderPath}/${objectName}${
-        fileName !== undefined ? `/${fileName}.${localFileExtension}` : ".html"
+        fileName !== undefined ? `/${fileName}${localFileExtension}` : ".html"
       }`
     );
     const wsEdit = new vscode.WorkspaceEdit();

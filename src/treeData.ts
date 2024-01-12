@@ -96,7 +96,7 @@ export const selectionChange = async (
   dataObj = dataObj as ScriptObject;
   if (answer === "Yes" || answer === "Full scripts") {
     dataObj[selItem.label].onDisk = true;
-    dataObj[selItem.label].scripts = await getServerScripts(selected, type);
+    dataObj[selItem.label].scripts = await getServerScripts(selected, type, undefined, localFileExtension);
     for ([scrName, scrMethod] of Object.entries(
       dataObj[selItem.label].scripts
     )) {
@@ -111,7 +111,8 @@ export const selectionChange = async (
     dataObj[selItem.label].scripts = await getServerScripts(
       selected,
       type,
-      ONLY_METHOD_NAMES
+      ONLY_METHOD_NAMES,
+      localFileExtension
     );
     treeObj.refresh(dataObj);
     return;
