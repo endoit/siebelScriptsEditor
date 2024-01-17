@@ -7,4 +7,3 @@ webpack.config.js
 features/**
 src/**
 *.sif
-documentation.md
