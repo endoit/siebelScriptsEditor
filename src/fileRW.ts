@@ -25,7 +25,7 @@ export const writeFile = async (
     await vscode.workspace.fs.writeFile(filePath, writeData);
     await vscode.window.showTextDocument(filePath, { preview: false });
     vscode.window.showInformationMessage(
-      `New files were created in directory: ./${folderPath}${
+      `New files were created in directory: ${folderPath}${
         fileName ? `/${objectName}` : ""
       }`
     );
@@ -145,6 +145,6 @@ export const copyTypeDefFile = async (
       );
     }
   } catch (err: any) {
-    vscode.window.showErrorMessage(err?.message);
+    vscode.window.showErrorMessage(err.message);
   }
 };

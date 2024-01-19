@@ -12,16 +12,9 @@ import {
   PULL,
   PUSH,
   PUT,
+  RESOURCE_URL,
   WEBTEMP,
 } from "./constants";
-
-const resourceURL = {
-  service: { obj: "Business Service", scr: "Business Service Server Script" },
-  buscomp: { obj: "Business Component", scr: "BusComp Server Script" },
-  applet: { obj: "Applet", scr: "Applet Server Script" },
-  application: { obj: "Application", scr: "Application Server Script" },
-  webtemp: { obj: "Web Template", scr: "" },
-} as const;
 
 const getDataFromRESTAPI = async (
   url: string,
@@ -91,7 +84,7 @@ export const getSiebelData = async (
 ): Promise<ScriptObject | WebTempObject> => {
   const wsPath = vscode.workspace?.workspaceFolders?.[0].uri.fsPath!;
   let siebObj: ScriptObject | WebTempObject = {};
-  const objectUrl = `/${resourceURL[type].obj}`;
+  const objectUrl = `/${RESOURCE_URL[type].obj}`;
   let exists: boolean;
   let fileNames: string[];
   const data = await getDataFromRESTAPI(objectUrl, {
@@ -136,7 +129,7 @@ export const getServerScripts = async (
   const wsPath = vscode.workspace?.workspaceFolders?.[0].uri.fsPath!;
   const folderPath = `${selectedObj.connection}/${selectedObj.workspace}/${type}`;
   const scriptObj: Scripts = {};
-  const objectUrl = `/${resourceURL[type].obj}/${selectedObj[type].name}/${resourceURL[type].scr}`;
+  const objectUrl = `/${RESOURCE_URL[type].obj}/${selectedObj[type].name}/${RESOURCE_URL[type].scr}`;
   const data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
     pageSize: 100,
     fields: `Name${namesOnly ? "" : ",Script"}`,
@@ -159,18 +152,17 @@ export const getServerScriptMethod = async (
   selectedObj: Selected,
   type: Exclude<SiebelObject, "webtemp">
 ) => {
-  const objectUrl = `/${resourceURL[type].obj}/${selectedObj[type].name}/${resourceURL[type].scr}/${selectedObj[type].childName}`;
+  const objectUrl = `/${RESOURCE_URL[type].obj}/${selectedObj[type].name}/${RESOURCE_URL[type].scr}/${selectedObj[type].childName}`;
   const data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
     fields: "Script",
     uniformresponse: "y",
   });
-  const scriptString = data[0]?.Script!;
-  return scriptString;
+  return data[0]?.Script!;
 };
 
 //get web template
 export const getWebTemplate = async (selectedObj: Selected) => {
-  const objectUrl = `/${resourceURL[WEBTEMP].obj}/${selectedObj[WEBTEMP].name}`;
+  const objectUrl = `/${RESOURCE_URL[WEBTEMP].obj}/${selectedObj[WEBTEMP].name}`;
   const data: WebTempResponse[] = await getDataFromRESTAPI(objectUrl, {
     fields: "Definition",
     uniformresponse: "y",
@@ -213,6 +205,7 @@ export const pushOrPullScript = async (
   const dirPath = dirname(currentlyOpenTabfilePath);
   const fileName = parse(currentlyOpenTabfilePath).name;
   const fileExtension = parse(currentlyOpenTabfilePath).ext;
+  const filePath = vscode.Uri.file(`${dirPath}/${fileName}${fileExtension}`);
   const infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
   if (!existsSync(infoFilePath.fsPath)) {
     vscode.window.showErrorMessage(ERR_NO_INFO_JSON);
@@ -223,40 +216,39 @@ export const pushOrPullScript = async (
     Buffer.from(readData).toString()
   );
   const isWebTemp = infoObj.type === WEBTEMP;
-  const filePath = vscode.Uri.file(`${dirPath}/${fileName}${fileExtension}`);
   const isInfo = isWebTemp
     ? (infoObj as WebTempInfo).definitions.hasOwnProperty(fileName)
     : (infoObj as ScriptInfo).scripts.hasOwnProperty(fileName);
+  if (!isInfo && isWebTemp) {
+    vscode.window.showErrorMessage(ERR_NO_WEBTEMP_INFO);
+    return;
+  }
   let isNewMethod = false;
   if (!(isInfo || isWebTemp)) {
-    if (action === PUSH) {
-      const answer = await vscode.window.showInformationMessage(
-        `Script was not found in info.json, would you like to create this file as a new method of the Siebel Object?`,
-        "Yes",
-        "No"
-      );
-      if (answer === "Yes") {
-        isNewMethod = true;
-      } else {
-        return;
-      }
-    } else {
+    if (action !== PUSH) {
       vscode.window.showErrorMessage(ERR_NO_SCRIPT_INFO);
       return;
     }
-  } else if (!isInfo && isWebTemp) {
-    vscode.window.showErrorMessage(ERR_NO_WEBTEMP_INFO);
-    return;
+    const answer = await vscode.window.showInformationMessage(
+      `Script was not found in info.json, would you like to create this file as a new method of the Siebel Object?`,
+      "Yes",
+      "No"
+    );
+    if (answer === "Yes") {
+      isNewMethod = true;
+    } else {
+      return;
+    }
   }
   const { url, username, password }: Connection =
     configData[infoObj.connection];
   switch (action) {
     case PULL: {
-      const resourceString = `${resourceURL[infoObj.type].obj}/${
+      const resourceString = `${RESOURCE_URL[infoObj.type].obj}/${
         isWebTemp
           ? ""
           : `${(infoObj as ScriptInfo).siebelObjectName}/${
-              resourceURL[infoObj.type].scr
+              RESOURCE_URL[infoObj.type].scr
             }/`
       }${fileName}`;
       const data: ScriptResponse[] | WebTempResponse[] =
@@ -292,11 +284,11 @@ export const pushOrPullScript = async (
       break;
     }
     case PUSH: {
-      const resourceString = `${resourceURL[infoObj.type].obj}/${
+      const resourceString = `${RESOURCE_URL[infoObj.type].obj}/${
         isWebTemp
           ? ""
           : `${(infoObj as ScriptInfo).siebelObjectName}/${
-              resourceURL[infoObj.type].scr
+              RESOURCE_URL[infoObj.type].scr
             }`
       }${isNewMethod ? "" : `/${fileName}`}`;
       const dataRead = await vscode.workspace.fs.readFile(filePath);

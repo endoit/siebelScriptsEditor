@@ -14,6 +14,16 @@ export const SIEBEL_OBJECTS = {
   [WEBTEMP]: "Web Template",
 } as const;
 
+
+//Resource URLs
+export const RESOURCE_URL = {
+  [SERVICE]: { obj: "Business Service", scr: "Business Service Server Script" },
+  [BUSCOMP]: { obj: "Business Component", scr: "BusComp Server Script" },
+  [APPLET]: { obj: "Applet", scr: "Applet Server Script" },
+  [APPLICATION]: { obj: "Application", scr: "Application Server Script" },
+  [WEBTEMP]: { obj: "Web Template", scr: "" },
+} as const;
+
 //Webview commands
 export const SELECT_CONNECTION = "selectConnection";
 export const SELECT_WORKSPACE = "selectWorkspace";
