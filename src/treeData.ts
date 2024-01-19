@@ -4,11 +4,7 @@ import {
   IS_WEBTEMPLATE,
   ONLY_METHOD_NAMES,
   WEBTEMP,
-  SERVICE_LONG,
-  BUSCOMP_LONG,
-  APPLET_LONG,
-  APPLICATION_LONG,
-  WEBTEMP_LONG,
+  SIEBEL_OBJECTS,
 } from "./constants";
 import {
   getServerScriptMethod,
@@ -17,14 +13,6 @@ import {
 } from "./dataService";
 import { writeFile, writeInfo } from "./fileRW";
 
-const messageText = {
-  service: SERVICE_LONG,
-  buscomp: BUSCOMP_LONG,
-  applet: APPLET_LONG,
-  application: APPLICATION_LONG,
-  webtemp: WEBTEMP_LONG,
-} as const;
-
 //handle selection in the tree views
 export const selectionChange = async (
   e: vscode.TreeViewSelectionChangeEvent<TreeItem>,
@@ -32,17 +20,11 @@ export const selectionChange = async (
   selected: Selected,
   dataObj: ScriptObject | WebTempObject,
   treeObj: TreeDataProvider,
-  { sglFileAutoDwnld, localFileExtension, dfltScriptFetching }: ExtendedSettings
+  { singleFileAutoDownload, localFileExtension, defaultScriptFetching }: ExtendedSettings
 ) => {
   const selItem = e.selection[0];
   const folderPath = `${selected.connection}/${selected.workspace}/${type}`;
-  let answer:
-    | "Yes"
-    | "No"
-    | "Only method names"
-    | "All scripts"
-    | "None - always ask"
-    | undefined;
+  let answer: ExtendedSettings["defaultScriptFetching"];
   let scrName: string;
   let scrMethod: Script;
   let scrNames: string[] = [];
@@ -50,10 +32,10 @@ export const selectionChange = async (
   if (type === WEBTEMP) {
     dataObj = dataObj as WebTempObject;
     selected[type].name = selItem.label;
-    answer = sglFileAutoDwnld
+    answer = singleFileAutoDownload
       ? "Yes"
       : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${messageText[type]} definition from Siebel?`,
+          `Do you want to get the ${selItem.label} ${SIEBEL_OBJECTS[type]} definition from Siebel?`,
           "Yes",
           "No"
         );
@@ -70,13 +52,14 @@ export const selectionChange = async (
     }
     return;
   }
+
   if (!selItem.hasOwnProperty("scripts")) {
     selected[type].name = selItem.parent!;
     selected[type].childName = selItem.label;
-    answer = sglFileAutoDwnld
+    answer = singleFileAutoDownload
       ? "Yes"
       : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${messageText[type]} method from Siebel?`,
+          `Do you want to get the ${selItem.label} ${SIEBEL_OBJECTS[type]} method from Siebel?`,
           "Yes",
           "No"
         );
@@ -100,10 +83,10 @@ export const selectionChange = async (
   }
   selected[type].name = selItem.label;
   answer =
-    dfltScriptFetching !== "None - always ask"
-      ? dfltScriptFetching
+    defaultScriptFetching !== "None - always ask"
+      ? defaultScriptFetching
       : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${messageText[type]} from Siebel?`,
+          `Do you want to get the ${selItem.label} ${SIEBEL_OBJECTS[type]} from Siebel?`,
           "Yes",
           "Only method names",
           "No"
@@ -223,7 +206,7 @@ export class TreeItem extends vscode.TreeItem {
     } else if (definition !== undefined) {
       this.definition = definition;
     }
-    if (onDisk === true) {
+    if (onDisk) {
       this.iconPath = {
         light: join(__filename, "..", "..", "media", "checkmark.png"),
         dark: join(__filename, "..", "..", "media", "checkmark.png"),

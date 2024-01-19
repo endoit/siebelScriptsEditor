@@ -6,13 +6,6 @@ type SiebelObject =
   | "application"
   | "webtemp";
 
-type SiebelObjectLong =
-  | "Business Service"
-  | "Business Component"
-  | "Applet"
-  | "Application"
-  | "Web Template";
-
 //Connections object
 type Connections = Record<
   string,
@@ -34,7 +27,7 @@ type Workspaces = Record<string, string[]>;
 type Selected = {
   connection: string;
   workspace: string;
-  object: SiebelObjectLong;
+  object: SiebelObject;
   service: SelectedScript;
   buscomp: SelectedScript;
   applet: SelectedScript;
@@ -129,7 +122,7 @@ type Message = {
   command: MessageCommand;
   connectionName?: string;
   workspace?: string;
-  object?: SiebelObjectLong;
+  object?: SiebelObject;
   searchString?: string;
 };
 
@@ -151,11 +144,24 @@ type TreeItemProps = {
   definition?: string;
 };
 
+//REST methods
+type RestMethod = "get" | "put";
+
+//Button actions
+type ButtonAction = "push" | "pull";
+
+type Settings = {
+  "REST EndpointConfigurations": string[];
+  workspaces: string[];
+  getWorkspacesFromREST: boolean;
+  defaultConnection: string;
+} & ExtendedSettings;
+
 //Extended settings
 type ExtendedSettings = {
-  sglFileAutoDwnld: boolean;
+  singleFileAutoDownload: boolean;
   localFileExtension: ".js" | ".ts";
-  dfltScriptFetching:
+  defaultScriptFetching:
     | "Yes"
     | "No"
     | "Only method names"

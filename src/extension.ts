@@ -1,12 +1,6 @@
 import { default as axios } from "axios";
 import * as vscode from "vscode";
 import {
-  APPLET,
-  APPLET_LONG,
-  APPLICATION,
-  APPLICATION_LONG,
-  BUSCOMP,
-  BUSCOMP_LONG,
   ERROR,
   ERR_CONN_ERROR,
   ERR_CONN_PARAM_FORMAT,
@@ -15,7 +9,6 @@ import {
   ERR_NO_EDITABLE_WS,
   ERR_NO_WS_OPEN,
   GET,
-  IS_WEBTEMPLATE,
   NO_REST_CONFIG,
   OPEN_CONFIG,
   PULL,
@@ -27,11 +20,9 @@ import {
   SELECT_OBJECT,
   SELECT_WORKSPACE,
   SERVICE,
-  SERVICE_LONG,
   SET_DEFAULT,
   TEST_REST,
   WEBTEMP,
-  WEBTEMP_LONG,
 } from "./constants";
 import {
   callRESTAPIInstance,
@@ -52,45 +43,40 @@ export async function activate(context: vscode.ExtensionContext) {
   let url: string;
   let username: string;
   let password: string;
-  let treeDataBS: TreeDataProvider;
-  let treeDataBC: TreeDataProvider;
-  let treeDataApplet: TreeDataProvider;
-  let treeDataApplication: TreeDataProvider;
-  let treeDataWebTemp: TreeDataProvider;
   let timeoutId = 0;
+  const emptyDataObj: ScriptObject | WebTempObject = {};
+  const emptyTreeData = new TreeDataProvider(emptyDataObj);
+  const state: Record<SiebelObject, TreeDataProvider> = {
+    service: emptyTreeData,
+    buscomp: emptyTreeData,
+    applet: emptyTreeData,
+    application: emptyTreeData,
+    webtemp: emptyTreeData,
+  };
 
-  for (let objectType of [SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP]) {
+  for (let objectType of Object.keys(state)) {
     vscode.window.createTreeView(objectType, {
-      treeDataProvider: new TreeDataProvider({}),
+      treeDataProvider: emptyTreeData,
     });
   }
 
-  const connectionConfigs: string[] = vscode.workspace.getConfiguration(
+  //get the settings
+  const {
+    "REST EndpointConfigurations": connectionConfigs,
+    workspaces,
+    getWorkspacesFromREST,
+    defaultConnection,
+    singleFileAutoDownload,
+    localFileExtension,
+    defaultScriptFetching,
+  }: Settings = vscode.workspace.getConfiguration(
     "siebelScriptAndWebTempEditor"
-  )["REST EndpointConfigurations"];
-
-  const workspaces: string[] = vscode.workspace.getConfiguration(
-    "siebelScriptAndWebTempEditor"
-  )["workspaces"];
-
-  const isWorkspaceREST: boolean = vscode.workspace.getConfiguration(
-    "siebelScriptAndWebTempEditor"
-  )["getWorkspacesFromREST"];
-
-  const dfltScriptFetching: ExtendedSettings["dfltScriptFetching"] =
-    vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor")[
-      "defaultScriptFetching"
-    ];
-
-  const sglFileAutoDwnld: ExtendedSettings["sglFileAutoDwnld"] =
-    vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor")[
-      "singleFileAutoDownload"
-    ];
-
-  const localFileExtension: ExtendedSettings["localFileExtension"] =
-    vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor")[
-      "localFileExtension"
-    ];
+  ) as unknown as Settings;
+  const extSettings: ExtendedSettings = {
+    singleFileAutoDownload,
+    localFileExtension,
+    defaultScriptFetching,
+  };
 
   //debounce the search input
   const debounceAsync =
@@ -111,14 +97,8 @@ export async function activate(context: vscode.ExtensionContext) {
 
   //clears the tree views
   const clearTreeViews = () => {
-    for (let treeDataObj of [
-      treeDataBS,
-      treeDataBC,
-      treeDataApplet,
-      treeDataApplication,
-      treeDataWebTemp,
-    ]) {
-      treeDataObj?.refresh?.({});
+    for (let treeDataObj of Object.values(state)) {
+      treeDataObj.refresh(emptyDataObj);
     }
   };
 
@@ -135,7 +115,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   if (
     connectionConfigs.length === 0 ||
-    (workspaces.length === 0 && !isWorkspaceREST)
+    (workspaces.length === 0 && !getWorkspacesFromREST)
   ) {
     openSettings();
     const pullButton = vscode.commands.registerCommand(
@@ -164,60 +144,54 @@ export async function activate(context: vscode.ExtensionContext) {
         thisWebview.webview.onDidReceiveMessage(async (message: Message) => {
           switch (message.command) {
             case TEST_REST: {
-              const readConfigTestArr: string[] =
-                vscode.workspace.getConfiguration(
-                  "siebelScriptAndWebTempEditor"
-                )["REST EndpointConfigurations"];
-              const readWorkspaceTestArr: string =
-                vscode.workspace.getConfiguration(
-                  "siebelScriptAndWebTempEditor"
-                )["workspaces"];
+              const {
+                "REST EndpointConfigurations": readConfigTestArr,
+                workspaces: readWorkspaceTestArr,
+              }: Partial<Settings> = vscode.workspace.getConfiguration(
+                "siebelScriptAndWebTempEditor"
+              ) as unknown as Settings;
               if (
-                readConfigTestArr.length > 0 &&
-                readWorkspaceTestArr.length > 0
+                readConfigTestArr.length === 0 ||
+                readWorkspaceTestArr.length === 0
               ) {
-                const [readConfigTest, baseUrl] =
-                  readConfigTestArr[0].split("@");
-                const [connConf, username, password] =
-                  readConfigTest.split("/");
-                const [connWS, workspaceTestArr] =
-                  readWorkspaceTestArr[0].split(":");
-                const workspaceTest =
-                  workspaceTestArr && workspaceTestArr.split(",")[0];
-                const url = `${baseUrl}/workspace/${workspaceTest}/Application`;
-                if (
-                  connConf !== connWS ||
-                  !(baseUrl && username && password && workspaceTest)
-                ) {
-                  vscode.window.showErrorMessage(ERR_CONN_PARAM_FORMAT);
-                } else {
-                  const testResp = await callRESTAPIInstance(
-                    { url, username, password },
-                    GET,
-                    {
-                      pageSize: 20,
-                      fields: "Name",
-                      childLinks: "None",
-                      uniformresponse: "y",
-                    }
-                  );
-                  if (testResp.length > 0) {
-                    vscode.window.showInformationMessage(
-                      "Connection is working!"
-                    );
-                    thisWebview.webview.html = webViewHTML(
-                      {},
-                      {},
-                      NO_REST_CONFIG,
-                      RELOAD_ENABLED
-                    );
-                  } else {
-                    vscode.window.showErrorMessage(ERR_CONN_ERROR);
-                  }
-                }
-              } else {
                 vscode.window.showErrorMessage(ERR_NO_CONFIG);
+                break;
               }
+              const [readConfigTest, baseUrl] = readConfigTestArr[0].split("@");
+              const [connConf, username, password] = readConfigTest.split("/");
+              const [connWS, workspaceTestArr] =
+                readWorkspaceTestArr[0].split(":");
+              const workspaceTest =
+                workspaceTestArr && workspaceTestArr.split(",")[0];
+              const url = `${baseUrl}/workspace/${workspaceTest}/Application`;
+              if (
+                connConf !== connWS ||
+                !(baseUrl && username && password && workspaceTest)
+              ) {
+                vscode.window.showErrorMessage(ERR_CONN_PARAM_FORMAT);
+                break;
+              }
+              const testResp = await callRESTAPIInstance(
+                { url, username, password },
+                GET,
+                {
+                  pageSize: 20,
+                  fields: "Name",
+                  childLinks: "None",
+                  uniformresponse: "y",
+                }
+              );
+              if (testResp.length === 0) {
+                vscode.window.showErrorMessage(ERR_CONN_ERROR);
+                break;
+              }
+              vscode.window.showInformationMessage("Connection is working!");
+              thisWebview.webview.html = webViewHTML(
+                {},
+                {},
+                NO_REST_CONFIG,
+                RELOAD_ENABLED
+              );
               break;
             }
             case OPEN_CONFIG: {
@@ -240,11 +214,8 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(extensionView);
   } else {
-    const defConnNameWSString: string = vscode.workspace.getConfiguration(
-      "siebelScriptAndWebTempEditor"
-    ).defaultConnection;
     let [defConnName, defWS] =
-      defConnNameWSString && defConnNameWSString.split(":");
+      defaultConnection && defaultConnection.split(":");
     const workspaceObject: Workspaces = {};
     const configData: Connections = {};
     try {
@@ -252,7 +223,7 @@ export async function activate(context: vscode.ExtensionContext) {
       copyTypeDefFile(context);
 
       //get workspaces object from the Workspaces setting
-      if (!isWorkspaceREST) {
+      if (!getWorkspacesFromREST) {
         for (let workspace of workspaces) {
           let [connectionName, workspaceString] = workspace.split(":");
           if (!workspaceString) {
@@ -276,7 +247,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         if (
           !workspaceObject.hasOwnProperty(connectionName) &&
-          !isWorkspaceREST
+          !getWorkspacesFromREST
         ) {
           vscode.window.showErrorMessage(
             `No workspace was found for the ${connectionName} connection, check the settings!`
@@ -292,7 +263,7 @@ export async function activate(context: vscode.ExtensionContext) {
         configData[connectionName] = connectionObj;
       }
       //get workspaces from Siebel through REST
-      if (isWorkspaceREST) {
+      if (getWorkspacesFromREST) {
         for (let [connectionName, connParams] of Object.entries(configData)) {
           const workspaces = await getWorkspaces(connParams);
           configData[connectionName].workspaces = workspaces;
@@ -320,7 +291,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const selected: Selected = {
       connection: firstConnection,
       workspace: firstWorkspace,
-      object: SERVICE_LONG,
+      object: SERVICE,
       service: { name: "", childName: "" },
       buscomp: { name: "", childName: "" },
       applet: { name: "", childName: "" },
@@ -444,150 +415,34 @@ export async function activate(context: vscode.ExtensionContext) {
               }
               case SEARCH: {
                 //get the Siebel objects and create the tree views
-                const { searchString = "" } = message;
-                const searchSpec = `Name LIKE "${searchString}*"`;
+                const searchSpec = `Name LIKE "${message.searchString}*"`;
                 const folderPath = `${selected.connection}/${selected.workspace}`;
-                switch (selected.object) {
-                  case SERVICE_LONG: {
-                    const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, SERVICE)
-                    );
-                    const busServObj =
-                      (await debouncedSearch()) as ScriptObject;
-                    treeDataBS = new TreeDataProvider(busServObj);
-                    const treeViewBS = vscode.window.createTreeView(SERVICE, {
-                      treeDataProvider: treeDataBS,
-                    });
+                const objectType = selected.object;
+                const debouncedSearch = debounceAsync(() =>
+                  getSiebelData(searchSpec, folderPath, objectType)
+                );
+                const dataObj = (await debouncedSearch()) as
+                  | ScriptObject
+                  | WebTempObject;
+                state[objectType] = new TreeDataProvider(
+                  dataObj,
+                  objectType === WEBTEMP
+                );
 
-                    treeViewBS.onDidChangeSelection(async (e) =>
-                      selectionChange(
-                        e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-                        SERVICE,
-                        selected,
-                        busServObj,
-                        treeDataBS,
-                        {
-                          sglFileAutoDwnld,
-                          localFileExtension,
-                          dfltScriptFetching,
-                        }
-                      )
-                    );
-                    break;
-                  }
-                  case BUSCOMP_LONG: {
-                    const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, BUSCOMP)
-                    );
-                    const busCompObj =
-                      (await debouncedSearch()) as ScriptObject;
-                    treeDataBC = new TreeDataProvider(busCompObj);
-                    const treeViewBC = vscode.window.createTreeView(BUSCOMP, {
-                      treeDataProvider: treeDataBC,
-                    });
-
-                    treeViewBC.onDidChangeSelection(async (e) =>
-                      selectionChange(
-                        e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-                        BUSCOMP,
-                        selected,
-                        busCompObj,
-                        treeDataBC,
-                        {
-                          sglFileAutoDwnld,
-                          localFileExtension,
-                          dfltScriptFetching,
-                        }
-                      )
-                    );
-                    break;
-                  }
-                  case APPLET_LONG: {
-                    const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, APPLET)
-                    );
-                    const appletObj = (await debouncedSearch()) as ScriptObject;
-                    treeDataApplet = new TreeDataProvider(appletObj);
-                    const treeViewApplet = vscode.window.createTreeView(
-                      APPLET,
-                      { treeDataProvider: treeDataApplet }
-                    );
-
-                    treeViewApplet.onDidChangeSelection(async (e) =>
-                      selectionChange(
-                        e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-                        APPLET,
-                        selected,
-                        appletObj,
-                        treeDataApplet,
-                        {
-                          sglFileAutoDwnld,
-                          localFileExtension,
-                          dfltScriptFetching,
-                        }
-                      )
-                    );
-                    break;
-                  }
-                  case APPLICATION_LONG: {
-                    const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, APPLICATION)
-                    );
-                    const applicationObj =
-                      (await debouncedSearch()) as ScriptObject;
-                    treeDataApplication = new TreeDataProvider(applicationObj);
-                    const treeViewApplication = vscode.window.createTreeView(
-                      APPLICATION,
-                      { treeDataProvider: treeDataApplication }
-                    );
-                    treeViewApplication.onDidChangeSelection(async (e) =>
-                      selectionChange(
-                        e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-                        APPLICATION,
-                        selected,
-                        applicationObj,
-                        treeDataApplication,
-                        {
-                          sglFileAutoDwnld,
-                          localFileExtension,
-                          dfltScriptFetching,
-                        }
-                      )
-                    );
-                    break;
-                  }
-                  case WEBTEMP_LONG: {
-                    const debouncedSearch = debounceAsync(() =>
-                      getSiebelData(searchSpec, folderPath, WEBTEMP)
-                    );
-                    const webTempObj =
-                      (await debouncedSearch()) as WebTempObject;
-                    treeDataWebTemp = new TreeDataProvider(
-                      webTempObj,
-                      IS_WEBTEMPLATE
-                    );
-                    const treeViewWebTemp = vscode.window.createTreeView(
-                      WEBTEMP,
-                      { treeDataProvider: treeDataWebTemp }
-                    );
-
-                    treeViewWebTemp.onDidChangeSelection(async (e) =>
-                      selectionChange(
-                        e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-                        WEBTEMP,
-                        selected,
-                        webTempObj,
-                        treeDataWebTemp,
-                        {
-                          sglFileAutoDwnld,
-                          localFileExtension,
-                          dfltScriptFetching,
-                        }
-                      )
-                    );
-                    break;
-                  }
-                }
+                vscode.window
+                  .createTreeView(objectType, {
+                    treeDataProvider: state[objectType],
+                  })
+                  .onDidChangeSelection(async (e) =>
+                    selectionChange(
+                      e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
+                      objectType,
+                      selected,
+                      dataObj,
+                      state[objectType],
+                      extSettings
+                    )
+                  );
                 break;
               }
               case SET_DEFAULT: {

@@ -52,7 +52,7 @@ const getDataFromRESTAPI = async (
 
 export const callRESTAPIInstance = async (
   { url, username, password }: Connection,
-  method: typeof GET | typeof PUT,
+  method: RestMethod,
   params: QueryParams,
   data?: Payload
 ) => {
@@ -205,7 +205,7 @@ export const getWorkspaces = async ({
 
 //push/pull script from/to database
 export const pushOrPullScript = async (
-  action: typeof PUSH | typeof PULL,
+  action: ButtonAction,
   configData: Connections
 ): Promise<void> => {
   const currentlyOpenTabfilePath =
@@ -229,7 +229,7 @@ export const pushOrPullScript = async (
     : (infoObj as ScriptInfo).scripts.hasOwnProperty(fileName);
   let isNewMethod = false;
   if (!(isInfo || isWebTemp)) {
-    if (action === "push") {
+    if (action === PUSH) {
       const answer = await vscode.window.showInformationMessage(
         `Script was not found in info.json, would you like to create this file as a new method of the Siebel Object?`,
         "Yes",

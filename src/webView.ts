@@ -1,9 +1,10 @@
 import {
-  SERVICE_LONG,
-  BUSCOMP_LONG,
-  APPLET_LONG,
-  APPLICATION_LONG,
-  WEBTEMP_LONG,
+  SERVICE,
+  BUSCOMP,
+  APPLET,
+  APPLICATION,
+  WEBTEMP,
+	SIEBEL_OBJECTS
 } from "./constants";
 
 //generates the HTML page for the webview to select REST endpoint, resource and the searchbar
@@ -130,17 +131,17 @@ export const webViewHTML = (
       )
       .join("");
   const objects = [
-    SERVICE_LONG,
-    BUSCOMP_LONG,
-    APPLET_LONG,
-    APPLICATION_LONG,
-    WEBTEMP_LONG,
+    SERVICE,
+    BUSCOMP,
+    APPLET,
+    APPLICATION,
+    WEBTEMP,
   ]
     .map(
       (item) =>
         `<option class="opt" value="${item}" ${
           object === item ? "selected" : ""
-        }>${item}</option>`
+        }>${SIEBEL_OBJECTS[item as SiebelObject]}</option>`
     )
     .join("");
 
