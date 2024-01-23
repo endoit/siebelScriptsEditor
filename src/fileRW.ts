@@ -113,7 +113,7 @@ export const writeInfo = async (
 };
 
 //copy index.d.ts and create jsconfig.json to the VSCode workspace folder if they do not exist
-export const copyTypeDefFile = async (
+export const copyTypeDefAndJSConfFile = async (
   context: vscode.ExtensionContext
 ): Promise<void> => {
   try {

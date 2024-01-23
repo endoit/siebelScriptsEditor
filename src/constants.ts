@@ -5,16 +5,6 @@ export const APPLET = "applet";
 export const APPLICATION = "application";
 export const WEBTEMP = "webtemp";
 
-//Siebel object short name - long name dictionary
-export const SIEBEL_OBJECTS = {
-  [SERVICE]: "Business Service",
-  [BUSCOMP]: "Business Component",
-  [APPLET]: "Applet",
-  [APPLICATION]: "Application",
-  [WEBTEMP]: "Web Template",
-} as const;
-
-
 //Resource URLs
 export const RESOURCE_URL = {
   [SERVICE]: { obj: "Business Service", scr: "Business Service Server Script" },
@@ -31,8 +21,6 @@ export const SELECT_OBJECT = "selectObject";
 export const SEARCH = "search";
 export const SET_DEFAULT = "setDefault";
 export const OPEN_CONFIG = "openConfig";
-export const RELOAD = "reload";
-export const TEST_REST = "testREST";
 
 //REST methods
 export const GET = "get";
@@ -43,23 +31,13 @@ export const PUSH = "push";
 export const PULL = "pull";
 
 //Constants for the extension
-export const NO_REST_CONFIG = true;
-export const RELOAD_ENABLED = true;
-export const IS_WEBTEMPLATE = true;
 export const ONLY_METHOD_NAMES = true;
-export const ERROR = "Error";
 
 //Constant error messages
 export const ERR_NO_WS_OPEN =
   "Please open a Visual Studio Code workspace folder to use the extension!";
 export const ERR_CONN_PARAM_PARSE =
-  "Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings, then reload the extension!";
-export const ERR_CONN_PARAM_FORMAT =
-  "Check the format of the REST Endpoint Configurations and the Workspaces settings!";
-export const ERR_CONN_ERROR =
-  "Connection error, please check connection parameters and Siebel server status!";
-export const ERR_NO_CONFIG =
-  "Please add at least one REST Endpoint configuration and workspace for that configuration!";
+  "Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings!";
 export const ERR_NO_EDITABLE_WS =
   "No workspace with status Checkpointed or Edit-In-Progress was found for any connection with the given username or the Base Workspace integration object is missing or was not merged into the primary branch in Siebel!";
 export const ERR_NO_INFO_JSON =

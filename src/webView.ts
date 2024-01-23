@@ -4,15 +4,14 @@ import {
   APPLET,
   APPLICATION,
   WEBTEMP,
-	SIEBEL_OBJECTS
+	RESOURCE_URL
 } from "./constants";
 
-//generates the HTML page for the webview to select REST endpoint, resource and the searchbar
+//generates the HTML page for the webview to select the REST endpoint, workspace, resource and for the searchbar
 export const webViewHTML = (
   connectionObject: Connections,
   { connection, workspace, object }: Partial<Selected>,
-  noRESTConfig = false,
-  reloadEnabled = false
+  noRESTConfig = false
 ): string => {
   const css = `
 		<style>
@@ -43,23 +42,6 @@ export const webViewHTML = (
 				padding: 0.2em;
 				width: 10em;
 			}
-			.button {
-				margin-top: 0.2em;
-				border: none;
-				padding: 0.5em;
-				width: 100%;
-				text-align: center;
-				outline: 1px solid transparent;
-				outline-offset: 2px!important;
-				color: var(--vscode-button-foreground);
-				background: var(--vscode-button-background);
-				text-align: center;
-				box-sizing: border-box;
-				border-radius: 0.4em;
-			}
-			.button:disabled {
-				background: #9daaab;
-			}
 			.button-small {
 				flex: 1 1 auto;
 				margin: 0.2em;
@@ -85,27 +67,15 @@ export const webViewHTML = (
 				${css}
 			</head>
 			<body>
-				<div class="text">No Siebel REST API configuration/workspace was found, please click the Open settings button and give at least one REST Endpoint configuration, and at least one workspace for that REST configuration! After that, press the Test connection button! If successful, the Reload button will be enabled, and click on that!</div>
-				<div class="divitem">
-						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>
-						<Button class="button-small" id="test" onclick="testREST()">Test connection</Button>
-				</div>
+				<div class="text">Error in parsing the settings, please give at least one valid REST Endpoint configuration, and at least one workspace for that REST configuration!</div>
 					<div class="divitem">
-						<Button class="button" onclick="reload()" ${
-              reloadEnabled ? "" : "disabled"
-            }>Reload</Button>
-					</div>	
+						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>
+					</div>
 				</div>
 				<script>
 					const vscode = acquireVsCodeApi();
 					const openConfig = () => {
 						vscode.postMessage({command: "openConfig"});
-					}
-					const testREST = () => {
-						vscode.postMessage({command: "testREST"});
-					}
-					const reload = () => {
-						vscode.postMessage({command: "reload"});
 					}
 				</script>
 			</body>
@@ -121,8 +91,7 @@ export const webViewHTML = (
     )
     .join("");
   const workspaces =
-    connectionObject[connection!]?.workspaces &&
-    connectionObject[connection!].workspaces
+    connectionObject[connection!]?.workspaces
       .map(
         (item) =>
           `<option class="opt" value="${item}" ${
@@ -141,7 +110,7 @@ export const webViewHTML = (
       (item) =>
         `<option class="opt" value="${item}" ${
           object === item ? "selected" : ""
-        }>${SIEBEL_OBJECTS[item as SiebelObject]}</option>`
+        }>${RESOURCE_URL[item as SiebelObject].obj}</option>`
     )
     .join("");
 
@@ -176,9 +145,6 @@ export const webViewHTML = (
 					<div class="divitem">
 						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>  
 						<Button class="button-small" id="default" onclick="setDefault()">Set as default</Button>  
-					</div>
-					<div class="divitem">
-						<Button class="button" onclick="reload()">Reload</Button>
 					</div>	
 				</div>
 				<script>
@@ -206,9 +172,6 @@ export const webViewHTML = (
 						const connectionName = document.getElementById("connection").value;
 						const workspace = document.getElementById("workspace").value;
 						vscode.postMessage({command: "setDefault", connectionName, workspace});
-					}
-					const reload = () => {
-						vscode.postMessage({command: "reload"});
 					}
 				</script>
 			</body>

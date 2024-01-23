@@ -1,10 +1,9 @@
 import { join } from "path";
 import * as vscode from "vscode";
 import {
-  IS_WEBTEMPLATE,
   ONLY_METHOD_NAMES,
   WEBTEMP,
-  SIEBEL_OBJECTS,
+  RESOURCE_URL
 } from "./constants";
 import {
   getServerScriptMethod,
@@ -24,18 +23,19 @@ export const selectionChange = async (
 ) => {
   const selItem = e.selection[0];
   const folderPath = `${selected.connection}/${selected.workspace}/${type}`;
+  const isWebTemplate = type === WEBTEMP;
   let answer: ExtendedSettings["defaultScriptFetching"];
   let scrName: string;
   let scrMethod: Script;
   let scrNames: string[] = [];
 
-  if (type === WEBTEMP) {
+  if (isWebTemplate) {
     dataObj = dataObj as WebTempObject;
-    selected[type].name = selItem.label;
+    selected[WEBTEMP].name = selItem.label;
     answer = singleFileAutoDownload
       ? "Yes"
       : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${SIEBEL_OBJECTS[type]} definition from Siebel?`,
+          `Do you want to get the ${selItem.label} ${RESOURCE_URL[WEBTEMP].obj} definition from Siebel?`,
           "Yes",
           "No"
         );
@@ -47,8 +47,8 @@ export const selectionChange = async (
         folderPath,
         selItem.label
       );
-      await writeInfo(selected, folderPath, type, [selItem.label]);
-      treeObj.refresh(dataObj, IS_WEBTEMPLATE);
+      await writeInfo(selected, folderPath, WEBTEMP, [selItem.label]);
+      treeObj.refresh(dataObj, isWebTemplate);
     }
     return;
   }
@@ -59,7 +59,7 @@ export const selectionChange = async (
     answer = singleFileAutoDownload
       ? "Yes"
       : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${SIEBEL_OBJECTS[type]} method from Siebel?`,
+          `Do you want to get the ${selItem.label} ${RESOURCE_URL[type].obj} method from Siebel?`,
           "Yes",
           "No"
         );
@@ -86,7 +86,7 @@ export const selectionChange = async (
     defaultScriptFetching !== "None - always ask"
       ? defaultScriptFetching
       : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${SIEBEL_OBJECTS[type]} from Siebel?`,
+          `Do you want to get the ${selItem.label} ${RESOURCE_URL[type].obj} from Siebel?`,
           "Yes",
           "Only method names",
           "No"
@@ -131,18 +131,18 @@ export class TreeDataProvider {
   constructor(dataObj: ScriptObject | WebTempObject, isWebTemplate = false) {
     if (isWebTemplate) {
       this.data = Object.keys(dataObj).map(
-        (bs) =>
-          new TreeItem(bs, vscode.TreeItemCollapsibleState.None, {
-            onDisk: dataObj[bs].onDisk,
-            definition: (dataObj as WebTempObject)[bs].definition,
+        (item) =>
+          new TreeItem(item, vscode.TreeItemCollapsibleState.None, {
+            onDisk: dataObj[item].onDisk,
+            definition: (dataObj as WebTempObject)[item].definition,
           })
       );
     } else {
       this.data = Object.keys(dataObj).map(
-        (bs) =>
-          new TreeItem(bs, vscode.TreeItemCollapsibleState.Collapsed, {
-            onDisk: dataObj[bs].onDisk,
-            scripts: (dataObj as ScriptObject)[bs].scripts,
+        (item) =>
+          new TreeItem(item, vscode.TreeItemCollapsibleState.Collapsed, {
+            onDisk: dataObj[item].onDisk,
+            scripts: (dataObj as ScriptObject)[item].scripts,
           })
       );
     }
@@ -155,9 +155,9 @@ export class TreeDataProvider {
       return this.data;
     }
     return Object.keys(element.scripts as Scripts).map(
-      (bs) =>
-        new TreeItem(bs, vscode.TreeItemCollapsibleState.None, {
-          onDisk: element.scripts?.[bs].onDisk as boolean,
+      (item) =>
+        new TreeItem(item, vscode.TreeItemCollapsibleState.None, {
+          onDisk: element.scripts?.[item].onDisk as boolean,
           scripts: undefined,
           parent: element.label,
         })
@@ -166,18 +166,18 @@ export class TreeDataProvider {
   refresh(dataObj: ScriptObject | WebTempObject, isWebTemplate?: boolean) {
     if (isWebTemplate) {
       this.data = Object.keys(dataObj).map(
-        (bs) =>
-          new TreeItem(bs, vscode.TreeItemCollapsibleState.None, {
-            onDisk: (dataObj as WebTempObject)[bs].onDisk,
-            definition: (dataObj as WebTempObject)[bs].definition,
+        (item) =>
+          new TreeItem(item, vscode.TreeItemCollapsibleState.None, {
+            onDisk: (dataObj as WebTempObject)[item].onDisk,
+            definition: (dataObj as WebTempObject)[item].definition,
           })
       );
     } else {
       this.data = Object.keys(dataObj).map(
-        (bs) =>
-          new TreeItem(bs, vscode.TreeItemCollapsibleState.Collapsed, {
-            onDisk: (dataObj as ScriptObject)[bs].onDisk,
-            scripts: (dataObj as ScriptObject)[bs].scripts,
+        (item) =>
+          new TreeItem(item, vscode.TreeItemCollapsibleState.Collapsed, {
+            onDisk: (dataObj as ScriptObject)[item].onDisk,
+            scripts: (dataObj as ScriptObject)[item].scripts,
           })
       );
     }

@@ -150,12 +150,13 @@ type RestMethod = "get" | "put";
 //Button actions
 type ButtonAction = "push" | "pull";
 
-type Settings = {
+//Basic settings
+type BasicSettings = {
   "REST EndpointConfigurations": string[];
   workspaces: string[];
   getWorkspacesFromREST: boolean;
   defaultConnection: string;
-} & ExtendedSettings;
+}
 
 //Extended settings
 type ExtendedSettings = {
