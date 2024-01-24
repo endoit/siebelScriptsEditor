@@ -14,17 +14,16 @@ import { writeFile, writeInfo } from "./fileRW";
 
 //handle selection in the tree views
 export const selectionChange = async (
-  e: vscode.TreeViewSelectionChangeEvent<TreeItem>,
-  type: SiebelObject,
+  {selection: [selItem]}: vscode.TreeViewSelectionChangeEvent<TreeItem>,
   selected: Selected,
   dataObj: ScriptObject | WebTempObject,
   treeObj: TreeDataProvider,
-  { singleFileAutoDownload, localFileExtension, defaultScriptFetching }: ExtendedSettings
+  { singleFileAutoDownload, localFileExtension, defaultScriptFetching }: Partial<Settings>
 ) => {
-  const selItem = e.selection[0];
+  const type = selected.object;
   const folderPath = `${selected.connection}/${selected.workspace}/${type}`;
   const isWebTemplate = type === WEBTEMP;
-  let answer: ExtendedSettings["defaultScriptFetching"];
+  let answer: Settings["defaultScriptFetching"];
   let scrName: string;
   let scrMethod: Script;
   let scrNames: string[] = [];

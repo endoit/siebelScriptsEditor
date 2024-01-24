@@ -151,15 +151,9 @@ type RestMethod = "get" | "put";
 type ButtonAction = "push" | "pull";
 
 //Basic settings
-type BasicSettings = {
-  "REST EndpointConfigurations": string[];
-  workspaces: string[];
-  getWorkspacesFromREST: boolean;
+type Settings = {
+  connections: Record<string, string>
   defaultConnection: string;
-}
-
-//Extended settings
-type ExtendedSettings = {
   singleFileAutoDownload: boolean;
   localFileExtension: ".js" | ".ts";
   defaultScriptFetching:
@@ -169,4 +163,11 @@ type ExtendedSettings = {
     | "All scripts"
     | "None - always ask"
     | undefined;
-};
+}
+
+//Deprecated settings
+type OldSettings = {
+  "REST EndpointConfigurations": string[];
+  workspaces: string[];
+  getWorkspacesFromREST: boolean;
+}

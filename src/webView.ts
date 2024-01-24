@@ -4,7 +4,7 @@ import {
   APPLET,
   APPLICATION,
   WEBTEMP,
-	RESOURCE_URL
+  RESOURCE_URL,
 } from "./constants";
 
 //generates the HTML page for the webview to select the REST endpoint, workspace, resource and for the searchbar
@@ -90,27 +90,21 @@ export const webViewHTML = (
         }>${item}</option>`
     )
     .join("");
-  const workspaces =
-    connectionObject[connection!]?.workspaces
-      .map(
-        (item) =>
-          `<option class="opt" value="${item}" ${
-            workspace === item ? "selected" : ""
-          }>${item}</option>`
-      )
-      .join("");
-  const objects = [
-    SERVICE,
-    BUSCOMP,
-    APPLET,
-    APPLICATION,
-    WEBTEMP,
-  ]
+  const workspaces = connectionObject[connection!]?.workspaces
+    .map(
+      (item) =>
+        `<option class="opt" value="${item}" ${
+          workspace === item ? "selected" : ""
+        }>${item}</option>`
+    )
+    .join("");
+  const objects = [SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP]
     .map(
       (item) =>
         `<option class="opt" value="${item}" ${
           object === item ? "selected" : ""
-        }>${RESOURCE_URL[item as SiebelObject].obj}</option>`
+        }>${RESOURCE_URL[item as SiebelObject].obj}
+				</option>`
     )
     .join("");
 

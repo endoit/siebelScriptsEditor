@@ -7,7 +7,7 @@ export const writeFile = async (
   fileContent: string,
   folderPath: string,
   objectName: string,
-  localFileExtension?: ExtendedSettings["localFileExtension"],
+  localFileExtension?: Settings["localFileExtension"],
   fileName?: string
 ): Promise<void> => {
   try {
@@ -58,14 +58,14 @@ export const writeInfo = async (
         infoObj = infoObj as ScriptInfo;
         for (fileName of fileNames) {
           infoObj.scripts[fileName] = {
-            "last update from Siebel": new Date().toString(),
+            "last update from Siebel": new Date().toISOString(),
             "last push to Siebel": "",
           };
         }
       } else {
         infoObj = infoObj as WebTempInfo;
         infoObj.definitions[fileNames[0]] = {
-          "last update from Siebel": new Date().toString(),
+          "last update from Siebel": new Date().toISOString(),
           "last push to Siebel": "",
         };
       }
@@ -76,7 +76,7 @@ export const writeInfo = async (
     } else {
       //create info.json if not exists
       let infoObjBase: InfoObjectBase = {
-        "folder created at": new Date().toString(),
+        "folder created at": new Date().toISOString(),
         connection: selectedObj.connection,
         workspace: selectedObj.workspace,
         type: type,
@@ -87,7 +87,7 @@ export const writeInfo = async (
         infoObj.scripts = {};
         for (fileName of fileNames) {
           infoObj.scripts[fileName] = {
-            "last update from Siebel": new Date().toString(),
+            "last update from Siebel": new Date().toISOString(),
             "last push to Siebel": "",
           };
         }
@@ -95,7 +95,7 @@ export const writeInfo = async (
         infoObj = infoObjBase as WebTempInfo;
         infoObj.definitions = {};
         infoObj.definitions[fileNames[0]] = {
-          "last update from Siebel": new Date().toString(),
+          "last update from Siebel": new Date().toISOString(),
           "last push to Siebel": "",
         };
       }
@@ -143,6 +143,41 @@ export const copyTypeDefAndJSConfFile = async (
       vscode.window.showInformationMessage(
         `File jsconfig.json was created in ${wsPath} folder!`
       );
+    }
+  } catch (err: any) {
+    vscode.window.showErrorMessage(err.message);
+  }
+};
+
+export const copyConfigurationsToNewSetting = async () => {
+  const {
+      "REST EndpointConfigurations": connectionConfigs,
+      workspaces,
+      connections,
+    } = vscode.workspace.getConfiguration(
+      "siebelScriptAndWebTempEditor"
+    ) as unknown as Settings & OldSettings,
+    workspaceObject: Workspaces = {};
+  try {
+    if (connectionConfigs && Object.keys(connections).length === 0) {
+      const connectionsSetting: Record<string, string> = {};
+      for (let workspace of workspaces) {
+        let [connectionName, workspaceString] = workspace.split(":");
+        workspaceObject[connectionName] = workspaceString ? workspaceString?.split(",") : [];
+      }
+      for (let config of connectionConfigs) {
+        let [connUserPwString] = config?.split("@");
+        let [connectionName] = connUserPwString?.split("/");
+        connectionsSetting[config] = workspaceObject[connectionName] ? workspaceObject[connectionName].join(",") : "";
+      }
+
+      await vscode.workspace
+        .getConfiguration()
+        .update(
+          "siebelScriptAndWebTempEditor.connections",
+          connectionsSetting,
+          vscode.ConfigurationTarget.Global
+        );
     }
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);

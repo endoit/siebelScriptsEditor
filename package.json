@@ -98,28 +98,16 @@
 		"configuration": {
 			"title": "Siebel Script And Web Template Editor",
 			"properties": {
-				"siebelScriptAndWebTempEditor.REST EndpointConfigurations": {
-					"type": "array",
-					"items": {
+				"siebelScriptAndWebTempEditor.connections": {
+					"type": "object",
+					"additionalProperties": {
 						"type": "string"
 					},
-					"markdownDescription": "Parameteres for connection to the Siebel REST API, use the following format:  \n`CUSTOMNAME/USERNAME/PASSWORD@SIEBELRESTENDPOINT`, e.g.  \n`DEVENV/USERNAME/PASSWORD@https://devclient.devdomain.com/siebel/v1.0`  \nPress the Reload button on the extension after editing this setting!"
-				},
-				"siebelScriptAndWebTempEditor.workspaces": {
-					"type": "array",
-					"items": {
-						"type": "string"
-					},
-					"markdownDescription": "Workspaces to use for the different connections, multiple can be given for each connection, use a colon after the connection, then the workspace names separated by commas, one is mandatory:  \n`CUSTOMNAME:WORKSPACENAME1,WORKSPACENAME2`, e.g.  \n`DEVENV:custom_dev_ws,other_dev_ws`  \nPress the Reload button on the extension after editing this setting!"
+					"markdownDescription": "Siebel REST API connections and their workspaces as key-value pairs. For the __Item__ column, give the connection parameteres for a Siebel REST API using the following format: CUSTOMNAME/USERNAME/PASSWORD@SIEBELRESTENDPOINT, e.g.:  \n`DEVENV/USERNAME/PASSWORD@https://devclient.devdomain.com/siebel/v1.0`.  \nFor the __Value__ column, give the names of the workspaces to use for that connection as a comma separated list, e.g.:  \n`MAIN,custom_dev_ws,other_dev_ws`.  \nIf no workspaces are given for a connection, then the extension will try to get the list of workspaces through the REST API (only the ones created by the given user and having status either Checkpointed or Edit-In-Progress). For this feature to work, the 'Base Workspace' integration object has to be imported into Siebel and merged into the MAIN workspace. This integration object can be found in the repository of the extension, under the name [`BaseWorkspaceIOB.sif`](https://github.com/endoit/siebelScriptsEditor/blob/main/BaseWorkspaceIOB.sif). See the [documentation](https://github.com/endoit/siebelScriptsEditor/wiki#213-getting-workspace-data-from-rest) for more information."
 				},
 				"siebelScriptAndWebTempEditor.defaultConnection": {
 					"type": "string",
 					"markdownDescription": "Use the 'Set as default' button in the extension to change it. Name of the default REST connection and workspace to use, e.g. `DEVENV:custom_dev_ws`"
-				},
-				"siebelScriptAndWebTempEditor.getWorkspacesFromREST": {
-					"type": "boolean",
-					"default": false,
-					"markdownDescription": "If you have the 'Base Workspace' integration object merged into your Siebel MAIN workspace, by checking this setting you can get the workspaces from the Siebel REST API, no need to fill them manually under the Workspaces setting. The integration object to import can be found in the repository of the extension, under the name [`BaseWorkspaceIOB.sif`](https://github.com/endoit/siebelScriptsEditor/blob/main/BaseWorkspaceIOB.sif). See the [documentation](https://github.com/endoit/siebelScriptsEditor/wiki#213-getting-workspace-data-from-rest) for more information.  \nPress the Reload button on the extension after editing this setting!"
 				},
 				"siebelScriptAndWebTempEditor.defaultScriptFetching": {
 					"type": "string",
@@ -129,12 +117,12 @@
 						"All scripts"
 					],
 					"default": "None - always ask",
-					"markdownDescription": "Default method for fetching server scripts in the tree views when clicking on a Siebel object: None - always ask: always asks how to fetch. Only method names: fetches only the method names of the Siebel object. All scripts: always downloads all scripts of the Siebel object. WARNING: this overwrites files which are already downloaded!"
+					"markdownDescription": "Default method for fetching server scripts in the tree views when clicking on a Siebel object:  \n - None - always ask: always asks how to fetch.  \n - Only method names: fetches only the method names of the Siebel object.  \n - All scripts: always downloads all scripts of the Siebel object. __WARNING__: this overwrites files which are already downloaded!"
 				},
 				"siebelScriptAndWebTempEditor.singleFileAutoDownload": {
 					"type": "boolean",
 					"default": false,
-					"markdownDescription": "If you set this to true, scripts and web templates will be downloaded when clicking on one, without asking for permission. WARNING: this overwrites files which are already downloaded!"
+					"markdownDescription": "If you set this to true, scripts and web templates will be downloaded when clicking on one, without asking for permission. __WARNING__: this overwrites files which are already downloaded!"
 				},
 				"siebelScriptAndWebTempEditor.localFileExtension": {
 					"type": "string",
@@ -143,7 +131,7 @@
 						".ts"
 					],
 					"default": ".js",
-					"markdownDescription": "The default file extension for the downloaded server scripts."
+					"markdownDescription": "The default file extension for the downloaded server scripts. If you use type definitons in eScript, it is recommended to save the files as .ts."
 				}
 			}
 		},

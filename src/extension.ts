@@ -2,7 +2,8 @@ import { default as axios } from "axios";
 import * as vscode from "vscode";
 import {
   ERR_CONN_PARAM_PARSE,
-  ERR_NO_EDITABLE_WS,
+  ERR_NO_CONN_SETTING,
+  ERR_NO_WS_CONN,
   ERR_NO_WS_OPEN,
   OPEN_CONFIG,
   PULL,
@@ -15,8 +16,16 @@ import {
   SET_DEFAULT,
   WEBTEMP,
 } from "./constants";
-import { getSiebelData, getWorkspaces, pushOrPullScript } from "./dataService";
-import { copyTypeDefAndJSConfFile } from "./fileRW";
+import {
+  checkBaseWorkspaceIOB,
+  getSiebelData,
+  getWorkspaces,
+  pushOrPullScript,
+} from "./dataService";
+import {
+  copyConfigurationsToNewSetting,
+  copyTypeDefAndJSConfFile,
+} from "./fileRW";
 import { selectionChange, TreeDataProvider, TreeItem } from "./treeData";
 import { webViewHTML } from "./webView";
 
@@ -36,6 +45,12 @@ export async function activate(context: vscode.ExtensionContext) {
       application: emptyTreeData,
       webtemp: emptyTreeData,
     };
+
+  //copy the index.d.ts and jsconfig.json if they do not exist
+  copyTypeDefAndJSConfFile(context);
+
+  //copies the deprecated settings into the new Connections setting if it is empty and the old ones exist
+  await copyConfigurationsToNewSetting();
 
   //create the empty tree views
   for (let objectType of Object.keys(state)) {
@@ -58,21 +73,19 @@ export async function activate(context: vscode.ExtensionContext) {
       "siebelScriptAndWebTempEditor"
     );
 
+  //parses the configurations
   const parseSettings = async () => {
     const {
-        "REST EndpointConfigurations": connectionConfigs,
-        workspaces,
-        getWorkspacesFromREST,
+        connections,
         defaultConnection,
         singleFileAutoDownload,
         localFileExtension,
         defaultScriptFetching,
       } = vscode.workspace.getConfiguration(
         "siebelScriptAndWebTempEditor"
-      ) as unknown as BasicSettings & ExtendedSettings,
+      ) as unknown as Settings,
       configData: Connections = {},
-      workspaceObject: Workspaces = {},
-      extendedSettings: ExtendedSettings = {
+      extendedSettings = {
         singleFileAutoDownload,
         localFileExtension,
         defaultScriptFetching,
@@ -80,55 +93,53 @@ export async function activate(context: vscode.ExtensionContext) {
     let [defaultConnectionName, defaultWorkspace] =
       defaultConnection.split(":");
     try {
-      //get workspaces object from the Workspaces setting
-      if (!getWorkspacesFromREST) {
-        for (let workspace of workspaces) {
-          let [connectionName, workspaceString] = workspace.split(":");
-          if (!workspaceString) {
-            throw new Error(
-              `No workspace was found for the ${connectionName} connection, check the Workspaces setting!`
-            );
-          }
-          workspaceObject[connectionName] = workspaceString.split(",");
-        }
+      if (Object.keys(connections).length === 0) {
+        throw new Error(ERR_NO_CONN_SETTING);
       }
-      //get the connections object
-      for (let config of connectionConfigs) {
-        let [connUserPwString, url] = config.split("@");
-        let [connectionName, username, password] = connUserPwString.split("/");
-        if (
-          !(
-            url &&
-            username &&
-            password &&
-            (workspaceObject.hasOwnProperty(connectionName) ||
-              getWorkspacesFromREST)
-          )
-        ) {
+      for (let [configString, workspaceString] of Object.entries(connections)) {
+        const [connUserPwString, url] = configString.split("@");
+        const [connectionName, username, password] =
+          connUserPwString.split("/");
+        if (!(url && username && password)) {
           throw new Error(
-            `Missing parameter(s) or workspaces for the ${connectionName} connection, check the REST Endpoint Configurations and Workspaces settings!`
+            `Missing parameter(s) for the ${connectionName} connection, check the Connections settings!`
           );
         }
+        const workspaces = workspaceString.split(",");
         configData[connectionName] = {
           username,
           password,
           url,
-          workspaces: workspaceObject[connectionName],
+          workspaces,
         };
-      }
-      //get workspaces from Siebel through REST
-      if (getWorkspacesFromREST) {
-        for (let [connectionName, connParams] of Object.entries(configData)) {
-          configData[connectionName].workspaces = await getWorkspaces(
-            connParams
-          );
+        if (!workspaceString) {
+          const isWorkspaceREST = await checkBaseWorkspaceIOB({
+            username,
+            password,
+            url,
+          });
+          if (!isWorkspaceREST) {
+            delete configData[connectionName];
+            vscode.window.showInformationMessage(
+              `No workspace was given for the ${connectionName} connection, and the Base Workspace integration object is missing, so it is not possible to get workspaces through REST API, please add workspaces or import the Base Workspace IOB and merge it into the MAIN workspace.`
+            );
+            continue;
+          }
+          configData[connectionName].workspaces = await getWorkspaces({
+            username,
+            password,
+            url,
+          });
           if (configData[connectionName].workspaces.length === 0) {
             delete configData[connectionName];
+            vscode.window.showInformationMessage(
+              `No workspace was found for the ${connectionName} connection created by ${username} having status Checkpointed or Edit-In-Progress!`
+            );
           }
         }
-        if (Object.keys(configData).length === 0) {
-          throw new Error(ERR_NO_EDITABLE_WS);
-        }
+      }
+      if (Object.keys(configData).length === 0) {
+        throw new Error(ERR_NO_WS_CONN);
       }
       //set the default connection
       defaultConnectionName = configData.hasOwnProperty(defaultConnectionName)
@@ -226,9 +237,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(pushButton);
 
-  //copy the index.d.ts and jsconfig.json if they do not exist
-  copyTypeDefAndJSConfFile(context);
-
   const createInterceptor = () => {
     if (isConfigError) {
       return 0;
@@ -270,6 +278,7 @@ export async function activate(context: vscode.ExtensionContext) {
           ]?.workspaces.includes(selected.workspace)
             ? selected.workspace
             : defaultWorkspace;
+
           interceptor = createInterceptor();
           thisWebview.webview.html = webViewHTML(
             configData,
@@ -337,7 +346,6 @@ export async function activate(context: vscode.ExtensionContext) {
                 .onDidChangeSelection(async (e) =>
                   selectionChange(
                     e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-                    objectType,
                     selected,
                     dataObj,
                     state[objectType],

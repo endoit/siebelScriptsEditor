@@ -36,10 +36,10 @@ export const ONLY_METHOD_NAMES = true;
 //Constant error messages
 export const ERR_NO_WS_OPEN =
   "Please open a Visual Studio Code workspace folder to use the extension!";
+export const ERR_NO_CONN_SETTING = "Please add at least one connection in the Connections setting!";
 export const ERR_CONN_PARAM_PARSE =
-  "Error parsing the connection parameters, please check format of the REST Endpoint Configurations and the Workspaces settings!";
-export const ERR_NO_EDITABLE_WS =
-  "No workspace with status Checkpointed or Edit-In-Progress was found for any connection with the given username or the Base Workspace integration object is missing or was not merged into the primary branch in Siebel!";
+  "Error parsing the connection parameters, please check format of Connections settings!";
+export const ERR_NO_WS_CONN = "No workspace was found for any connection, please check Connections setting!";
 export const ERR_NO_INFO_JSON =
   "File info.json was not found, please get the Siebel Object again from the extension!";
 export const ERR_NO_SCRIPT_INFO =

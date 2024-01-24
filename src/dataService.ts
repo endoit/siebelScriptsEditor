@@ -58,20 +58,24 @@ export const callRESTAPIInstance = async (
     params,
   });
   try {
-    if (method === GET) {
-      const response = await instance.get(url);
-      return response.data?.items;
-    }
-    if (method === PUT) {
-      const response = await instance.put(url, data);
-      return response;
+    switch (method) {
+      case GET: {
+        const response = await instance.get(url);
+        return response.data?.items;
+      }
+      case PUT: {
+        const response = await instance.put(url, data);
+        return response;
+      }
     }
   } catch (err: any) {
-    vscode.window.showErrorMessage(
-      `Error using the Siebel REST API: ${
-        err.response?.data?.ERROR || err.message
-      }`
-    );
+    if (err.response?.status !== 404) {
+      vscode.window.showErrorMessage(
+        `Error using the Siebel REST API: ${
+          err.response?.data?.ERROR || err.message
+        }`
+      );
+    }
     return [];
   }
 };
@@ -169,6 +173,26 @@ export const getWebTemplate = async (selectedObj: Selected) => {
   });
   const definitionString = data[0]?.Definition!;
   return definitionString;
+};
+
+//check for workspace integration object
+export const checkBaseWorkspaceIOB = async ({
+  url,
+  username,
+  password,
+}: Connection): Promise<boolean> => {
+  const workspacesUrl = `${url}/workspace/MAIN/Integration Object`;
+  const data = await callRESTAPIInstance(
+    { url: workspacesUrl, username, password },
+    GET,
+    {
+      fields: "Name",
+      searchSpec: `Name = "Base Workspace"`,
+      uniformresponse: "y",
+      workspace: "MAIN",
+    }
+  );
+  return data.length === 1;
 };
 
 //get workspaces from REST
@@ -275,11 +299,11 @@ export const pushOrPullScript = async (
       if (isWebTemp) {
         infoObj = infoObj as WebTempInfo;
         infoObj.definitions[fileName]["last update from Siebel"] =
-          new Date().toString();
+          new Date().toISOString();
       } else {
         infoObj = infoObj as ScriptInfo;
         infoObj.scripts[fileName]["last update from Siebel"] =
-          new Date().toString();
+          new Date().toISOString();
       }
       break;
     }
@@ -328,7 +352,7 @@ export const pushOrPullScript = async (
         if (isWebTemp) {
           infoObj = infoObj as WebTempInfo;
           infoObj.definitions[fileName]["last push to Siebel"] =
-            new Date().toString();
+            new Date().toISOString();
         } else {
           infoObj = infoObj as ScriptInfo;
           if (isNewMethod) {
@@ -338,7 +362,7 @@ export const pushOrPullScript = async (
             };
           }
           infoObj.scripts[fileName]["last push to Siebel"] =
-            new Date().toString();
+            new Date().toISOString();
         }
       } else {
         vscode.window.showErrorMessage(ERR_NO_UPDATE);
