@@ -24,11 +24,6 @@ export const writeFile = async (
     const writeData = Buffer.from(fileContent, "utf8");
     await vscode.workspace.fs.writeFile(filePath, writeData);
     await vscode.window.showTextDocument(filePath, { preview: false });
-    vscode.window.showInformationMessage(
-      `New files were created in directory: ${folderPath}${
-        fileName ? `/${objectName}` : ""
-      }`
-    );
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }
@@ -143,41 +138,6 @@ export const copyTypeDefAndJSConfFile = async (
       vscode.window.showInformationMessage(
         `File jsconfig.json was created in ${wsPath} folder!`
       );
-    }
-  } catch (err: any) {
-    vscode.window.showErrorMessage(err.message);
-  }
-};
-
-export const copyConfigurationsToNewSetting = async () => {
-  const {
-      "REST EndpointConfigurations": connectionConfigs,
-      workspaces,
-      connections,
-    } = vscode.workspace.getConfiguration(
-      "siebelScriptAndWebTempEditor"
-    ) as unknown as Settings & OldSettings,
-    workspaceObject: Workspaces = {};
-  try {
-    if (connectionConfigs && Object.keys(connections).length === 0) {
-      const connectionsSetting: Record<string, string> = {};
-      for (let workspace of workspaces) {
-        let [connectionName, workspaceString] = workspace.split(":");
-        workspaceObject[connectionName] = workspaceString ? workspaceString?.split(",") : [];
-      }
-      for (let config of connectionConfigs) {
-        let [connUserPwString] = config?.split("@");
-        let [connectionName] = connUserPwString?.split("/");
-        connectionsSetting[config] = workspaceObject[connectionName] ? workspaceObject[connectionName].join(",") : "";
-      }
-
-      await vscode.workspace
-        .getConfiguration()
-        .update(
-          "siebelScriptAndWebTempEditor.connections",
-          connectionsSetting,
-          vscode.ConfigurationTarget.Global
-        );
     }
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);

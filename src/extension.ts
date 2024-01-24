@@ -2,8 +2,6 @@ import { default as axios } from "axios";
 import * as vscode from "vscode";
 import {
   ERR_CONN_PARAM_PARSE,
-  ERR_NO_CONN_SETTING,
-  ERR_NO_WS_CONN,
   ERR_NO_WS_OPEN,
   OPEN_CONFIG,
   PULL,
@@ -16,16 +14,13 @@ import {
   SET_DEFAULT,
   WEBTEMP,
 } from "./constants";
+import { getSiebelData, pushOrPullScript } from "./dataService";
+import { copyTypeDefAndJSConfFile } from "./fileRW";
 import {
-  checkBaseWorkspaceIOB,
-  getSiebelData,
-  getWorkspaces,
-  pushOrPullScript,
-} from "./dataService";
-import {
+  openSettings,
+  parseSettings,
   copyConfigurationsToNewSetting,
-  copyTypeDefAndJSConfFile,
-} from "./fileRW";
+} from "./utility";
 import { selectionChange, TreeDataProvider, TreeItem } from "./treeData";
 import { webViewHTML } from "./webView";
 
@@ -59,131 +54,11 @@ export async function activate(context: vscode.ExtensionContext) {
     });
   }
 
-  //clears the tree views
+  //clear the tree views
   const clearTreeViews = () => {
     for (let treeDataObj of Object.values(state)) {
       treeDataObj.refresh(emptyDataObj);
     }
-  };
-
-  //open the extension settings
-  const openSettings = () =>
-    vscode.commands.executeCommand(
-      "workbench.action.openSettings",
-      "siebelScriptAndWebTempEditor"
-    );
-
-  //parses the configurations
-  const parseSettings = async () => {
-    const {
-        connections,
-        defaultConnection,
-        singleFileAutoDownload,
-        localFileExtension,
-        defaultScriptFetching,
-      } = vscode.workspace.getConfiguration(
-        "siebelScriptAndWebTempEditor"
-      ) as unknown as Settings,
-      configData: Connections = {},
-      extendedSettings = {
-        singleFileAutoDownload,
-        localFileExtension,
-        defaultScriptFetching,
-      };
-    let [defaultConnectionName, defaultWorkspace] =
-      defaultConnection.split(":");
-    try {
-      if (Object.keys(connections).length === 0) {
-        throw new Error(ERR_NO_CONN_SETTING);
-      }
-      for (let [configString, workspaceString] of Object.entries(connections)) {
-        const [connUserPwString, url] = configString.split("@");
-        const [connectionName, username, password] =
-          connUserPwString.split("/");
-        if (!(url && username && password)) {
-          throw new Error(
-            `Missing parameter(s) for the ${connectionName} connection, check the Connections settings!`
-          );
-        }
-        const workspaces = workspaceString.split(",");
-        configData[connectionName] = {
-          username,
-          password,
-          url,
-          workspaces,
-        };
-        if (!workspaceString) {
-          const isWorkspaceREST = await checkBaseWorkspaceIOB({
-            username,
-            password,
-            url,
-          });
-          if (!isWorkspaceREST) {
-            delete configData[connectionName];
-            vscode.window.showInformationMessage(
-              `No workspace was given for the ${connectionName} connection, and the Base Workspace integration object is missing, so it is not possible to get workspaces through REST API, please add workspaces or import the Base Workspace IOB and merge it into the MAIN workspace.`
-            );
-            continue;
-          }
-          configData[connectionName].workspaces = await getWorkspaces({
-            username,
-            password,
-            url,
-          });
-          if (configData[connectionName].workspaces.length === 0) {
-            delete configData[connectionName];
-            vscode.window.showInformationMessage(
-              `No workspace was found for the ${connectionName} connection created by ${username} having status Checkpointed or Edit-In-Progress!`
-            );
-          }
-        }
-      }
-      if (Object.keys(configData).length === 0) {
-        throw new Error(ERR_NO_WS_CONN);
-      }
-      //set the default connection
-      defaultConnectionName = configData.hasOwnProperty(defaultConnectionName)
-        ? defaultConnectionName
-        : Object.keys(configData)[0];
-      defaultWorkspace = configData[
-        defaultConnectionName
-      ]?.workspaces?.includes?.(defaultWorkspace)
-        ? defaultWorkspace
-        : configData[defaultConnectionName]?.workspaces?.[0];
-      return {
-        configData,
-        default: { defaultConnectionName, defaultWorkspace },
-        extendedSettings,
-        isConfigError: false,
-      };
-    } catch (err: any) {
-      vscode.window.showErrorMessage(err.message);
-      openSettings();
-      return {
-        configData: {},
-        default: { defaultConnectionName, defaultWorkspace },
-        extendedSettings,
-        isConfigError: true,
-      };
-    }
-  };
-
-  let {
-    configData,
-    default: { defaultConnectionName, defaultWorkspace },
-    extendedSettings,
-    isConfigError,
-  } = await parseSettings();
-
-  const selected: Selected = {
-    connection: defaultConnectionName,
-    workspace: defaultWorkspace,
-    object: SERVICE,
-    service: { name: "", childName: "" },
-    buscomp: { name: "", childName: "" },
-    applet: { name: "", childName: "" },
-    application: { name: "", childName: "" },
-    webtemp: { name: "" },
   };
 
   //debounce the search input
@@ -202,6 +77,42 @@ export async function activate(context: vscode.ExtensionContext) {
         });
       });
     };
+
+  //parse the configurations
+  let {
+    configData,
+    default: { defaultConnectionName, defaultWorkspace },
+    extendedSettings,
+    isConfigError,
+  } = await parseSettings();
+
+  const selected: Selected = {
+    connection: defaultConnectionName,
+    workspace: defaultWorkspace,
+    object: SERVICE,
+    service: { name: "", childName: "" },
+    buscomp: { name: "", childName: "" },
+    applet: { name: "", childName: "" },
+    application: { name: "", childName: "" },
+    webtemp: { name: "" },
+  };
+
+  //axios interceptor handling function
+  const createInterceptor = () => {
+    if (isConfigError) {
+      return 0;
+    }
+    const { url, username, password } = configData[selected.connection];
+    axios.interceptors.request.eject(interceptor);
+    return axios.interceptors.request.use((config) => ({
+      ...config,
+      baseURL: `${url}/workspace/${selected.workspace}`,
+      auth: { username, password },
+    }));
+  };
+
+  //create the interceptor for the default/first connection
+  interceptor = createInterceptor();
 
   //callback for the push/pull buttons
   const pushPullCallback = (action: ButtonAction) => async () => {
@@ -237,22 +148,6 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(pushButton);
 
-  const createInterceptor = () => {
-    if (isConfigError) {
-      return 0;
-    }
-    const { url, username, password } = configData[selected.connection];
-    axios.interceptors.request.eject(interceptor);
-    return axios.interceptors.request.use((config) => ({
-      ...config,
-      baseURL: `${url}/workspace/${selected.workspace}`,
-      auth: { username, password },
-    }));
-  };
-
-  //create the interceptor for the default/first connection
-  interceptor = createInterceptor();
-
   //handle the datasource selection
   const provider: vscode.WebviewViewProvider = {
     resolveWebviewView: (thisWebview: vscode.WebviewView) => {
@@ -278,7 +173,6 @@ export async function activate(context: vscode.ExtensionContext) {
           ]?.workspaces.includes(selected.workspace)
             ? selected.workspace
             : defaultWorkspace;
-
           interceptor = createInterceptor();
           thisWebview.webview.html = webViewHTML(
             configData,
@@ -299,9 +193,6 @@ export async function activate(context: vscode.ExtensionContext) {
                   ? defaultWorkspace
                   : configData[selected.connection]?.workspaces?.[0];
               interceptor = createInterceptor();
-              vscode.window.showInformationMessage(
-                `Selected connection: ${selected.connection}`
-              );
               thisWebview.webview.html = webViewHTML(configData, selected);
               clearTreeViews();
               return;
@@ -310,9 +201,6 @@ export async function activate(context: vscode.ExtensionContext) {
               //handle workspace selection, create the new interceptor and clear the tree views
               selected.workspace = message.workspace!;
               interceptor = createInterceptor();
-              vscode.window.showInformationMessage(
-                `Selected workspace: ${message.workspace}`
-              );
               thisWebview.webview.html = webViewHTML(configData, selected);
               clearTreeViews();
               return;
