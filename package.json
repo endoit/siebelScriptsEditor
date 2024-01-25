@@ -69,7 +69,7 @@
 					"light": "./media/arrowdown_light.png",
 					"dark": "./media/arrowdown_dark.png"
 				},
-				"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename == index.d.ts"
+				"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.pushScript",
@@ -78,7 +78,7 @@
 					"light": "./media/arrowup_light.png",
 					"dark": "./media/arrowup_dark.png"
 				},
-				"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts"
+				"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts && !isInDiffEditor"
 			}
 		],
 		"menus": {
@@ -86,12 +86,12 @@
 				{
 					"command": "siebelscriptandwebtempeditor.pullScript",
 					"group": "navigation",
-					"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts"
+					"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts && !isInDiffEditor"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.pushScript",
 					"group": "navigation",
-					"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts"
+					"when": "workspaceFolderCount > 0 && (resourceExtname == .js || resourceExtname == .ts || resourceExtname == .html) && resourceFilename != index.d.ts && !isInDiffEditor"
 				}
 			]
 		},

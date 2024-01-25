@@ -1,10 +1,9 @@
 //Siebel object types
-type SiebelObject =
-  | "service"
-  | "buscomp"
-  | "applet"
-  | "application"
-  | "webtemp";
+type SiebelObject = ObjectWithScript | ObjectWithDefinition;
+
+type ObjectWithScript = "service" | "buscomp" | "applet" | "application";
+
+type ObjectWithDefinition = "webtemp";
 
 //Connections object
 type Connections = Record<
@@ -64,12 +63,12 @@ type WebTempObject = Record<
 
 //Query parameters
 type QueryParams = {
-  pageSize?: number;
-  fields?: string;
-  childLinks?: string;
-  uniformresponse?: string;
   searchSpec?: string;
   workspace?: string;
+  fields: "Name" | "Script" | "Definition" | "Name,Script";
+  pageSize?: 20 | 100;
+  childLinks: "None";
+  uniformresponse?: "y";
 };
 
 //Response scripts from Siebel
@@ -95,16 +94,16 @@ type InfoObjectBase = {
 //info.json as object for scripts
 type ScriptInfo = InfoObjectBase & {
   siebelObjectName: string;
-  scripts: Record<string, UpdatePushDate>;
+  scripts: Record<string, PullPushDate>;
 };
 
 //info.json as object for web templates
 type WebTempInfo = InfoObjectBase & {
-  definitions: Record<string, UpdatePushDate>;
+  definitions: Record<string, PullPushDate>;
 };
 
 //date fields in the info.json
-type UpdatePushDate = {
+type PullPushDate = {
   "last update from Siebel": string;
   "last push to Siebel": string;
 };
@@ -120,10 +119,10 @@ type Payload = {
 //message object sent from the webview
 type Message = {
   command: MessageCommand;
-  connectionName?: string;
-  workspace?: string;
-  object?: SiebelObject;
-  searchString?: string;
+  connectionName: string;
+  workspace: string;
+  object: SiebelObject;
+  searchString: string;
 };
 
 type MessageCommand =
@@ -132,9 +131,7 @@ type MessageCommand =
   | "selectObject"
   | "search"
   | "setDefault"
-  | "openConfig"
-  | "reload"
-  | "testREST";
+  | "openConfig";
 
 //TreeItem object properties
 type TreeItemProps = {
@@ -152,7 +149,7 @@ type ButtonAction = "push" | "pull";
 
 //Basic settings
 type Settings = {
-  connections: Record<string, string>
+  connections: Record<string, string>;
   defaultConnection: string;
   singleFileAutoDownload: boolean;
   localFileExtension: ".js" | ".ts";
@@ -163,6 +160,20 @@ type Settings = {
     | "All scripts"
     | "None - always ask"
     | undefined;
+};
+
+//interfaces for overloaded functions
+interface OverloadedCallRESTAPIInstance {
+  (
+    { url, username, password }: Connection,
+    method: "get",
+    params: QueryParams
+  ): Promise<any>;
+  (
+    { url, username, password }: Connection,
+    method: "put",
+    params: Payload
+  ): Promise<any>;
 }
 
 //Deprecated settings
@@ -170,4 +181,4 @@ type OldSettings = {
   "REST EndpointConfigurations": string[];
   workspaces: string[];
   getWorkspacesFromREST: boolean;
-}
+};

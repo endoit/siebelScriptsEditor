@@ -9,7 +9,7 @@ export const openSettings = () =>
     "siebelScriptAndWebTempEditor"
   );
 
-//parses the configurations
+//parse the configurations
 export const parseSettings = async () => {
   const {
       connections,
@@ -75,7 +75,7 @@ export const parseSettings = async () => {
     if (Object.keys(configData).length === 0) {
       throw new Error(ERR_NO_WS_CONN);
     }
-    //set the default connection
+
     defaultConnectionName = configData.hasOwnProperty(defaultConnectionName)
       ? defaultConnectionName
       : Object.keys(configData)[0];
@@ -101,6 +101,7 @@ export const parseSettings = async () => {
   }
 };
 
+//copy the deprecated settings if they exist to the new setting
 export const copyConfigurationsToNewSetting = async () => {
   const {
       "REST EndpointConfigurations": connectionConfigs,
@@ -116,7 +117,7 @@ export const copyConfigurationsToNewSetting = async () => {
       for (let workspace of workspaces) {
         let [connectionName, workspaceString] = workspace.split(":");
         workspaceObject[connectionName] = workspaceString
-          ? workspaceString?.split(",")
+          ? workspaceString.split(",")
           : [];
       }
       for (let config of connectionConfigs) {

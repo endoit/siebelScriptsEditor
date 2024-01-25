@@ -12,9 +12,8 @@ export const writeFile = async (
 ): Promise<void> => {
   try {
     await vscode.workspace.saveAll(false);
-    const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath!;
     const filePath = vscode.Uri.file(
-      `${wsPath}/${folderPath}/${objectName}${
+      `${vscode.workspace.workspaceFolders![0].uri.fsPath}/${folderPath}/${objectName}${
         fileName !== undefined ? `/${fileName}${localFileExtension}` : ".html"
       }`
     );
@@ -38,10 +37,10 @@ export const writeInfo = async (
 ): Promise<void> => {
   try {
     vscode.workspace.saveAll(false);
-    const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath!;
+    const wsPath = ;
     let infoObj: ScriptInfo | WebTempInfo;
     let fileName: string;
-    const filePathString = `${wsPath}/${folderPath}/${
+    const filePathString = `${}/${folderPath}/${
       type !== WEBTEMP ? `${selectedObj[type].name}/` : ""
     }info.json`;
     const filePath = vscode.Uri.file(filePathString);
@@ -112,7 +111,7 @@ export const copyTypeDefAndJSConfFile = async (
   context: vscode.ExtensionContext
 ): Promise<void> => {
   try {
-    const wsPath = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath!;
+    const wsPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
     const wsEdit = new vscode.WorkspaceEdit();
     const typeDefFilePath = vscode.Uri.file(`${wsPath}/index.d.ts`);
     if (!existsSync(typeDefFilePath.fsPath)) {

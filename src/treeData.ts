@@ -1,10 +1,6 @@
 import { join } from "path";
 import * as vscode from "vscode";
-import {
-  ONLY_METHOD_NAMES,
-  WEBTEMP,
-  RESOURCE_URL
-} from "./constants";
+import { WEBTEMP, RESOURCE_URL } from "./constants";
 import {
   getServerScriptMethod,
   getServerScripts,
@@ -14,15 +10,20 @@ import { writeFile, writeInfo } from "./fileRW";
 
 //handle selection in the tree views
 export const selectionChange = async (
-  {selection: [selItem]}: vscode.TreeViewSelectionChangeEvent<TreeItem>,
+  { selection: [selItem] }: vscode.TreeViewSelectionChangeEvent<TreeItem>,
   selected: Selected,
   dataObj: ScriptObject | WebTempObject,
   treeObj: TreeDataProvider,
-  { singleFileAutoDownload, localFileExtension, defaultScriptFetching }: Partial<Settings>
+  {
+    singleFileAutoDownload,
+    localFileExtension,
+    defaultScriptFetching,
+  }: Partial<Settings>
 ) => {
   const type = selected.object;
   const folderPath = `${selected.connection}/${selected.workspace}/${type}`;
   const isWebTemplate = type === WEBTEMP;
+  const METHODS_ONLY = true;
   let answer: Settings["defaultScriptFetching"];
   let scrName: string;
   let scrMethod: Script;
@@ -40,6 +41,9 @@ export const selectionChange = async (
         );
     if (answer === "Yes") {
       dataObj[selItem.label].definition = await getWebTemplate(selected);
+      if (dataObj[selItem.label].definition === undefined) {
+        return;
+      }
       dataObj[selItem.label].onDisk = true;
       await writeFile(
         dataObj[selItem.label].definition,
@@ -67,6 +71,9 @@ export const selectionChange = async (
       dataObj[selItem.parent!].onDisk = true;
       dataObj[selItem.parent!].scripts[selItem.label].script =
         await getServerScriptMethod(selected, type);
+      if (!dataObj[selItem.parent!].scripts[selItem.label].script) {
+        return;
+      }
       dataObj[selItem.parent!].scripts[selItem.label].onDisk = true;
       await writeFile(
         dataObj[selItem.parent!].scripts[selItem.label].script!,
@@ -91,31 +98,28 @@ export const selectionChange = async (
           "No"
         );
   dataObj = dataObj as ScriptObject;
-  if (answer === "Yes" || answer === "All scripts") {
-    dataObj[selItem.label].onDisk = true;
-    dataObj[selItem.label].scripts = await getServerScripts(selected, type);
-    for ([scrName, scrMethod] of Object.entries(
-      dataObj[selItem.label].scripts
-    )) {
-      await writeFile(
-        scrMethod.script!,
-        folderPath,
-        selItem.label,
-        localFileExtension,
-        scrName
-      );
-      scrNames.push(scrName);
-    }
-    await writeInfo(selected, folderPath, type, scrNames);
-    treeObj.refresh(dataObj);
-    return;
-  }
-  if (answer === "Only method names") {
+  const methodsOnly = answer === "Only method names";
+  if (answer === "Yes" || answer === "All scripts" || methodsOnly) {
     dataObj[selItem.label].scripts = await getServerScripts(
       selected,
-      type,
-      ONLY_METHOD_NAMES
+      methodsOnly
     );
+    if (!methodsOnly) {
+      dataObj[selItem.label].onDisk = true;
+      for ([scrName, scrMethod] of Object.entries(
+        dataObj[selItem.label].scripts
+      )) {
+        await writeFile(
+          scrMethod.script!,
+          folderPath,
+          selItem.label,
+          localFileExtension,
+          scrName
+        );
+        scrNames.push(scrName);
+      }
+      await writeInfo(selected, folderPath, type, scrNames);
+    }
     treeObj.refresh(dataObj);
     return;
   }

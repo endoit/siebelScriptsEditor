@@ -86,6 +86,7 @@ export async function activate(context: vscode.ExtensionContext) {
     isConfigError,
   } = await parseSettings();
 
+  //holds information about the currently selected connection and objects
   const selected: Selected = {
     connection: defaultConnectionName,
     workspace: defaultWorkspace,
@@ -148,10 +149,10 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(pushButton);
 
-  //handle the datasource selection
+  //handle the datasource selection webview and tree views
   const provider: vscode.WebviewViewProvider = {
     resolveWebviewView: (thisWebview: vscode.WebviewView) => {
-      //handle changes in the settings
+      //watch changes in the settings
       vscode.workspace.onDidChangeConfiguration(async (e) => {
         if (
           e.affectsConfiguration("siebelScriptAndWebTempEditor") &&
@@ -184,14 +185,16 @@ export async function activate(context: vscode.ExtensionContext) {
       thisWebview.webview.options = { enableScripts: true };
       thisWebview.webview.onDidReceiveMessage(
         async (message: Message) => {
-          switch (message.command) {
+          const { command, connectionName, workspace, object, searchString } =
+            message;
+          switch (command) {
             case SELECT_CONNECTION: {
               //handle connection selection, create the new interceptor and clear the tree views
-              selected.connection = message.connectionName!;
+              selected.connection = connectionName;
               selected.workspace =
-                defaultConnectionName === selected.connection
+                defaultConnectionName === connectionName
                   ? defaultWorkspace
-                  : configData[selected.connection]?.workspaces?.[0];
+                  : configData[connectionName]?.workspaces?.[0];
               interceptor = createInterceptor();
               thisWebview.webview.html = webViewHTML(configData, selected);
               clearTreeViews();
@@ -199,7 +202,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             case SELECT_WORKSPACE: {
               //handle workspace selection, create the new interceptor and clear the tree views
-              selected.workspace = message.workspace!;
+              selected.workspace = workspace;
               interceptor = createInterceptor();
               thisWebview.webview.html = webViewHTML(configData, selected);
               clearTreeViews();
@@ -207,21 +210,20 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             case SELECT_OBJECT: {
               //handle Siebel object selection
-              selected.object = message.object!;
+              selected.object = object;
               thisWebview.webview.html = webViewHTML(configData, selected);
               return;
             }
             case SEARCH: {
               //get the Siebel objects and create the tree views
-              const searchSpec = `Name LIKE "${message.searchString}*"`;
               const folderPath = `${selected.connection}/${selected.workspace}`;
               const objectType = selected.object;
-              const debouncedSearch = debounceAsync(() =>
-                getSiebelData(searchSpec, folderPath, objectType)
+              const debouncedSearch: () => Promise<
+                ScriptObject | WebTempObject
+              > = debounceAsync(() =>
+                getSiebelData(searchString, folderPath, objectType)
               );
-              const dataObj = (await debouncedSearch()) as
-                | ScriptObject
-                | WebTempObject;
+              const dataObj = await debouncedSearch();
               state[objectType] = new TreeDataProvider(
                 dataObj,
                 objectType === WEBTEMP
@@ -244,7 +246,6 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             case SET_DEFAULT: {
               //sets the default connection and workspace in the settings
-              const { connectionName, workspace } = message;
               const answer = await vscode.window.showInformationMessage(
                 `Do you want to set the default connection to ${connectionName} and the default workspace to ${workspace}?`,
                 "Yes",

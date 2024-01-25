@@ -30,9 +30,6 @@ export const PUT = "put";
 export const PUSH = "push";
 export const PULL = "pull";
 
-//Constants for the extension
-export const ONLY_METHOD_NAMES = true;
-
 //Constant error messages
 export const ERR_NO_WS_OPEN =
   "Please open a Visual Studio Code workspace folder to use the extension!";

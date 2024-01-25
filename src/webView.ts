@@ -10,7 +10,7 @@ import {
 //generates the HTML page for the webview to select the REST endpoint, workspace, resource and for the searchbar
 export const webViewHTML = (
   connectionObject: Connections,
-  { connection, workspace, object }: Partial<Selected>,
+  { connection, workspace, object }: Selected,
   noRESTConfig = false
 ): string => {
   const css = `

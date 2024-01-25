@@ -43,111 +43,106 @@ const getDataFromRESTAPI = async (
   }
 };
 
-export const callRESTAPIInstance = async (
-  { url, username, password }: Connection,
-  method: RestMethod,
-  params: QueryParams,
-  data?: Payload
-) => {
-  const instance = axios.create({
-    withCredentials: true,
-    auth: { username, password },
-    headers: {
-      "Content-Type": "application/json",
-    },
-    params,
-  });
-  try {
-    switch (method) {
-      case GET: {
-        const response = await instance.get(url);
-        return response.data?.items;
+export const callRESTAPIInstance: OverloadedCallRESTAPIInstance =
+  async function (
+    { url, username, password }: Connection,
+    method: RestMethod,
+    params: QueryParams | Payload
+  ): Promise<any> {
+    const instance = axios.create({
+      withCredentials: true,
+      auth: { username, password },
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    try {
+      switch (method) {
+        case GET: {
+          const response = await instance.get(url, { params });
+          return response.data?.items;
+        }
+        case PUT: {
+          const response = await instance.put(url, params);
+          return response;
+        }
       }
-      case PUT: {
-        const response = await instance.put(url, data);
-        return response;
+    } catch (err: any) {
+      if (err.response?.status !== 404) {
+        vscode.window.showErrorMessage(
+          `Error using the Siebel REST API: ${
+            err.response?.data?.ERROR || err.message
+          }`
+        );
       }
+      return [];
     }
-  } catch (err: any) {
-    if (err.response?.status !== 404) {
-      vscode.window.showErrorMessage(
-        `Error using the Siebel REST API: ${
-          err.response?.data?.ERROR || err.message
-        }`
-      );
-    }
-    return [];
-  }
-};
+  };
 
 //get siebel objects
 export const getSiebelData = async (
   searchSpec: string,
   folder: string,
   type: SiebelObject
-): Promise<ScriptObject | WebTempObject> => {
-  const wsPath = vscode.workspace?.workspaceFolders?.[0].uri.fsPath!;
-  let siebObj: ScriptObject | WebTempObject = {};
+) => {
+  const folderPath = `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/${folder}/${type}`;
   const objectUrl = `/${RESOURCE_URL[type].obj}`;
-  let exists: boolean;
-  let fileNames: string[];
   const data = await getDataFromRESTAPI(objectUrl, {
     pageSize: 20,
     fields: "Name",
     childLinks: "None",
     uniformresponse: "y",
-    searchSpec,
+    searchSpec: `Name LIKE "${searchSpec}*"`,
   });
-  data?.forEach((row) => {
-    if (type !== WEBTEMP) {
-      siebObj = siebObj as ScriptObject;
-      exists = existsSync(`${wsPath}/${folder}/${type}/${row.Name}`);
-      siebObj[row.Name] = { scripts: {}, onDisk: exists };
-      if (exists) {
-        fileNames = readdirSync(`${wsPath}/${folder}/${type}/${row.Name}`);
-        fileNames.forEach((file) => {
-          const fileExtension = extname(file);
-          if (fileExtension === ".js" || fileExtension === ".ts") {
-            siebObj = siebObj as ScriptObject;
-            siebObj[row.Name].scripts[basename(file, fileExtension)] = {
-              onDisk: true,
-            };
-          }
-        });
-      }
-    } else {
-      siebObj = siebObj as WebTempObject;
-      exists = existsSync(`${wsPath}/${folder}/${type}/${row.Name}.html`);
+  if (type === WEBTEMP) {
+    const siebObj: WebTempObject = {};
+    for (let row of data) {
+      const exists = existsSync(`${folderPath}/${row.Name}.html`);
       siebObj[row.Name] = { definition: "", onDisk: exists };
     }
-  });
+    return siebObj;
+  }
+  const siebObj: ScriptObject = {};
+  for (let row of data) {
+    const exists = existsSync(`${folderPath}/${row.Name}`);
+    siebObj[row.Name] = { scripts: {}, onDisk: exists };
+    if (!exists) {
+      continue;
+    }
+    const fileNames = readdirSync(`${folderPath}/${row.Name}`);
+    for (let file of fileNames) {
+      siebObj[row.Name].scripts[basename(file, extname(file))] = {
+        onDisk: true,
+      };
+    }
+  }
   return siebObj;
 };
 
 //get all scripts for siebel object, or only the script names
 export const getServerScripts = async (
   selectedObj: Selected,
-  type: Exclude<SiebelObject, "webtemp">,
   namesOnly = false
-): Promise<Scripts> => {
-  const wsPath = vscode.workspace?.workspaceFolders?.[0].uri.fsPath!;
-  const folderPath = `${selectedObj.connection}/${selectedObj.workspace}/${type}`;
+) => {
+  const type = selectedObj.object;
+  const folderPath = `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/${selectedObj.connection}/${selectedObj.workspace}/${type}/${selectedObj[type].name}`;
   const scriptObj: Scripts = {};
   const objectUrl = `/${RESOURCE_URL[type].obj}/${selectedObj[type].name}/${RESOURCE_URL[type].scr}`;
   const data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
     pageSize: 100,
     fields: `Name${namesOnly ? "" : ",Script"}`,
     uniformresponse: "y",
+    childLinks: "None",
   });
-  data?.forEach((row) => {
-    const fileNameNoExt = `${wsPath}/${folderPath}/${selectedObj[type].name}/${row.Name}`;
+  for (let row of data) {
+    const fileNameNoExt = `${folderPath}/${row.Name}`;
     scriptObj[row.Name] = {
       script: row.Script || "",
       onDisk: namesOnly
         ? existsSync(`${fileNameNoExt}.js`) || existsSync(`${fileNameNoExt}.ts`)
         : true,
     };
-  });
+  }
   return scriptObj;
 };
 
@@ -160,6 +155,7 @@ export const getServerScriptMethod = async (
   const data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
     fields: "Script",
     uniformresponse: "y",
+    childLinks: "None",
   });
   return data[0]?.Script!;
 };
@@ -170,9 +166,9 @@ export const getWebTemplate = async (selectedObj: Selected) => {
   const data: WebTempResponse[] = await getDataFromRESTAPI(objectUrl, {
     fields: "Definition",
     uniformresponse: "y",
+    childLinks: "None",
   });
-  const definitionString = data[0]?.Definition!;
-  return definitionString;
+  return data[0]?.Definition!;
 };
 
 //check for workspace integration object
@@ -180,7 +176,7 @@ export const checkBaseWorkspaceIOB = async ({
   url,
   username,
   password,
-}: Connection): Promise<boolean> => {
+}: Connection) => {
   const workspacesUrl = `${url}/workspace/MAIN/Integration Object`;
   const data = await callRESTAPIInstance(
     { url: workspacesUrl, username, password },
@@ -190,6 +186,7 @@ export const checkBaseWorkspaceIOB = async ({
       searchSpec: `Name = "Base Workspace"`,
       uniformresponse: "y",
       workspace: "MAIN",
+      childLinks: "None",
     }
   );
   return data.length === 1;
@@ -211,6 +208,7 @@ export const getWorkspaces = async ({
       searchSpec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
       uniformresponse: "y",
       workspace: "MAIN",
+      childLinks: "None",
     }
   );
   for (let workspace of data) {
@@ -224,11 +222,11 @@ export const pushOrPullScript = async (
   action: ButtonAction,
   configData: Connections
 ): Promise<void> => {
-  const currentlyOpenTabfilePath =
+  const activeFilePath =
     vscode.window.activeTextEditor?.document?.uri?.fsPath!;
-  const dirPath = dirname(currentlyOpenTabfilePath);
-  const fileName = parse(currentlyOpenTabfilePath).name;
-  const fileExtension = parse(currentlyOpenTabfilePath).ext;
+  const dirPath = dirname(activeFilePath);
+  const fileName = parse(activeFilePath).name;
+  const fileExtension = parse(activeFilePath).ext;
   const filePath = vscode.Uri.file(`${dirPath}/${fileName}${fileExtension}`);
   const infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
   if (!existsSync(infoFilePath.fsPath)) {
@@ -283,11 +281,18 @@ export const pushOrPullScript = async (
             password,
           },
           GET,
-          { fields: isWebTemp ? "Definition" : "Script", uniformresponse: "y" }
+          {
+            fields: isWebTemp ? "Definition" : "Script",
+            uniformresponse: "y",
+            childLinks: "None",
+          }
         );
       const scriptString = isWebTemp
         ? (data[0] as WebTempResponse)?.Definition!
         : (data[0] as ScriptResponse)?.Script!;
+      if (!scriptString) {
+        return;
+      }
       const wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(filePath, {
         overwrite: true,
@@ -340,7 +345,6 @@ export const pushOrPullScript = async (
           password,
         },
         PUT,
-        {},
         payload
       );
       if (response.status === 200) {
