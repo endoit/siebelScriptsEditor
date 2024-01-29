@@ -30,13 +30,20 @@ export const PUT = "put";
 export const PUSH = "push";
 export const PULL = "pull";
 
+//Tree Item types
+export const TREE_OBJECT = "tree_object";
+export const TREE_SCRIPT = "tree_script";
+export const TREE_WEBTEMP = "tree_webtemp";
+
 //Constant error messages
 export const ERR_NO_WS_OPEN =
   "Please open a Visual Studio Code workspace folder to use the extension!";
-export const ERR_NO_CONN_SETTING = "Please add at least one connection in the Connections setting!";
+export const ERR_NO_CONN_SETTING =
+  "Please add at least one connection in the Connections setting!";
 export const ERR_CONN_PARAM_PARSE =
   "Error parsing the connection parameters, please check format of Connections settings!";
-export const ERR_NO_WS_CONN = "No workspace was found for any connection, please check Connections setting!";
+export const ERR_NO_WS_CONN =
+  "No workspace was found for any connection, please check Connections setting!";
 export const ERR_NO_INFO_JSON =
   "File info.json was not found, please get the Siebel Object again from the extension!";
 export const ERR_NO_SCRIPT_INFO =

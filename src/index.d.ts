@@ -37,29 +37,13 @@ type Selected = {
 type SelectedScript = { name: string; childName: string };
 type SelectedWebTemp = { name: string };
 
-//Data objects
-type ScriptObject = Record<
-  string,
-  {
-    onDisk: boolean;
-    scripts: Scripts;
-  }
->;
+//Data objects the tree views
+type ScriptObject = Record<string, Scripts>;
+type Scripts = Record<string, boolean>;
+type WebTempObject = Record<string, boolean>;
 
-type Scripts = Record<string, Script>;
-
-type Script = {
-  onDisk: boolean;
-  script?: string;
-};
-
-type WebTempObject = Record<
-  string,
-  {
-    onDisk: boolean;
-    definition: string;
-  }
->;
+//Script names and content
+type Content = Record<string, {content: string; onDisk: boolean }>;
 
 //Query parameters
 type QueryParams = {
@@ -133,19 +117,27 @@ type MessageCommand =
   | "setDefault"
   | "openConfig";
 
-//TreeItem object properties
-type TreeItemProps = {
-  onDisk: boolean;
-  scripts?: Record<string, Script>;
-  parent?: string;
-  definition?: string;
-};
-
 //REST methods
-type RestMethod = "get" | "put";
+type GET = "get";
+type PUT = "put";
 
 //Button actions
-type ButtonAction = "push" | "pull";
+type PUSH = "push";
+type PULL = "pull";
+
+//Tree Item types
+type TreeObject = "tree_object";
+type TreeScript = "tree_script";
+type TreeWebtemp = "tree_webtemp";
+
+//TreeItem object properties
+type TreeItemType =  TreeObject  | TreeScript | TreeWebtemp;
+
+//REST methods
+type RestMethod = GET | PUT;
+
+//Button actions
+type ButtonAction = PUSH | PULL;
 
 //Basic settings
 type Settings = {

@@ -60,7 +60,7 @@ export const webViewHTML = (
 			}
 		</style>`;
 
-  if (noRESTConfig) {
+  if (noRESTConfig)
     return `
 		<!doctype><html>
 			<head>
@@ -80,7 +80,6 @@ export const webViewHTML = (
 				</script>
 			</body>
 		</html>`;
-  }
 
   const connections = Object.keys(connectionObject)
     .map(

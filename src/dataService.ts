@@ -79,12 +79,11 @@ export const callRESTAPIInstance: OverloadedCallRESTAPIInstance =
     }
   };
 
-//get siebel objects
 export const getSiebelData = async (
   searchSpec: string,
   folder: string,
   type: SiebelObject
-) => {
+): Promise<WebTempObject | ScriptObject> => {
   const folderPath = `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/${folder}/${type}`;
   const objectUrl = `/${RESOURCE_URL[type].obj}`;
   const data = await getDataFromRESTAPI(objectUrl, {
@@ -97,23 +96,18 @@ export const getSiebelData = async (
   if (type === WEBTEMP) {
     const siebObj: WebTempObject = {};
     for (let row of data) {
-      const exists = existsSync(`${folderPath}/${row.Name}.html`);
-      siebObj[row.Name] = { definition: "", onDisk: exists };
+      siebObj[row.Name] = existsSync(`${folderPath}/${row.Name}.html`);
     }
     return siebObj;
   }
   const siebObj: ScriptObject = {};
   for (let row of data) {
     const exists = existsSync(`${folderPath}/${row.Name}`);
-    siebObj[row.Name] = { scripts: {}, onDisk: exists };
-    if (!exists) {
-      continue;
-    }
+    siebObj[row.Name] = {};
+    if (!exists) continue;
     const fileNames = readdirSync(`${folderPath}/${row.Name}`);
     for (let file of fileNames) {
-      siebObj[row.Name].scripts[basename(file, extname(file))] = {
-        onDisk: true,
-      };
+      siebObj[row.Name][basename(file, extname(file))] = true;
     }
   }
   return siebObj;
@@ -126,7 +120,7 @@ export const getServerScripts = async (
 ) => {
   const type = selectedObj.object;
   const folderPath = `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/${selectedObj.connection}/${selectedObj.workspace}/${type}/${selectedObj[type].name}`;
-  const scriptObj: Scripts = {};
+  const scriptObj: Content = {};
   const objectUrl = `/${RESOURCE_URL[type].obj}/${selectedObj[type].name}/${RESOURCE_URL[type].scr}`;
   const data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
     pageSize: 100,
@@ -137,7 +131,7 @@ export const getServerScripts = async (
   for (let row of data) {
     const fileNameNoExt = `${folderPath}/${row.Name}`;
     scriptObj[row.Name] = {
-      script: row.Script || "",
+      content: row.Script || "",
       onDisk: namesOnly
         ? existsSync(`${fileNameNoExt}.js`) || existsSync(`${fileNameNoExt}.ts`)
         : true,
@@ -221,9 +215,8 @@ export const getWorkspaces = async ({
 export const pushOrPullScript = async (
   action: ButtonAction,
   configData: Connections
-): Promise<void> => {
-  const activeFilePath =
-    vscode.window.activeTextEditor?.document?.uri?.fsPath!;
+): Promise<any> => {
+  const activeFilePath = vscode.window.activeTextEditor?.document?.uri?.fsPath!;
   const dirPath = dirname(activeFilePath);
   const fileName = parse(activeFilePath).name;
   const fileExtension = parse(activeFilePath).ext;
@@ -241,16 +234,12 @@ export const pushOrPullScript = async (
   const isInfo = isWebTemp
     ? (infoObj as WebTempInfo).definitions.hasOwnProperty(fileName)
     : (infoObj as ScriptInfo).scripts.hasOwnProperty(fileName);
-  if (!isInfo && isWebTemp) {
-    vscode.window.showErrorMessage(ERR_NO_WEBTEMP_INFO);
-    return;
-  }
+  if (!isInfo && isWebTemp)
+    return vscode.window.showErrorMessage(ERR_NO_WEBTEMP_INFO);
   let isNewMethod = false;
   if (!(isInfo || isWebTemp)) {
-    if (action !== PUSH) {
-      vscode.window.showErrorMessage(ERR_NO_SCRIPT_INFO);
-      return;
-    }
+    if (action !== PUSH)
+      return vscode.window.showErrorMessage(ERR_NO_SCRIPT_INFO);
     const answer = await vscode.window.showInformationMessage(
       `Script was not found in info.json, would you like to create this file as a new method of the Siebel Object?`,
       "Yes",
@@ -290,9 +279,7 @@ export const pushOrPullScript = async (
       const scriptString = isWebTemp
         ? (data[0] as WebTempResponse)?.Definition!
         : (data[0] as ScriptResponse)?.Script!;
-      if (!scriptString) {
-        return;
-      }
+      if (!scriptString) return;
       const wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(filePath, {
         overwrite: true,
@@ -324,10 +311,8 @@ export const pushOrPullScript = async (
       const fileContent = Buffer.from(dataRead).toString();
       if (isNewMethod) {
         const pattern = new RegExp(`function\\s+${fileName}\\s*\\(`);
-        if (!pattern.test(fileContent)) {
-          vscode.window.showErrorMessage(ERR_FILE_FUNCTION_NAME_DIFF);
-          return;
-        }
+        if (!pattern.test(fileContent))
+          return vscode.window.showErrorMessage(ERR_FILE_FUNCTION_NAME_DIFF);
       }
       const payload: Payload = { Name: fileName };
       if (isWebTemp) {

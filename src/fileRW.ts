@@ -2,27 +2,24 @@ import { existsSync } from "fs";
 import * as vscode from "vscode";
 import { WEBTEMP } from "./constants";
 
-//create method files for siebel objects
+//write to file
 export const writeFile = async (
   fileContent: string,
-  folderPath: string,
-  objectName: string,
-  localFileExtension?: Settings["localFileExtension"],
-  fileName?: string
+  relativePath: string,
+  showDocument = false
 ): Promise<void> => {
   try {
     await vscode.workspace.saveAll(false);
     const filePath = vscode.Uri.file(
-      `${vscode.workspace.workspaceFolders![0].uri.fsPath}/${folderPath}/${objectName}${
-        fileName !== undefined ? `/${fileName}${localFileExtension}` : ".html"
-      }`
+      `${vscode.workspace.workspaceFolders![0].uri.fsPath}/${relativePath}`
     );
     const wsEdit = new vscode.WorkspaceEdit();
     wsEdit.createFile(filePath, { overwrite: true, ignoreIfExists: false });
     await vscode.workspace.applyEdit(wsEdit);
     const writeData = Buffer.from(fileContent, "utf8");
     await vscode.workspace.fs.writeFile(filePath, writeData);
-    await vscode.window.showTextDocument(filePath, { preview: false });
+    if (showDocument)
+      await vscode.window.showTextDocument(filePath, { preview: false });
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }
@@ -30,27 +27,29 @@ export const writeFile = async (
 
 //write info.json
 export const writeInfo = async (
-  selectedObj: Selected,
+  selected: Selected,
   folderPath: string,
-  type: SiebelObject,
   fileNames: string[]
 ): Promise<void> => {
   try {
     vscode.workspace.saveAll(false);
-    const wsPath = ;
     let infoObj: ScriptInfo | WebTempInfo;
-    let fileName: string;
-    const filePathString = `${}/${folderPath}/${
-      type !== WEBTEMP ? `${selectedObj[type].name}/` : ""
-    }info.json`;
-    const filePath = vscode.Uri.file(filePathString);
+    const { object: type, connection, workspace } = selected,
+      selectedObjName = selected[type].name,
+      relativePath = `${folderPath}/${
+        type !== WEBTEMP ? `${selectedObjName}/` : ""
+      }info.json`,
+      filePathString = `${
+        vscode.workspace.workspaceFolders![0].uri.fsPath
+      }/${relativePath}`,
+      filePath = vscode.Uri.file(filePathString);
     if (existsSync(filePath.fsPath)) {
       //update info.json if exists
       const readData = await vscode.workspace.fs.readFile(filePath);
       infoObj = JSON.parse(Buffer.from(readData).toString());
       if (type !== WEBTEMP) {
         infoObj = infoObj as ScriptInfo;
-        for (fileName of fileNames) {
+        for (const fileName of fileNames) {
           infoObj.scripts[fileName] = {
             "last update from Siebel": new Date().toISOString(),
             "last push to Siebel": "",
@@ -63,23 +62,19 @@ export const writeInfo = async (
           "last push to Siebel": "",
         };
       }
-      await vscode.workspace.fs.writeFile(
-        filePath,
-        Buffer.from(JSON.stringify(infoObj, null, 2), "utf8")
-      );
     } else {
       //create info.json if not exists
       let infoObjBase: InfoObjectBase = {
         "folder created at": new Date().toISOString(),
-        connection: selectedObj.connection,
-        workspace: selectedObj.workspace,
-        type: type,
+        connection,
+        workspace,
+        type,
       };
       if (type !== WEBTEMP) {
         infoObj = infoObjBase as ScriptInfo;
-        infoObj.siebelObjectName = selectedObj[type].name;
+        infoObj.siebelObjectName = selectedObjName;
         infoObj.scripts = {};
-        for (fileName of fileNames) {
+        for (const fileName of fileNames) {
           infoObj.scripts[fileName] = {
             "last update from Siebel": new Date().toISOString(),
             "last push to Siebel": "",
@@ -87,27 +82,22 @@ export const writeInfo = async (
         }
       } else {
         infoObj = infoObjBase as WebTempInfo;
-        infoObj.definitions = {};
-        infoObj.definitions[fileNames[0]] = {
-          "last update from Siebel": new Date().toISOString(),
-          "last push to Siebel": "",
+        infoObj.definitions = {
+          [fileNames[0]]: {
+            "last update from Siebel": new Date().toISOString(),
+            "last push to Siebel": "",
+          },
         };
       }
-      const wsEdit = new vscode.WorkspaceEdit();
-      wsEdit.createFile(filePath, { overwrite: false, ignoreIfExists: true });
-      await vscode.workspace.applyEdit(wsEdit);
-      await vscode.workspace.fs.writeFile(
-        filePath,
-        Buffer.from(JSON.stringify(infoObj, null, 2), "utf8")
-      );
     }
+    writeFile(relativePath, JSON.stringify(infoObj, null, 2));
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }
 };
 
 //copy index.d.ts and create jsconfig.json to the VSCode workspace folder if they do not exist
-export const copyTypeDefAndJSConfFile = async (
+export const createIndexdtsAndJSConfigjson = async (
   context: vscode.ExtensionContext
 ): Promise<void> => {
   try {

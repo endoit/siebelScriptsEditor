@@ -28,23 +28,20 @@ export const parseSettings = async () => {
     };
   let [defaultConnectionName, defaultWorkspace] = defaultConnection.split(":");
   try {
-    if (Object.keys(connections).length === 0) {
+    if (Object.keys(connections).length === 0)
       throw new Error(ERR_NO_CONN_SETTING);
-    }
     for (let [configString, workspaceString] of Object.entries(connections)) {
       const [connUserPwString, url] = configString.split("@");
       const [connectionName, username, password] = connUserPwString.split("/");
-      if (!(url && username && password)) {
+      if (!(url && username && password))
         throw new Error(
           `Missing parameter(s) for the ${connectionName} connection, check the Connections settings!`
         );
-      }
-      const workspaces = workspaceString.split(",");
       configData[connectionName] = {
         username,
         password,
         url,
-        workspaces,
+        workspaces: workspaceString.split(","),
       };
       if (!workspaceString) {
         const isWorkspaceREST = await checkBaseWorkspaceIOB({
@@ -72,10 +69,7 @@ export const parseSettings = async () => {
         }
       }
     }
-    if (Object.keys(configData).length === 0) {
-      throw new Error(ERR_NO_WS_CONN);
-    }
-
+    if (Object.keys(configData).length === 0) throw new Error(ERR_NO_WS_CONN);
     defaultConnectionName = configData.hasOwnProperty(defaultConnectionName)
       ? defaultConnectionName
       : Object.keys(configData)[0];
@@ -102,7 +96,7 @@ export const parseSettings = async () => {
 };
 
 //copy the deprecated settings if they exist to the new setting
-export const copyConfigurationsToNewSetting = async () => {
+export const moveDeprecatedSettings = async () => {
   const {
       "REST EndpointConfigurations": connectionConfigs,
       workspaces,
@@ -112,30 +106,28 @@ export const copyConfigurationsToNewSetting = async () => {
     ) as unknown as Settings & OldSettings,
     workspaceObject: Workspaces = {};
   try {
-    if (connectionConfigs && Object.keys(connections).length === 0) {
-      const connectionsSetting: Record<string, string> = {};
-      for (let workspace of workspaces) {
-        let [connectionName, workspaceString] = workspace.split(":");
-        workspaceObject[connectionName] = workspaceString
-          ? workspaceString.split(",")
-          : [];
-      }
-      for (let config of connectionConfigs) {
-        let [connUserPwString] = config?.split("@");
-        let [connectionName] = connUserPwString?.split("/");
-        connectionsSetting[config] = workspaceObject[connectionName]
-          ? workspaceObject[connectionName].join(",")
-          : "";
-      }
-
-      await vscode.workspace
-        .getConfiguration()
-        .update(
-          "siebelScriptAndWebTempEditor.connections",
-          connectionsSetting,
-          vscode.ConfigurationTarget.Global
-        );
+    if (!connectionConfigs || !(Object.keys(connections).length === 0)) return;
+    const connectionsSetting: Record<string, string> = {};
+    for (let workspace of workspaces) {
+      let [connectionName, workspaceString] = workspace.split(":");
+      workspaceObject[connectionName] = workspaceString
+        ? workspaceString.split(",")
+        : [];
     }
+    for (let config of connectionConfigs) {
+      let [connUserPwString] = config?.split("@");
+      let [connectionName] = connUserPwString?.split("/");
+      connectionsSetting[config] = workspaceObject[connectionName]
+        ? workspaceObject[connectionName].join(",")
+        : "";
+    }
+    await vscode.workspace
+      .getConfiguration()
+      .update(
+        "siebelScriptAndWebTempEditor.connections",
+        connectionsSetting,
+        vscode.ConfigurationTarget.Global
+      );
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }

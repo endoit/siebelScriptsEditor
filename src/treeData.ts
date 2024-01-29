@@ -1,6 +1,12 @@
 import { join } from "path";
 import * as vscode from "vscode";
-import { WEBTEMP, RESOURCE_URL } from "./constants";
+import {
+  WEBTEMP,
+  RESOURCE_URL,
+  TREE_OBJECT,
+  TREE_WEBTEMP,
+  TREE_SCRIPT,
+} from "./constants";
 import {
   getServerScriptMethod,
   getServerScripts,
@@ -10,118 +16,99 @@ import { writeFile, writeInfo } from "./fileRW";
 
 //handle selection in the tree views
 export const selectionChange = async (
-  { selection: [selItem] }: vscode.TreeViewSelectionChangeEvent<TreeItem>,
+  { selection: [selectedItem] }: vscode.TreeViewSelectionChangeEvent<TreeItem>,
   selected: Selected,
-  dataObj: ScriptObject | WebTempObject,
-  treeObj: TreeDataProvider,
+  dataObject: ScriptObject | WebTempObject,
+  treeObject: TreeDataProvider,
   {
     singleFileAutoDownload,
     localFileExtension,
     defaultScriptFetching,
   }: Partial<Settings>
 ) => {
-  const type = selected.object;
-  const folderPath = `${selected.connection}/${selected.workspace}/${type}`;
-  const isWebTemplate = type === WEBTEMP;
-  const METHODS_ONLY = true;
+  if (!selectedItem) return;
+  const { connection, workspace, object: type } = selected,
+    { label, parent, type: treeItemType } = selectedItem,
+    folderPath = `${connection}/${workspace}/${type}`,
+    SHOW_DOCUMENT = true;
   let answer: Settings["defaultScriptFetching"];
-  let scrName: string;
-  let scrMethod: Script;
-  let scrNames: string[] = [];
-
-  if (isWebTemplate) {
-    dataObj = dataObj as WebTempObject;
-    selected[WEBTEMP].name = selItem.label;
-    answer = singleFileAutoDownload
-      ? "Yes"
-      : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${RESOURCE_URL[WEBTEMP].obj} definition from Siebel?`,
-          "Yes",
-          "No"
-        );
-    if (answer === "Yes") {
-      dataObj[selItem.label].definition = await getWebTemplate(selected);
-      if (dataObj[selItem.label].definition === undefined) {
+  switch (treeItemType) {
+    case TREE_OBJECT: {
+      selected[type].name = label;
+      answer =
+        defaultScriptFetching !== "None - always ask"
+          ? defaultScriptFetching
+          : await vscode.window.showInformationMessage(
+              `Do you want to get the ${label} ${RESOURCE_URL[type].obj} from Siebel?`,
+              "Yes",
+              "Only method names",
+              "No"
+            );
+      dataObject = dataObject as ScriptObject;
+      const methodsOnly = answer === "Only method names";
+      if (answer === "Yes" || answer === "All scripts" || methodsOnly) {
+        const serverScripts = await getServerScripts(selected, methodsOnly);
+        const scriptNames = Object.keys(serverScripts);
+        for (const [scriptName, { content, onDisk }] of Object.entries(
+          serverScripts
+        )) {
+          dataObject[label][scriptName] = onDisk;
+          if (methodsOnly) continue;
+          const relativePath = `${folderPath}/${label}/${scriptName}${localFileExtension}`;
+          await writeFile(content, relativePath, SHOW_DOCUMENT);
+        }
+        if (!methodsOnly)
+          await writeInfo(selected, folderPath, scriptNames);
+        treeObject.refresh(dataObject, TREE_OBJECT);
         return;
       }
-      dataObj[selItem.label].onDisk = true;
-      await writeFile(
-        dataObj[selItem.label].definition,
-        folderPath,
-        selItem.label
-      );
-      await writeInfo(selected, folderPath, WEBTEMP, [selItem.label]);
-      treeObj.refresh(dataObj, isWebTemplate);
     }
-    return;
-  }
-
-  if (!selItem.hasOwnProperty("scripts")) {
-    selected[type].name = selItem.parent!;
-    selected[type].childName = selItem.label;
-    answer = singleFileAutoDownload
-      ? "Yes"
-      : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${RESOURCE_URL[type].obj} method from Siebel?`,
-          "Yes",
-          "No"
+    case TREE_SCRIPT: {
+      selected[type].name = parent!;
+      selected[type as ObjectWithScript].childName = label;
+      answer = singleFileAutoDownload
+        ? "Yes"
+        : await vscode.window.showInformationMessage(
+            `Do you want to get the ${label} ${RESOURCE_URL[type].obj} method from Siebel?`,
+            "Yes",
+            "No"
+          );
+      if (answer === "Yes") {
+        dataObject = dataObject as ScriptObject;
+        const scriptContent = await getServerScriptMethod(
+          selected,
+          type as ObjectWithScript
         );
-    if (answer === "Yes") {
-      dataObj = dataObj as ScriptObject;
-      dataObj[selItem.parent!].onDisk = true;
-      dataObj[selItem.parent!].scripts[selItem.label].script =
-        await getServerScriptMethod(selected, type);
-      if (!dataObj[selItem.parent!].scripts[selItem.label].script) {
-        return;
+        if (!scriptContent) return;
+        dataObject[parent!][label] = true;
+        const relativePath = `${folderPath}/${parent}/${label}${localFileExtension}`;
+        await writeFile(scriptContent, relativePath, SHOW_DOCUMENT);
+        await writeInfo(selected, folderPath, [label]);
+        treeObject.refresh(dataObject, TREE_OBJECT);
       }
-      dataObj[selItem.parent!].scripts[selItem.label].onDisk = true;
-      await writeFile(
-        dataObj[selItem.parent!].scripts[selItem.label].script!,
-        folderPath,
-        selItem.parent!,
-        localFileExtension,
-        selItem.label
-      );
-      await writeInfo(selected, folderPath, type, [selItem.label]);
-      treeObj.refresh(dataObj);
+      return;
     }
-    return;
-  }
-  selected[type].name = selItem.label;
-  answer =
-    defaultScriptFetching !== "None - always ask"
-      ? defaultScriptFetching
-      : await vscode.window.showInformationMessage(
-          `Do you want to get the ${selItem.label} ${RESOURCE_URL[type].obj} from Siebel?`,
-          "Yes",
-          "Only method names",
-          "No"
-        );
-  dataObj = dataObj as ScriptObject;
-  const methodsOnly = answer === "Only method names";
-  if (answer === "Yes" || answer === "All scripts" || methodsOnly) {
-    dataObj[selItem.label].scripts = await getServerScripts(
-      selected,
-      methodsOnly
-    );
-    if (!methodsOnly) {
-      dataObj[selItem.label].onDisk = true;
-      for ([scrName, scrMethod] of Object.entries(
-        dataObj[selItem.label].scripts
-      )) {
-        await writeFile(
-          scrMethod.script!,
-          folderPath,
-          selItem.label,
-          localFileExtension,
-          scrName
-        );
-        scrNames.push(scrName);
+    case TREE_WEBTEMP: {
+      dataObject = dataObject as WebTempObject;
+      selected[WEBTEMP].name = label;
+      answer = singleFileAutoDownload
+        ? "Yes"
+        : await vscode.window.showInformationMessage(
+            `Do you want to get the ${label} ${RESOURCE_URL[WEBTEMP].obj} definition from Siebel?`,
+            "Yes",
+            "No"
+          );
+      if (answer === "Yes") {
+        const definition = await getWebTemplate(selected);
+        if (definition === undefined) return;
+        dataObject[label] = true;
+        const relativePath = `${folderPath}/${label}.html`;
+        await writeFile(definition, relativePath, SHOW_DOCUMENT);
+        await writeInfo(selected, folderPath, [label]);
+        treeObject.refresh(dataObject, TREE_WEBTEMP);
       }
-      await writeInfo(selected, folderPath, type, scrNames);
+      return;
     }
-    treeObj.refresh(dataObj);
-    return;
   }
 };
 
@@ -131,59 +118,57 @@ export class TreeDataProvider {
   onDidChangeTreeData = this._onDidChangeTreeData.event;
   data: TreeItem[];
 
-  constructor(dataObj: ScriptObject | WebTempObject, isWebTemplate = false) {
-    if (isWebTemplate) {
-      this.data = Object.keys(dataObj).map(
-        (item) =>
-          new TreeItem(item, vscode.TreeItemCollapsibleState.None, {
-            onDisk: dataObj[item].onDisk,
-            definition: (dataObj as WebTempObject)[item].definition,
-          })
-      );
-    } else {
-      this.data = Object.keys(dataObj).map(
-        (item) =>
-          new TreeItem(item, vscode.TreeItemCollapsibleState.Collapsed, {
-            onDisk: dataObj[item].onDisk,
-            scripts: (dataObj as ScriptObject)[item].scripts,
-          })
-      );
-    }
+  constructor(dataObject: ScriptObject, type: TreeObject);
+  constructor(dataObject: WebTempObject, type: TreeWebtemp);
+  constructor(
+    dataObject: ScriptObject | WebTempObject,
+    type: TreeObject | TreeWebtemp
+  ) {
+    this.data = this.createTreeItems(dataObject, type);
   }
+
+  createTreeItems = (
+    dataObject: ScriptObject | WebTempObject,
+    type: TreeObject | TreeWebtemp
+  ) =>
+    type === TREE_OBJECT
+      ? Object.entries(dataObject).map(
+          ([name, scripts]) =>
+            new TreeItem(
+              name,
+              TREE_OBJECT,
+              Object.values(scripts).some((x) => x),
+              scripts
+            )
+        )
+      : Object.entries(dataObject).map(
+          ([name, onDisk]) => new TreeItem(name, TREE_WEBTEMP, onDisk)
+        );
+
   getTreeItem(element: TreeItem) {
     return element;
   }
   getChildren(element: TreeItem) {
-    if (element === undefined) {
-      return this.data;
-    }
-    return Object.keys(element.scripts as Scripts).map(
-      (item) =>
-        new TreeItem(item, vscode.TreeItemCollapsibleState.None, {
-          onDisk: element.scripts?.[item].onDisk as boolean,
-          scripts: undefined,
-          parent: element.label,
-        })
-    );
+    return element === undefined
+      ? this.data
+      : Object.entries(element.scripts!).map(
+          ([scriptName, onDisk]) =>
+            new TreeItem(scriptName, TREE_SCRIPT, onDisk, element.label)
+        );
   }
-  refresh(dataObj: ScriptObject | WebTempObject, isWebTemplate?: boolean) {
-    if (isWebTemplate) {
-      this.data = Object.keys(dataObj).map(
-        (item) =>
-          new TreeItem(item, vscode.TreeItemCollapsibleState.None, {
-            onDisk: (dataObj as WebTempObject)[item].onDisk,
-            definition: (dataObj as WebTempObject)[item].definition,
-          })
-      );
-    } else {
-      this.data = Object.keys(dataObj).map(
-        (item) =>
-          new TreeItem(item, vscode.TreeItemCollapsibleState.Collapsed, {
-            onDisk: (dataObj as ScriptObject)[item].onDisk,
-            scripts: (dataObj as ScriptObject)[item].scripts,
-          })
-      );
-    }
+
+  refresh(dataObject: ScriptObject, type: TreeObject): void;
+  refresh(dataObject: WebTempObject, type: TreeWebtemp): void;
+  refresh(
+    dataObject: ScriptObject | WebTempObject,
+    type: TreeObject | TreeWebtemp
+  ) {
+    this.data = this.createTreeItems(dataObject, type);
+    this._onDidChangeTreeData.fire(null);
+  }
+
+  clear() {
+    this.data = [];
     this._onDidChangeTreeData.fire(null);
   }
 }
@@ -191,29 +176,53 @@ export class TreeDataProvider {
 //creates the tree items for tree data
 export class TreeItem extends vscode.TreeItem {
   label: string;
+  type: TreeItemType;
   scripts?: Scripts;
-  onDisk?: boolean;
   parent?: string;
-  definition?: string;
+
   constructor(
     label: string,
-    collabsibleState: vscode.TreeItemCollapsibleState,
-    { onDisk, scripts, parent, definition }: TreeItemProps
+    type: TreeObject,
+    onDisk: boolean,
+    scriptsOrParent: Scripts
+  );
+  constructor(
+    label: string,
+    type: TreeScript,
+    onDisk: boolean,
+    scriptsOrParent: string
+  );
+  constructor(label: string, type: TreeWebtemp, onDisk: boolean);
+  constructor(
+    label: string,
+    type: TreeItemType,
+    onDisk: boolean,
+    scriptsOrParent?: Scripts | string
   ) {
-    super(label, collabsibleState);
+    super(
+      label,
+      type === TREE_OBJECT
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None
+    );
     this.label = label;
-    if (scripts !== undefined) {
-      this.scripts = scripts;
-    } else if (parent !== undefined) {
-      this.parent = parent;
-    } else if (definition !== undefined) {
-      this.definition = definition;
-    }
-    if (onDisk) {
+    this.type = type;
+    if (
+      type === TREE_OBJECT &&
+      scriptsOrParent &&
+      typeof scriptsOrParent !== "string"
+    )
+      this.scripts = scriptsOrParent;
+    if (
+      type === TREE_SCRIPT &&
+      scriptsOrParent &&
+      typeof scriptsOrParent === "string"
+    )
+      this.parent = scriptsOrParent;
+    if (onDisk)
       this.iconPath = {
         light: join(__filename, "..", "..", "media", "checkmark.png"),
         dark: join(__filename, "..", "..", "media", "checkmark.png"),
       };
-    }
   }
 }

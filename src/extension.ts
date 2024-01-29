@@ -12,52 +12,49 @@ import {
   SELECT_WORKSPACE,
   SERVICE,
   SET_DEFAULT,
+  TREE_OBJECT,
+  TREE_WEBTEMP,
   WEBTEMP,
 } from "./constants";
 import { getSiebelData, pushOrPullScript } from "./dataService";
-import { copyTypeDefAndJSConfFile } from "./fileRW";
-import {
-  openSettings,
-  parseSettings,
-  copyConfigurationsToNewSetting,
-} from "./utility";
+import { createIndexdtsAndJSConfigjson } from "./fileRW";
+import { openSettings, parseSettings, moveDeprecatedSettings } from "./utility";
 import { selectionChange, TreeDataProvider, TreeItem } from "./treeData";
 import { webViewHTML } from "./webView";
 
 export async function activate(context: vscode.ExtensionContext) {
-  if (vscode.workspace.workspaceFolders?.[0] === undefined) {
-    vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
-    return;
-  }
+  if (vscode.workspace.workspaceFolders?.[0] === undefined)
+    return vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
   let timeoutId = 0,
     interceptor = 0;
-  const emptyDataObj: ScriptObject | WebTempObject = {},
-    emptyTreeData = new TreeDataProvider(emptyDataObj),
+  const emptyTreeDataObject = new TreeDataProvider({}, TREE_OBJECT),
+    emptyTreeDataWebtemp = new TreeDataProvider({}, TREE_WEBTEMP),
     state: Record<SiebelObject, TreeDataProvider> = {
-      service: emptyTreeData,
-      buscomp: emptyTreeData,
-      applet: emptyTreeData,
-      application: emptyTreeData,
-      webtemp: emptyTreeData,
+      service: emptyTreeDataObject,
+      buscomp: emptyTreeDataObject,
+      applet: emptyTreeDataObject,
+      application: emptyTreeDataObject,
+      webtemp: emptyTreeDataWebtemp,
     };
 
-  //copy the index.d.ts and jsconfig.json if they do not exist
-  copyTypeDefAndJSConfFile(context);
+  //creates the index.d.ts and jsconfig.json if they do not exist
+  createIndexdtsAndJSConfigjson(context);
 
-  //copies the deprecated settings into the new Connections setting if it is empty and the old ones exist
-  await copyConfigurationsToNewSetting();
+  //moves the deprecated settings into new settings
+  await moveDeprecatedSettings();
 
   //create the empty tree views
-  for (let objectType of Object.keys(state)) {
+  for (const [objectType, treeDataProvider] of Object.entries(state)) {
     vscode.window.createTreeView(objectType, {
-      treeDataProvider: emptyTreeData,
+      treeDataProvider,
+      showCollapseAll: objectType !== WEBTEMP,
     });
   }
 
   //clear the tree views
   const clearTreeViews = () => {
-    for (let treeDataObj of Object.values(state)) {
-      treeDataObj.refresh(emptyDataObj);
+    for (const treeDataProvider of Object.values(state)) {
+      treeDataProvider.clear();
     }
   };
 
@@ -100,9 +97,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   //axios interceptor handling function
   const createInterceptor = () => {
-    if (isConfigError) {
-      return 0;
-    }
+    if (isConfigError) return 0;
     const { url, username, password } = configData[selected.connection];
     axios.interceptors.request.eject(interceptor);
     return axios.interceptors.request.use((config) => ({
@@ -223,12 +218,17 @@ export async function activate(context: vscode.ExtensionContext) {
               > = debounceAsync(() =>
                 getSiebelData(searchString, folderPath, objectType)
               );
-              const dataObj = await debouncedSearch();
-              state[objectType] = new TreeDataProvider(
-                dataObj,
-                objectType === WEBTEMP
-              );
-
+              const dataObject = await debouncedSearch();
+              state[objectType] =
+                objectType !== WEBTEMP
+                  ? new TreeDataProvider(
+                      dataObject as ScriptObject,
+                      TREE_OBJECT
+                    )
+                  : new TreeDataProvider(
+                      dataObject as WebTempObject,
+                      TREE_WEBTEMP
+                    );
               vscode.window
                 .createTreeView(objectType, {
                   treeDataProvider: state[objectType],
@@ -237,7 +237,7 @@ export async function activate(context: vscode.ExtensionContext) {
                   selectionChange(
                     e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
                     selected,
-                    dataObj,
+                    dataObject,
                     state[objectType],
                     extendedSettings
                   )
