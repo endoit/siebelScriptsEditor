@@ -97,12 +97,12 @@ export const webViewHTML = (
         }>${item}</option>`
     )
     .join("");
-  const objects = [SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP]
+  const objects = ([SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP] as SiebelObject[])
     .map(
       (item) =>
         `<option class="opt" value="${item}" ${
           object === item ? "selected" : ""
-        }>${RESOURCE_URL[item as SiebelObject].obj}
+        }>${RESOURCE_URL[item].obj}
 				</option>`
     )
     .join("");

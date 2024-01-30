@@ -27,53 +27,43 @@ export async function activate(context: vscode.ExtensionContext) {
     return vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
   let timeoutId = 0,
     interceptor = 0;
-  const emptyTreeDataObject = new TreeDataProvider({}, TREE_OBJECT),
-    emptyTreeDataWebtemp = new TreeDataProvider({}, TREE_WEBTEMP),
-    state: Record<SiebelObject, TreeDataProvider> = {
-      service: emptyTreeDataObject,
-      buscomp: emptyTreeDataObject,
-      applet: emptyTreeDataObject,
-      application: emptyTreeDataObject,
-      webtemp: emptyTreeDataWebtemp,
-    };
+  const treeViewState: Record<SiebelObject, TreeDataProvider> = {
+    service: new TreeDataProvider({} as ScriptObject, TREE_OBJECT),
+    buscomp: new TreeDataProvider({} as ScriptObject, TREE_OBJECT),
+    applet: new TreeDataProvider({} as ScriptObject, TREE_OBJECT),
+    application: new TreeDataProvider({} as ScriptObject, TREE_OBJECT),
+    webtemp: new TreeDataProvider({} as WebTempObject, TREE_WEBTEMP),
+  };
 
-  //creates the index.d.ts and jsconfig.json if they do not exist
+  //create the index.d.ts and jsconfig.json if they do not exist
   createIndexdtsAndJSConfigjson(context);
 
-  //moves the deprecated settings into new settings
+  //move the deprecated settings into new settings
   await moveDeprecatedSettings();
 
-  //create the empty tree views
-  for (const [objectType, treeDataProvider] of Object.entries(state)) {
-    vscode.window.createTreeView(objectType, {
-      treeDataProvider,
-      showCollapseAll: objectType !== WEBTEMP,
-    });
+  //create the tree views with selection change callback
+  for (const [objectType, treeDataProvider] of Object.entries(treeViewState)) {
+    vscode.window
+      .createTreeView(objectType, {
+        treeDataProvider,
+        showCollapseAll: objectType !== WEBTEMP,
+      })
+      .onDidChangeSelection(async (e) =>
+        selectionChange(
+          e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
+          selected,
+          treeDataProvider,
+          extendedSettings
+        )
+      );
   }
 
   //clear the tree views
   const clearTreeViews = () => {
-    for (const treeDataProvider of Object.values(state)) {
+    for (const treeDataProvider of Object.values(treeViewState)) {
       treeDataProvider.clear();
     }
   };
-
-  //debounce the search input
-  const debounceAsync =
-    <T, Callback extends (...args: any[]) => Promise<T>>(
-      callback: Callback
-    ): ((...args: Parameters<Callback>) => Promise<T>) =>
-    (...args: any[]) => {
-      clearTimeout(timeoutId);
-      return new Promise<T>((resolve) => {
-        const timeoutPromise = new Promise<void>((resolve) => {
-          timeoutId = setTimeout(resolve, 300);
-        });
-        timeoutPromise.then(async () => {
-          resolve(await callback(...args));
-        });
-      });
-    };
 
   //parse the configurations
   let {
@@ -126,9 +116,8 @@ export async function activate(context: vscode.ExtensionContext) {
       "Yes",
       "No"
     );
-    if (answer === "Yes") {
-      pushOrPullScript(action, configData);
-    }
+    if (answer !== "Yes") return;
+    pushOrPullScript(action, configData);
   };
 
   //buttons to get/update script from/to siebel
@@ -143,6 +132,23 @@ export async function activate(context: vscode.ExtensionContext) {
     pushPullCallback(PUSH)
   );
   context.subscriptions.push(pushButton);
+
+  //debounce the search input
+  const debounceAsync =
+    <T, Callback extends (...args: any[]) => Promise<T>>(
+      callback: Callback
+    ): ((...args: Parameters<Callback>) => Promise<T>) =>
+    (...args: any[]) => {
+      clearTimeout(timeoutId);
+      return new Promise<T>((resolve) => {
+        const timeoutPromise = new Promise<void>((resolve) => {
+          timeoutId = setTimeout(resolve, 300);
+        });
+        timeoutPromise.then(async () => {
+          resolve(await callback(...args));
+        });
+      });
+    };
 
   //handle the datasource selection webview and tree views
   const provider: vscode.WebviewViewProvider = {
@@ -175,6 +181,10 @@ export async function activate(context: vscode.ExtensionContext) {
             selected,
             isConfigError
           );
+          if (
+            e.affectsConfiguration("siebelScriptAndWebTempEditor.connections")
+          )
+            clearTreeViews();
         }
       });
       thisWebview.webview.options = { enableScripts: true };
@@ -218,30 +228,8 @@ export async function activate(context: vscode.ExtensionContext) {
               > = debounceAsync(() =>
                 getSiebelData(searchString, folderPath, objectType)
               );
-              const dataObject = await debouncedSearch();
-              state[objectType] =
-                objectType !== WEBTEMP
-                  ? new TreeDataProvider(
-                      dataObject as ScriptObject,
-                      TREE_OBJECT
-                    )
-                  : new TreeDataProvider(
-                      dataObject as WebTempObject,
-                      TREE_WEBTEMP
-                    );
-              vscode.window
-                .createTreeView(objectType, {
-                  treeDataProvider: state[objectType],
-                })
-                .onDidChangeSelection(async (e) =>
-                  selectionChange(
-                    e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-                    selected,
-                    dataObject,
-                    state[objectType],
-                    extendedSettings
-                  )
-                );
+              treeViewState[objectType].dataObject = await debouncedSearch();
+              treeViewState[objectType].refresh();
               return;
             }
             case SET_DEFAULT: {
@@ -251,21 +239,19 @@ export async function activate(context: vscode.ExtensionContext) {
                 "Yes",
                 "No"
               );
-              if (answer === "Yes") {
-                await vscode.workspace
-                  .getConfiguration()
-                  .update(
-                    "siebelScriptAndWebTempEditor.defaultConnection",
-                    `${connectionName}:${workspace}`,
-                    vscode.ConfigurationTarget.Global
-                  );
-              }
+              if (answer !== "Yes") return;
+              await vscode.workspace
+                .getConfiguration()
+                .update(
+                  "siebelScriptAndWebTempEditor.defaultConnection",
+                  `${connectionName}:${workspace}`,
+                  vscode.ConfigurationTarget.Global
+                );
               return;
             }
             case OPEN_CONFIG: {
               //opens the Settings for the extension
-              openSettings();
-              return;
+              return openSettings();
             }
           }
         },

@@ -90,7 +90,7 @@ export const writeInfo = async (
         };
       }
     }
-    writeFile(relativePath, JSON.stringify(infoObj, null, 2));
+    writeFile( JSON.stringify(infoObj, null, 2), relativePath);
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }
@@ -102,28 +102,24 @@ export const createIndexdtsAndJSConfigjson = async (
 ): Promise<void> => {
   try {
     const wsPath = vscode.workspace.workspaceFolders![0].uri.fsPath;
-    const wsEdit = new vscode.WorkspaceEdit();
     const typeDefFilePath = vscode.Uri.file(`${wsPath}/index.d.ts`);
     if (!existsSync(typeDefFilePath.fsPath)) {
       const data = await vscode.workspace.fs.readFile(
         vscode.Uri.file(context.asAbsolutePath("siebelTypes.txt"))
       );
-      wsEdit.createFile(typeDefFilePath, { ignoreIfExists: true });
-      await vscode.workspace.fs.writeFile(typeDefFilePath, data);
-      await vscode.workspace.applyEdit(wsEdit);
+      writeFile(data.toString(), "index.d.ts");
       vscode.window.showInformationMessage(
         `File index.d.ts was created in ${wsPath} folder!`
       );
     }
     const jsconfigFilePath = vscode.Uri.file(`${wsPath}/jsconfig.json`);
     if (!existsSync(jsconfigFilePath.fsPath)) {
-      const jsConfig = { compilerOptions: { allowJs: true, checkJs: true } };
-      wsEdit.createFile(jsconfigFilePath, { ignoreIfExists: true });
-      await vscode.workspace.fs.writeFile(
-        jsconfigFilePath,
-        Buffer.from(JSON.stringify(jsConfig, null, 2), "utf8")
+      const jsConfig = JSON.stringify(
+        { compilerOptions: { allowJs: true, checkJs: true } },
+        null,
+        2
       );
-      await vscode.workspace.applyEdit(wsEdit);
+      writeFile(jsConfig, "jsconfig.json");
       vscode.window.showInformationMessage(
         `File jsconfig.json was created in ${wsPath} folder!`
       );

@@ -35,7 +35,7 @@ type Selected = {
 };
 
 type SelectedScript = { name: string; childName: string };
-type SelectedWebTemp = { name: string };
+type SelectedWebTemp = { name: string; };
 
 //Data objects the tree views
 type ScriptObject = Record<string, Scripts>;

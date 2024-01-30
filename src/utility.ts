@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ERR_NO_CONN_SETTING, ERR_NO_WS_CONN } from "./constants";
+import { ERR_NO_CONN_SETTING, ERR_NO_WS_CONN, TREE_WEBTEMP, WEBTEMP } from "./constants";
 import { checkBaseWorkspaceIOB, getWorkspaces } from "./dataService";
 
 //open the extension settings

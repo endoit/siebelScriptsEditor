@@ -84,15 +84,15 @@ export const getSiebelData = async (
   folder: string,
   type: SiebelObject
 ): Promise<WebTempObject | ScriptObject> => {
-  const folderPath = `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/${folder}/${type}`;
-  const objectUrl = `/${RESOURCE_URL[type].obj}`;
-  const data = await getDataFromRESTAPI(objectUrl, {
-    pageSize: 20,
-    fields: "Name",
-    childLinks: "None",
-    uniformresponse: "y",
-    searchSpec: `Name LIKE "${searchSpec}*"`,
-  });
+  const folderPath = `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/${folder}/${type}`,
+    objectUrl = `/${RESOURCE_URL[type].obj}`,
+    data = await getDataFromRESTAPI(objectUrl, {
+      pageSize: 20,
+      fields: "Name",
+      childLinks: "None",
+      uniformresponse: "y",
+      searchSpec: `Name LIKE "${searchSpec}*"`,
+    });
   if (type === WEBTEMP) {
     const siebObj: WebTempObject = {};
     for (let row of data) {
@@ -118,16 +118,16 @@ export const getServerScripts = async (
   selectedObj: Selected,
   namesOnly = false
 ) => {
-  const type = selectedObj.object;
-  const folderPath = `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/${selectedObj.connection}/${selectedObj.workspace}/${type}/${selectedObj[type].name}`;
-  const scriptObj: Content = {};
-  const objectUrl = `/${RESOURCE_URL[type].obj}/${selectedObj[type].name}/${RESOURCE_URL[type].scr}`;
-  const data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
-    pageSize: 100,
-    fields: `Name${namesOnly ? "" : ",Script"}`,
-    uniformresponse: "y",
-    childLinks: "None",
-  });
+  const type = selectedObj.object,
+    folderPath = `${vscode.workspace.workspaceFolders?.[0].uri.fsPath}/${selectedObj.connection}/${selectedObj.workspace}/${type}/${selectedObj[type].name}`,
+    scriptObj: Content = {},
+    objectUrl = `/${RESOURCE_URL[type].obj}/${selectedObj[type].name}/${RESOURCE_URL[type].scr}`,
+    data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
+      pageSize: 100,
+      fields: `Name${namesOnly ? "" : ",Script"}`,
+      uniformresponse: "y",
+      childLinks: "None",
+    });
   for (let row of data) {
     const fileNameNoExt = `${folderPath}/${row.Name}`;
     scriptObj[row.Name] = {
@@ -145,23 +145,23 @@ export const getServerScriptMethod = async (
   selectedObj: Selected,
   type: Exclude<SiebelObject, "webtemp">
 ) => {
-  const objectUrl = `/${RESOURCE_URL[type].obj}/${selectedObj[type].name}/${RESOURCE_URL[type].scr}/${selectedObj[type].childName}`;
-  const data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
-    fields: "Script",
-    uniformresponse: "y",
-    childLinks: "None",
-  });
+  const objectUrl = `/${RESOURCE_URL[type].obj}/${selectedObj[type].name}/${RESOURCE_URL[type].scr}/${selectedObj[type].childName}`,
+    data: ScriptResponse[] = await getDataFromRESTAPI(objectUrl, {
+      fields: "Script",
+      uniformresponse: "y",
+      childLinks: "None",
+    });
   return data[0]?.Script!;
 };
 
 //get web template
 export const getWebTemplate = async (selectedObj: Selected) => {
-  const objectUrl = `/${RESOURCE_URL[WEBTEMP].obj}/${selectedObj[WEBTEMP].name}`;
-  const data: WebTempResponse[] = await getDataFromRESTAPI(objectUrl, {
-    fields: "Definition",
-    uniformresponse: "y",
-    childLinks: "None",
-  });
+  const objectUrl = `/${RESOURCE_URL[WEBTEMP].obj}/${selectedObj[WEBTEMP].name}`,
+    data: WebTempResponse[] = await getDataFromRESTAPI(objectUrl, {
+      fields: "Definition",
+      uniformresponse: "y",
+      childLinks: "None",
+    });
   return data[0]?.Definition!;
 };
 
@@ -171,18 +171,18 @@ export const checkBaseWorkspaceIOB = async ({
   username,
   password,
 }: Connection) => {
-  const workspacesUrl = `${url}/workspace/MAIN/Integration Object`;
-  const data = await callRESTAPIInstance(
-    { url: workspacesUrl, username, password },
-    GET,
-    {
-      fields: "Name",
-      searchSpec: `Name = "Base Workspace"`,
-      uniformresponse: "y",
-      workspace: "MAIN",
-      childLinks: "None",
-    }
-  );
+  const workspacesUrl = `${url}/workspace/MAIN/Integration Object`,
+    data = await callRESTAPIInstance(
+      { url: workspacesUrl, username, password },
+      GET,
+      {
+        fields: "Name",
+        searchSpec: `Name = "Base Workspace"`,
+        uniformresponse: "y",
+        workspace: "MAIN",
+        childLinks: "None",
+      }
+    );
   return data.length === 1;
 };
 
@@ -192,19 +192,19 @@ export const getWorkspaces = async ({
   username,
   password,
 }: Connection): Promise<string[]> => {
-  const workspacesUrl = `${url}/data/Workspace/Repository Workspace`;
-  const workspaces = [];
-  const data = await callRESTAPIInstance(
-    { url: workspacesUrl, username, password },
-    GET,
-    {
-      fields: "Name",
-      searchSpec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
-      uniformresponse: "y",
-      workspace: "MAIN",
-      childLinks: "None",
-    }
-  );
+  const workspacesUrl = `${url}/data/Workspace/Repository Workspace`,
+    workspaces = [],
+    data = await callRESTAPIInstance(
+      { url: workspacesUrl, username, password },
+      GET,
+      {
+        fields: "Name",
+        searchSpec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
+        uniformresponse: "y",
+        workspace: "MAIN",
+        childLinks: "None",
+      }
+    );
   for (let workspace of data) {
     workspaces.push(workspace.Name);
   }
@@ -216,24 +216,21 @@ export const pushOrPullScript = async (
   action: ButtonAction,
   configData: Connections
 ): Promise<any> => {
-  const activeFilePath = vscode.window.activeTextEditor?.document?.uri?.fsPath!;
-  const dirPath = dirname(activeFilePath);
-  const fileName = parse(activeFilePath).name;
-  const fileExtension = parse(activeFilePath).ext;
-  const filePath = vscode.Uri.file(`${dirPath}/${fileName}${fileExtension}`);
-  const infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
-  if (!existsSync(infoFilePath.fsPath)) {
-    vscode.window.showErrorMessage(ERR_NO_INFO_JSON);
-    return;
-  }
+  const activeFilePath = vscode.window.activeTextEditor?.document?.uri?.fsPath!,
+    dirPath = dirname(activeFilePath),
+    { name: fileName, ext: fileExtension } = parse(activeFilePath),
+    filePath = vscode.Uri.file(`${dirPath}/${fileName}${fileExtension}`),
+    infoFilePath = vscode.Uri.file(`${dirPath}/info.json`);
+  if (!existsSync(infoFilePath.fsPath))
+    return vscode.window.showErrorMessage(ERR_NO_INFO_JSON);
   const readData = await vscode.workspace.fs.readFile(infoFilePath);
   let infoObj: ScriptInfo | WebTempInfo = JSON.parse(
     Buffer.from(readData).toString()
   );
-  const isWebTemp = infoObj.type === WEBTEMP;
-  const isInfo = isWebTemp
-    ? (infoObj as WebTempInfo).definitions.hasOwnProperty(fileName)
-    : (infoObj as ScriptInfo).scripts.hasOwnProperty(fileName);
+  const isWebTemp = infoObj.type === WEBTEMP,
+    isInfo = isWebTemp
+      ? (infoObj as WebTempInfo).definitions.hasOwnProperty(fileName)
+      : (infoObj as ScriptInfo).scripts.hasOwnProperty(fileName);
   if (!isInfo && isWebTemp)
     return vscode.window.showErrorMessage(ERR_NO_WEBTEMP_INFO);
   let isNewMethod = false;
@@ -245,25 +242,21 @@ export const pushOrPullScript = async (
       "Yes",
       "No"
     );
-    if (answer === "Yes") {
-      isNewMethod = true;
-    } else {
-      return;
-    }
+    if (answer !== "Yes") return;
+    isNewMethod = true;
   }
   const { url, username, password }: Connection =
     configData[infoObj.connection];
   switch (action) {
     case PULL: {
       const resourceString = `${RESOURCE_URL[infoObj.type].obj}/${
-        isWebTemp
-          ? ""
-          : `${(infoObj as ScriptInfo).siebelObjectName}/${
-              RESOURCE_URL[infoObj.type].scr
-            }/`
-      }${fileName}`;
-      const data: ScriptResponse[] | WebTempResponse[] =
-        await callRESTAPIInstance(
+          isWebTemp
+            ? ""
+            : `${(infoObj as ScriptInfo).siebelObjectName}/${
+                RESOURCE_URL[infoObj.type].scr
+              }/`
+        }${fileName}`,
+        data: ScriptResponse[] | WebTempResponse[] = await callRESTAPIInstance(
           {
             url: `${url}/workspace/${infoObj.workspace}/${resourceString}`,
             username,
@@ -275,10 +268,10 @@ export const pushOrPullScript = async (
             uniformresponse: "y",
             childLinks: "None",
           }
-        );
-      const scriptString = isWebTemp
-        ? (data[0] as WebTempResponse)?.Definition!
-        : (data[0] as ScriptResponse)?.Script!;
+        ),
+        scriptString = isWebTemp
+          ? (data[0] as WebTempResponse)?.Definition!
+          : (data[0] as ScriptResponse)?.Script!;
       if (!scriptString) return;
       const wsEdit = new vscode.WorkspaceEdit();
       wsEdit.createFile(filePath, {
@@ -301,14 +294,14 @@ export const pushOrPullScript = async (
     }
     case PUSH: {
       const resourceString = `${RESOURCE_URL[infoObj.type].obj}/${
-        isWebTemp
-          ? ""
-          : `${(infoObj as ScriptInfo).siebelObjectName}/${
-              RESOURCE_URL[infoObj.type].scr
-            }`
-      }${isNewMethod ? "" : `/${fileName}`}`;
-      const dataRead = await vscode.workspace.fs.readFile(filePath);
-      const fileContent = Buffer.from(dataRead).toString();
+          isWebTemp
+            ? ""
+            : `${(infoObj as ScriptInfo).siebelObjectName}/${
+                RESOURCE_URL[infoObj.type].scr
+              }`
+        }${isNewMethod ? "" : `/${fileName}`}`,
+        dataRead = await vscode.workspace.fs.readFile(filePath),
+        fileContent = Buffer.from(dataRead).toString();
       if (isNewMethod) {
         const pattern = new RegExp(`function\\s+${fileName}\\s*\\(`);
         if (!pattern.test(fileContent))
