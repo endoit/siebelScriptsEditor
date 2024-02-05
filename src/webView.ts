@@ -4,7 +4,7 @@ import {
   APPLET,
   APPLICATION,
   WEBTEMP,
-  REPOSITORY_OBJECT,
+  repositoryObjects,
   CONFIG_DATA,
   CONNECTION,
   WORKSPACE,
@@ -110,7 +110,7 @@ export const webViewHTML = (globalState: GlobalState): string => {
       (item) =>
         `<option class="opt" value="${item}" ${
           object === item ? "selected" : ""
-        }>${REPOSITORY_OBJECT[item].parent}
+        }>${repositoryObjects[item].parent}
 				</option>`
     )
     .join("");

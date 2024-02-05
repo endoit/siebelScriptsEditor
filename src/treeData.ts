@@ -1,7 +1,7 @@
 import { basename, extname, join } from "path";
 import * as vscode from "vscode";
 import {
-  REPOSITORY_OBJECT,
+  repositoryObjects,
   CONNECTION,
   WORKSPACE,
   DEFAULT_SCRIPT_FETCHING,
@@ -11,6 +11,7 @@ import {
   NAMESCRIPT,
   SCRIPT,
   DEFINITION,
+  WEBTEMP,
 } from "./constants";
 import { getDataFromRESTAPI } from "./dataService";
 import { writeFile, writeInfo } from "./fileRW";
@@ -97,7 +98,7 @@ class TreeDataProviderBase {
   constructor(globalState: GlobalState, type: SiebelObject) {
     this.globalState = globalState;
     this.type = type;
-    this.objectUrl = REPOSITORY_OBJECT[type].parent;
+    this.objectUrl = repositoryObjects[type].parent;
   }
 
   get folder() {
@@ -128,13 +129,13 @@ class TreeDataProviderBase {
 export class TreeDataProviderObject extends TreeDataProviderBase {
   data: TreeItemObject[] = [];
   dataObject: ScriptObject = {};
-  readonly type: ObjectWithScript;
+  readonly type;
   readonly scriptUrl: string;
 
-  constructor(globalState: GlobalState, type: ObjectWithScript) {
+  constructor(globalState: GlobalState, type: Exclude<SiebelObject, typeof WEBTEMP>) {
     super(globalState, type);
     this.type = type;
-    this.scriptUrl = REPOSITORY_OBJECT[type].child;
+    this.scriptUrl = repositoryObjects[type].child;
   }
 
   getChildren = (element: TreeItem) =>
@@ -213,9 +214,9 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
 export class TreeDataProviderWebtemp extends TreeDataProviderBase {
   data: TreeItemWebtemp[] = [];
   dataObject: WebTempObject = {};
-  readonly type: ObjectWithDefinition;
+  readonly type;
 
-  constructor(globalState: GlobalState, type: ObjectWithDefinition) {
+  constructor(globalState: GlobalState, type: typeof WEBTEMP) {
     super(globalState, type);
     this.type = type;
   }

@@ -1,9 +1,5 @@
 //Siebel object types
-type SiebelObject = ObjectWithScript | ObjectWithDefinition;
-
-type ObjectWithScript = "service" | "buscomp" | "applet" | "application";
-
-type ObjectWithDefinition = "webtemp";
+type SiebelObject = "service" | "buscomp" | "applet" | "application" | "webtemp";
 
 //Connections object
 type Connections = Record<
@@ -13,6 +9,7 @@ type Connections = Record<
   }
 >;
 
+//Connection parameters
 type Connection = {
   username: string;
   password: string;
@@ -49,22 +46,12 @@ type WebTempResponse = {
   Definition?: string;
 };
 
-//info.json as an object
-type ExclusiveOne<T, K extends keyof T> = {
-  [P in keyof T]: P extends K ? T[P] : undefined;
-};
-
 type InfoObject = {
   "folder created at": string;
   connection: string;
   workspace: string;
   type: SiebelObject;
   siebelObjectName?: string;
-  scripts?: Record<string, PullPushDate>;
-  definitions?: Record<string, PullPushDate>;
-};
-
-type DateInfoObject = {
   scripts?: Record<string, PullPushDate>;
   definitions?: Record<string, PullPushDate>;
 };

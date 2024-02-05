@@ -6,7 +6,7 @@ export const APPLICATION = "application";
 export const WEBTEMP = "webtemp";
 
 //Repository object urls
-export const REPOSITORY_OBJECT = {
+export const repositoryObjects = {
   [SERVICE]: {
     parent: "Business Service",
     child: "Business Service Server Script",
@@ -17,13 +17,13 @@ export const REPOSITORY_OBJECT = {
   [WEBTEMP]: { parent: "Web Template", child: "" },
 } as const;
 
-export const QUERY_PARAMS: QueryParams = {
+export const baseQueryParams: Partial<QueryParams> = {
   uniformresponse: "y",
   childLinks: "None",
   pageSize: 100,
 } as const;
 
-export const WORKSPACE_QUERY_PARAMS: QueryParams = {
+export const workspaceQueryParams: Partial<QueryParams> = {
   fields: "Name",
   workspace: "MAIN",
 } as const;

@@ -16,11 +16,11 @@ import {
   PULL,
   PUSH,
   PUT,
-  REPOSITORY_OBJECT,
+  repositoryObjects,
   WEBTEMP,
   WORKSPACE,
-  WORKSPACE_QUERY_PARAMS,
-  QUERY_PARAMS,
+  workspaceQueryParams,
+  baseQueryParams,
   DEFINITION,
   SCRIPT,
   ERR_NO_INFO_JSON_ENTRY,
@@ -45,7 +45,7 @@ export const createInterceptor = (globalState: GlobalState) => {
       auth: { username, password },
       params: {
         ...config.params,
-        ...QUERY_PARAMS,
+        ...baseQueryParams,
       },
     };
   });
@@ -90,7 +90,7 @@ const callRESTAPIInstance = async (
     switch (method) {
       case GET: {
         const params = {
-            ...QUERY_PARAMS,
+            ...baseQueryParams,
             ...paramsOrPayload,
           },
           response = await instance.get(url, { params });
@@ -119,7 +119,7 @@ export const checkBaseWorkspaceIOB = async ({
   password,
 }: Connection) => {
   const params = {
-      ...WORKSPACE_QUERY_PARAMS,
+      ...workspaceQueryParams,
       searchSpec: `Name='Base Workspace'`,
     },
     workspacesUrl = joinUrl(url, PATH_MAIN_INTEG_OBJ),
@@ -138,7 +138,7 @@ export const getWorkspaces = async ({
   password,
 }: Connection): Promise<string[]> => {
   const params = {
-      ...WORKSPACE_QUERY_PARAMS,
+      ...workspaceQueryParams,
       searchSpec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
     },
     workspacesUrl = joinUrl(url, PATH_WORKSPACE_IOB),
@@ -185,10 +185,10 @@ export const pushOrPullScript = async (
       url,
       WORKSPACE,
       workspace,
-      REPOSITORY_OBJECT[type].parent,
+      repositoryObjects[type].parent,
       isWebTemp
         ? fileName
-        : joinUrl(siebelObjectName, REPOSITORY_OBJECT[type].child, fileName)
+        : joinUrl(siebelObjectName, repositoryObjects[type].child, fileName)
     ),
     connectionParams = {
       url: urlPath,
