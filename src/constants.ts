@@ -5,21 +5,31 @@ export const APPLET = "applet";
 export const APPLICATION = "application";
 export const WEBTEMP = "webtemp";
 
-//Resource URLs
-export const RESOURCE_URL = {
-  [SERVICE]: { obj: "Business Service", scr: "Business Service Server Script" },
-  [BUSCOMP]: { obj: "Business Component", scr: "BusComp Server Script" },
-  [APPLET]: { obj: "Applet", scr: "Applet Server Script" },
-  [APPLICATION]: { obj: "Application", scr: "Application Server Script" },
-  [WEBTEMP]: { obj: "Web Template", scr: "" },
+//Repository object urls
+export const REPOSITORY_OBJECT = {
+  [SERVICE]: {
+    parent: "Business Service",
+    child: "Business Service Server Script",
+  },
+  [BUSCOMP]: { parent: "Business Component", child: "BusComp Server Script" },
+  [APPLET]: { parent: "Applet", child: "Applet Server Script" },
+  [APPLICATION]: { parent: "Application", child: "Application Server Script" },
+  [WEBTEMP]: { parent: "Web Template", child: "" },
+} as const;
+
+export const QUERY_PARAMS: QueryParams = {
+  uniformresponse: "y",
+  childLinks: "None",
+  pageSize: 100,
+} as const;
+
+export const WORKSPACE_QUERY_PARAMS: QueryParams = {
+  fields: "Name",
+  workspace: "MAIN",
 } as const;
 
 //Webview commands
-export const SELECT_CONNECTION = "selectConnection";
-export const SELECT_WORKSPACE = "selectWorkspace";
-export const SELECT_OBJECT = "selectObject";
 export const SEARCH = "search";
-export const SET_DEFAULT = "setDefault";
 export const OPEN_CONFIG = "openConfig";
 
 //REST methods
@@ -30,10 +40,31 @@ export const PUT = "put";
 export const PUSH = "push";
 export const PULL = "pull";
 
-//Tree Item types
-export const TREE_OBJECT = "tree_object";
-export const TREE_SCRIPT = "tree_script";
-export const TREE_WEBTEMP = "tree_webtemp";
+//constant file names
+export const FILE_NAME_INFO = "info.json";
+export const FILE_NAME_TYPE_DEF = "index.d.ts";
+export const FILE_NAME_JSCONFIG = "jsconfig.json";
+export const FILE_NAME_SIEBEL_TYPES = "siebelTypes.txt";
+
+//global state parameters
+export const CONFIG_DATA = "configData";
+export const CONNECTION = "connection";
+export const WORKSPACE = "workspace";
+export const OBJECT = "object";
+export const INTERCEPTOR = "interceptor";
+export const DEFAULT_SCRIPT_FETCHING = "defaultScriptFetching";
+export const SINGLE_FILE_AUTODOWNLOAD = "singleFileAutoDownload";
+export const LOCAL_FILE_EXTENSION = "localFileExtension";
+
+//constant URLs
+export const PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object";
+export const PATH_WORKSPACE_IOB = "data/Workspace/Repository Workspace";
+
+//fields
+export const NAME = "Name";
+export const SCRIPT = "Script";
+export const DEFINITION = "Definition";
+export const NAMESCRIPT = "Name,Script";
 
 //Constant error messages
 export const ERR_NO_WS_OPEN =
@@ -46,10 +77,8 @@ export const ERR_NO_WS_CONN =
   "No workspace was found for any connection, please check Connections setting!";
 export const ERR_NO_INFO_JSON =
   "File info.json was not found, please get the Siebel Object again from the extension!";
-export const ERR_NO_SCRIPT_INFO =
-  "Script was not found in info.json, please get it again from the extension!";
-export const ERR_NO_WEBTEMP_INFO =
-  "Web template was not found in info.json, please get it again from the extension!";
+export const ERR_NO_INFO_JSON_ENTRY =
+  "Script/web template was not found in info.json, please get it again from the extension!";
 export const ERR_NO_UPDATE =
   "Update was unsuccessful, check REST API connection!";
 export const ERR_FILE_FUNCTION_NAME_DIFF =

@@ -1,39 +1,52 @@
-import { default as axios } from "axios";
 import * as vscode from "vscode";
 import {
+  APPLET,
+  APPLICATION,
+  BUSCOMP,
   ERR_CONN_PARAM_PARSE,
   ERR_NO_WS_OPEN,
   OPEN_CONFIG,
   PULL,
   PUSH,
   SEARCH,
-  SELECT_CONNECTION,
-  SELECT_OBJECT,
-  SELECT_WORKSPACE,
   SERVICE,
-  SET_DEFAULT,
-  TREE_OBJECT,
-  TREE_WEBTEMP,
   WEBTEMP,
+  CONNECTION,
+  WORKSPACE,
+  CONFIG_DATA,
+  OBJECT,
 } from "./constants";
-import { getSiebelData, pushOrPullScript } from "./dataService";
+import { createInterceptor, pushOrPullScript } from "./dataService";
 import { createIndexdtsAndJSConfigjson } from "./fileRW";
-import { openSettings, parseSettings, moveDeprecatedSettings } from "./utility";
-import { selectionChange, TreeDataProvider, TreeItem } from "./treeData";
+import {
+  openSettings,
+  parseSettings,
+  moveDeprecatedSettings,
+  GlobalState,
+} from "./utility";
+import {
+  selectionChange,
+  TreeDataProviderObject,
+  TreeDataProviderWebtemp,
+  TreeItem,
+} from "./treeData";
 import { webViewHTML } from "./webView";
 
 export async function activate(context: vscode.ExtensionContext) {
   if (vscode.workspace.workspaceFolders?.[0] === undefined)
     return vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
-  let timeoutId = 0,
-    interceptor = 0;
-  const treeViewState: Record<SiebelObject, TreeDataProvider> = {
-    service: new TreeDataProvider({} as ScriptObject, TREE_OBJECT),
-    buscomp: new TreeDataProvider({} as ScriptObject, TREE_OBJECT),
-    applet: new TreeDataProvider({} as ScriptObject, TREE_OBJECT),
-    application: new TreeDataProvider({} as ScriptObject, TREE_OBJECT),
-    webtemp: new TreeDataProvider({} as WebTempObject, TREE_WEBTEMP),
-  };
+  let timeoutId = 0;
+  const globalState = context.globalState as GlobalState,
+    treeViewState: Record<
+      SiebelObject,
+      TreeDataProviderObject | TreeDataProviderWebtemp
+    > = {
+      service: new TreeDataProviderObject(globalState, SERVICE),
+      buscomp: new TreeDataProviderObject(globalState, BUSCOMP),
+      applet: new TreeDataProviderObject(globalState, APPLET),
+      application: new TreeDataProviderObject(globalState, APPLICATION),
+      webtemp: new TreeDataProviderWebtemp(globalState, WEBTEMP),
+    };
 
   //create the index.d.ts and jsconfig.json if they do not exist
   createIndexdtsAndJSConfigjson(context);
@@ -41,7 +54,10 @@ export async function activate(context: vscode.ExtensionContext) {
   //move the deprecated settings into new settings
   await moveDeprecatedSettings();
 
-  //create the tree views with selection change callback
+  //parse the configurations and put them into the globalState
+  await parseSettings(globalState);
+
+  //create the tree views with the selection change callback
   for (const [objectType, treeDataProvider] of Object.entries(treeViewState)) {
     vscode.window
       .createTreeView(objectType, {
@@ -51,58 +67,25 @@ export async function activate(context: vscode.ExtensionContext) {
       .onDidChangeSelection(async (e) =>
         selectionChange(
           e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-          selected,
           treeDataProvider,
-          extendedSettings
+          globalState
         )
       );
   }
 
-  //clear the tree views
+  //clear the tree views and set the connection and workspace name
   const clearTreeViews = () => {
     for (const treeDataProvider of Object.values(treeViewState)) {
       treeDataProvider.clear();
     }
   };
 
-  //parse the configurations
-  let {
-    configData,
-    default: { defaultConnectionName, defaultWorkspace },
-    extendedSettings,
-    isConfigError,
-  } = await parseSettings();
-
-  //holds information about the currently selected connection and objects
-  const selected: Selected = {
-    connection: defaultConnectionName,
-    workspace: defaultWorkspace,
-    object: SERVICE,
-    service: { name: "", childName: "" },
-    buscomp: { name: "", childName: "" },
-    applet: { name: "", childName: "" },
-    application: { name: "", childName: "" },
-    webtemp: { name: "" },
-  };
-
-  //axios interceptor handling function
-  const createInterceptor = () => {
-    if (isConfigError) return 0;
-    const { url, username, password } = configData[selected.connection];
-    axios.interceptors.request.eject(interceptor);
-    return axios.interceptors.request.use((config) => ({
-      ...config,
-      baseURL: `${url}/workspace/${selected.workspace}`,
-      auth: { username, password },
-    }));
-  };
-
   //create the interceptor for the default/first connection
-  interceptor = createInterceptor();
+  createInterceptor(globalState);
 
   //callback for the push/pull buttons
-  const pushPullCallback = (action: ButtonAction) => async () => {
-    if (isConfigError) {
+  const pushPullCallback = (action: ButtonAction, globalState: GlobalState) => async () => {
+    if (!globalState.get(CONNECTION)) {
       vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
       openSettings();
       return;
@@ -117,19 +100,19 @@ export async function activate(context: vscode.ExtensionContext) {
       "No"
     );
     if (answer !== "Yes") return;
-    pushOrPullScript(action, configData);
+    pushOrPullScript(action, globalState);
   };
 
   //buttons to get/update script from/to siebel
   const pullButton = vscode.commands.registerCommand(
     "siebelscriptandwebtempeditor.pullScript",
-    pushPullCallback(PULL)
+    pushPullCallback(PULL, globalState)
   );
   context.subscriptions.push(pullButton);
 
   const pushButton = vscode.commands.registerCommand(
     "siebelscriptandwebtempeditor.pushScript",
-    pushPullCallback(PUSH)
+    pushPullCallback(PUSH, globalState)
   );
   context.subscriptions.push(pushButton);
 
@@ -152,101 +135,67 @@ export async function activate(context: vscode.ExtensionContext) {
 
   //handle the datasource selection webview and tree views
   const provider: vscode.WebviewViewProvider = {
-    resolveWebviewView: (thisWebview: vscode.WebviewView) => {
+    resolveWebviewView: ({ webview } /*thisWebview: vscode.WebviewView*/) => {
       //watch changes in the settings
       vscode.workspace.onDidChangeConfiguration(async (e) => {
-        if (
-          e.affectsConfiguration("siebelScriptAndWebTempEditor") &&
-          !e.affectsConfiguration(
-            "siebelScriptAndWebTempEditor.defaultConnection"
-          )
-        ) {
-          ({
-            configData,
-            default: { defaultConnectionName, defaultWorkspace },
-            extendedSettings,
-            isConfigError,
-          } = await parseSettings());
-          selected.connection = configData.hasOwnProperty(selected.connection)
-            ? selected.connection
-            : defaultConnectionName;
-          selected.workspace = configData[
-            selected.connection
-          ]?.workspaces.includes(selected.workspace)
-            ? selected.workspace
-            : defaultWorkspace;
-          interceptor = createInterceptor();
-          thisWebview.webview.html = webViewHTML(
-            configData,
-            selected,
-            isConfigError
-          );
+        if (e.affectsConfiguration("siebelScriptAndWebTempEditor")) {
+          const prevConnection = globalState.get(CONNECTION),
+            prevWorkspace = globalState.get(WORKSPACE);
+          await parseSettings(globalState);
+          const prevConfigData = globalState.get(CONFIG_DATA)[prevConnection];
+          if (prevConfigData) {
+            globalState.update(CONNECTION, prevConnection);
+            const workspace = prevConfigData.workspaces.includes(prevWorkspace)
+              ? prevWorkspace
+              : prevConfigData.workspaces[0];
+            globalState.update(WORKSPACE, workspace);
+          }
+          createInterceptor(globalState);
+          webview.html = webViewHTML(globalState);
           if (
             e.affectsConfiguration("siebelScriptAndWebTempEditor.connections")
           )
             clearTreeViews();
         }
       });
-      thisWebview.webview.options = { enableScripts: true };
-      thisWebview.webview.onDidReceiveMessage(
+      webview.options = { enableScripts: true };
+      webview.onDidReceiveMessage(
         async (message: Message) => {
           const { command, connectionName, workspace, object, searchString } =
             message;
           switch (command) {
-            case SELECT_CONNECTION: {
+            case CONNECTION: {
               //handle connection selection, create the new interceptor and clear the tree views
-              selected.connection = connectionName;
-              selected.workspace =
-                defaultConnectionName === connectionName
-                  ? defaultWorkspace
-                  : configData[connectionName]?.workspaces?.[0];
-              interceptor = createInterceptor();
-              thisWebview.webview.html = webViewHTML(configData, selected);
+              globalState.update(CONNECTION, connectionName);
+              const firstWorkspace =
+                globalState.get(CONFIG_DATA)[connectionName].workspaces[0];
+              globalState.update(WORKSPACE, firstWorkspace);
+              createInterceptor(globalState);
+              webview.html = webViewHTML(globalState);
               clearTreeViews();
               return;
             }
-            case SELECT_WORKSPACE: {
+            case WORKSPACE: {
               //handle workspace selection, create the new interceptor and clear the tree views
-              selected.workspace = workspace;
-              interceptor = createInterceptor();
-              thisWebview.webview.html = webViewHTML(configData, selected);
+              globalState.update(WORKSPACE, workspace);
+              createInterceptor(globalState);
+              webview.html = webViewHTML(globalState);
               clearTreeViews();
               return;
             }
-            case SELECT_OBJECT: {
+            case OBJECT: {
               //handle Siebel object selection
-              selected.object = object;
-              thisWebview.webview.html = webViewHTML(configData, selected);
+              globalState.update(OBJECT, object);
+              webview.html = webViewHTML(globalState);
               return;
             }
             case SEARCH: {
               //get the Siebel objects and create the tree views
-              const folderPath = `${selected.connection}/${selected.workspace}`;
-              const objectType = selected.object;
-              const debouncedSearch: () => Promise<
-                ScriptObject | WebTempObject
-              > = debounceAsync(() =>
-                getSiebelData(searchString, folderPath, objectType)
-              );
-              treeViewState[objectType].dataObject = await debouncedSearch();
-              treeViewState[objectType].refresh();
-              return;
-            }
-            case SET_DEFAULT: {
-              //sets the default connection and workspace in the settings
-              const answer = await vscode.window.showInformationMessage(
-                `Do you want to set the default connection to ${connectionName} and the default workspace to ${workspace}?`,
-                "Yes",
-                "No"
-              );
-              if (answer !== "Yes") return;
-              await vscode.workspace
-                .getConfiguration()
-                .update(
-                  "siebelScriptAndWebTempEditor.defaultConnection",
-                  `${connectionName}:${workspace}`,
-                  vscode.ConfigurationTarget.Global
+              const objectType = globalState.get(OBJECT),
+                debouncedSearch = debounceAsync(() =>
+                  treeViewState[objectType].createTreeViewData(searchString)
                 );
+              await debouncedSearch();
               return;
             }
             case OPEN_CONFIG: {
@@ -258,11 +207,7 @@ export async function activate(context: vscode.ExtensionContext) {
         undefined,
         context.subscriptions
       );
-      thisWebview.webview.html = webViewHTML(
-        configData,
-        selected,
-        isConfigError
-      );
+      webview.html = webViewHTML(globalState);
     },
   };
   const extensionView = vscode.window.registerWebviewViewProvider(

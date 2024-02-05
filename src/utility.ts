@@ -1,6 +1,29 @@
 import * as vscode from "vscode";
-import { ERR_NO_CONN_SETTING, ERR_NO_WS_CONN, TREE_WEBTEMP, WEBTEMP } from "./constants";
+import {
+  CONFIG_DATA,
+  CONNECTION,
+  DEFAULT_SCRIPT_FETCHING,
+  ERR_NO_CONN_SETTING,
+  ERR_NO_WS_CONN,
+  LOCAL_FILE_EXTENSION,
+  OBJECT,
+  SERVICE,
+  SINGLE_FILE_AUTODOWNLOAD,
+  WORKSPACE,
+} from "./constants";
 import { checkBaseWorkspaceIOB, getWorkspaces } from "./dataService";
+
+export interface GlobalState extends vscode.Memento {
+  get(key: "connection" | "workspace"): string;
+  get(key: "object"): SiebelObject;
+  get(key: "interceptor"): number;
+  get(key: "configData"): Connections;
+  get(key: "defaultScriptFetching"): Settings["defaultScriptFetching"];
+  get(key: "localFileExtension"): Settings["localFileExtension"];
+  get(key: "singleFileAutoDownload"): boolean;
+}
+//create url path from parts
+export const joinUrl = (...args: string[]) => args.join("/");
 
 //open the extension settings
 export const openSettings = () =>
@@ -10,27 +33,20 @@ export const openSettings = () =>
   );
 
 //parse the configurations
-export const parseSettings = async () => {
+export const parseSettings = async (globalState: GlobalState) => {
   const {
       connections,
-      defaultConnection,
       singleFileAutoDownload,
       localFileExtension,
       defaultScriptFetching,
     } = vscode.workspace.getConfiguration(
       "siebelScriptAndWebTempEditor"
     ) as unknown as Settings,
-    configData: Connections = {},
-    extendedSettings = {
-      singleFileAutoDownload,
-      localFileExtension,
-      defaultScriptFetching,
-    };
-  let [defaultConnectionName, defaultWorkspace] = defaultConnection.split(":");
+    configData: Connections = {};
   try {
     if (Object.keys(connections).length === 0)
       throw new Error(ERR_NO_CONN_SETTING);
-    for (let [configString, workspaceString] of Object.entries(connections)) {
+    for (const [configString, workspaceString] of Object.entries(connections)) {
       const [connUserPwString, url] = configString.split("@");
       const [connectionName, username, password] = connUserPwString.split("/");
       if (!(url && username && password))
@@ -70,28 +86,17 @@ export const parseSettings = async () => {
       }
     }
     if (Object.keys(configData).length === 0) throw new Error(ERR_NO_WS_CONN);
-    defaultConnectionName = configData.hasOwnProperty(defaultConnectionName)
-      ? defaultConnectionName
-      : Object.keys(configData)[0];
-    defaultWorkspace = configData[
-      defaultConnectionName
-    ]?.workspaces?.includes?.(defaultWorkspace)
-      ? defaultWorkspace
-      : configData[defaultConnectionName]?.workspaces?.[0];
-    return {
-      configData,
-      default: { defaultConnectionName, defaultWorkspace },
-      extendedSettings,
-      isConfigError: false,
-    };
+    const connection = Object.keys(configData)[0],
+      workspace = configData[connection].workspaces[0];
+    globalState.update(CONFIG_DATA, configData);
+    globalState.update(CONNECTION, connection);
+    globalState.update(WORKSPACE, workspace);
+    globalState.update(OBJECT, SERVICE);
+    globalState.update(DEFAULT_SCRIPT_FETCHING, defaultScriptFetching);
+    globalState.update(SINGLE_FILE_AUTODOWNLOAD, singleFileAutoDownload);
+    globalState.update(LOCAL_FILE_EXTENSION, localFileExtension);
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
-    return {
-      configData: {},
-      default: { defaultConnectionName, defaultWorkspace },
-      extendedSettings,
-      isConfigError: true,
-    };
   }
 };
 
@@ -107,16 +112,16 @@ export const moveDeprecatedSettings = async () => {
     workspaceObject: Workspaces = {};
   try {
     if (!connectionConfigs || !(Object.keys(connections).length === 0)) return;
-    const connectionsSetting: Record<string, string> = {};
-    for (let workspace of workspaces) {
-      let [connectionName, workspaceString] = workspace.split(":");
+    const connectionsSetting: Settings["connections"] = {};
+    for (const workspace of workspaces) {
+      const [connectionName, workspaceString] = workspace.split(":");
       workspaceObject[connectionName] = workspaceString
         ? workspaceString.split(",")
         : [];
     }
-    for (let config of connectionConfigs) {
-      let [connUserPwString] = config?.split("@");
-      let [connectionName] = connUserPwString?.split("/");
+    for (const config of connectionConfigs) {
+      const [connUserPwString] = config.split("@"),
+        [connectionName] = connUserPwString?.split("/");
       connectionsSetting[config] = workspaceObject[connectionName]
         ? workspaceObject[connectionName].join(",")
         : "";
@@ -129,6 +134,6 @@ export const moveDeprecatedSettings = async () => {
         vscode.ConfigurationTarget.Global
       );
   } catch (err: any) {
-    vscode.window.showErrorMessage(err.message);
+    vscode.window.showErrorMessage(`An error occured when moving the deprecated parameters to the new settings: ${err.message}, please check and fill the new settings manually!`);
   }
 };

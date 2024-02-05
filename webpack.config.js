@@ -46,6 +46,19 @@ const webExtensionConfig = {
 				exclude: /node_modules/
 			}
 		]
+		/*rules: [
+			{
+				test: /\.ts$/,
+				use: [
+					{
+						loader: 'ts-loader',
+						options: {
+							transpileOnly: true
+						}
+					}
+				]
+			}
+		]*/
 	},
 	plugins: [
 		new webpack.optimize.LimitChunkCountPlugin({

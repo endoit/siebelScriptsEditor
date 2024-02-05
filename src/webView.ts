@@ -4,15 +4,16 @@ import {
   APPLET,
   APPLICATION,
   WEBTEMP,
-  RESOURCE_URL,
+  REPOSITORY_OBJECT,
+  CONFIG_DATA,
+  CONNECTION,
+  WORKSPACE,
+  OBJECT,
 } from "./constants";
+import { GlobalState } from "./utility";
 
 //generates the HTML page for the webview to select the REST endpoint, workspace, resource and for the searchbar
-export const webViewHTML = (
-  connectionObject: Connections,
-  { connection, workspace, object }: Selected,
-  noRESTConfig = false
-): string => {
+export const webViewHTML = (globalState: GlobalState): string => {
   const css = `
 		<style>
 			.divitem {
@@ -60,7 +61,12 @@ export const webViewHTML = (
 			}
 		</style>`;
 
-  if (noRESTConfig)
+  const configData = globalState.get(CONFIG_DATA),
+    connection = globalState.get(CONNECTION),
+    workspace = globalState.get(WORKSPACE),
+    object = globalState.get(OBJECT);
+
+  if (!connection)
     return `
 		<!doctype><html>
 			<head>
@@ -81,7 +87,7 @@ export const webViewHTML = (
 			</body>
 		</html>`;
 
-  const connections = Object.keys(connectionObject)
+  const connections = Object.keys(configData)
     .map(
       (item) =>
         `<option class="opt" value="${item}" ${
@@ -89,7 +95,7 @@ export const webViewHTML = (
         }>${item}</option>`
     )
     .join("");
-  const workspaces = connectionObject[connection!]?.workspaces
+  const workspaces = configData[connection].workspaces
     .map(
       (item) =>
         `<option class="opt" value="${item}" ${
@@ -97,12 +103,14 @@ export const webViewHTML = (
         }>${item}</option>`
     )
     .join("");
-  const objects = ([SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP] as SiebelObject[])
+  const objects = (
+    [SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP] as SiebelObject[]
+  )
     .map(
       (item) =>
         `<option class="opt" value="${item}" ${
           object === item ? "selected" : ""
-        }>${RESOURCE_URL[item].obj}
+        }>${REPOSITORY_OBJECT[item].parent}
 				</option>`
     )
     .join("");
@@ -137,22 +145,21 @@ export const webViewHTML = (
 					</div>
 					<div class="divitem">
 						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>  
-						<Button class="button-small" id="default" onclick="setDefault()">Set as default</Button>  
 					</div>	
 				</div>
 				<script>
 					const vscode = acquireVsCodeApi();
 					const selectConnection = () => {
 						const connectionName = document.getElementById("connection").value;
-						vscode.postMessage({command: "selectConnection", connectionName});
+						vscode.postMessage({command: "connection", connectionName});
 					}
 					const selectWorkspace= () => {
 						const workspace = document.getElementById("workspace").value;
-						vscode.postMessage({command: "selectWorkspace", workspace});
+						vscode.postMessage({command: "workspace", workspace});
 					}
 					const selectObject = () => {
 						const object = document.getElementById("object").value;
-						vscode.postMessage({command: "selectObject", object});
+						vscode.postMessage({command: "object", object});
 					}
 					const handleSearch = () => {					
 						const searchString = document.getElementById("search-bar").value;
@@ -160,11 +167,6 @@ export const webViewHTML = (
 					}
 					const openConfig = () => {
 						vscode.postMessage({command: "openConfig"});
-					}
-					const setDefault = () => {
-						const connectionName = document.getElementById("connection").value;
-						const workspace = document.getElementById("workspace").value;
-						vscode.postMessage({command: "setDefault", connectionName, workspace});
 					}
 				</script>
 			</body>
