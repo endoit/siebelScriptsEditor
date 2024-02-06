@@ -55,7 +55,7 @@ export const createInterceptor = (globalState: GlobalState) => {
   globalState.update(INTERCEPTOR, interceptor)!;
 };
 
-export const getDataFromRESTAPI = async (
+export const getDataFromSiebel: IGetDataFromSiebel = async (
   url: string,
   fields: QueryParams["fields"],
   searchSpec?: string
@@ -256,20 +256,20 @@ const pushOrPullScript = async (
 
 //callback for the push/pull buttons
 export const pushPullCallback =
-(action: ButtonAction, globalState: GlobalState) => async () => {
-  if (!globalState.get(CONNECTION)) {
-    vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
-    return openSettings();
-  }
-  const answer = await vscode.window.showInformationMessage(
-    `Do you want to overwrite ${
-      action === PULL
-        ? "the current script/web template definition from"
-        : "this script/web template definition in"
-    } Siebel?`,
-    "Yes",
-    "No"
-  );
-  if (answer !== "Yes") return;
-  await pushOrPullScript(action, globalState);
-};
+  (action: ButtonAction, globalState: GlobalState) => async () => {
+    if (!globalState.get(CONNECTION)) {
+      vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
+      return openSettings();
+    }
+    const answer = await vscode.window.showInformationMessage(
+      `Do you want to overwrite ${
+        action === PULL
+          ? "the current script/web template definition from"
+          : "this script/web template definition in"
+      } Siebel?`,
+      "Yes",
+      "No"
+    );
+    if (answer !== "Yes") return;
+    await pushOrPullScript(action, globalState);
+  };

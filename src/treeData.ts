@@ -13,7 +13,7 @@ import {
   DEFINITION,
   WEBTEMP,
 } from "./constants";
-import { getDataFromRESTAPI } from "./dataService";
+import { getDataFromSiebel } from "./dataService";
 import { writeFile, writeInfo } from "./fileRW";
 import { existsSync, readdirSync } from "fs";
 import { GlobalState, joinUrl } from "./utility";
@@ -158,7 +158,11 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
     );
 
   createTreeViewData = async (searchSpec: string) => {
-    const data = await getDataFromRESTAPI(this.objectUrl, NAME, searchSpec);
+    const data: ScriptResponse[] = await getDataFromSiebel(
+      this.objectUrl,
+      NAME,
+      searchSpec
+    );
     this.dataObject = {};
     for (const { Name } of data) {
       const exists = existsSync(join(this.folder, Name));
@@ -175,7 +179,7 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
   getAllServerScripts = async (objectName: string, namesOnly = false) => {
     const folderPath = join(this.folder, objectName),
       objectUrlPath = joinUrl(this.objectUrl, objectName, this.scriptUrl),
-      data: ScriptResponse[] = await getDataFromRESTAPI(
+      data = await getDataFromSiebel(
         objectUrlPath,
         namesOnly ? NAME : NAMESCRIPT
       ),
@@ -204,7 +208,7 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
         this.scriptUrl,
         objectName
       ),
-      data: ScriptResponse[] = await getDataFromRESTAPI(objectUrlPath, SCRIPT),
+      data = await getDataFromSiebel(objectUrlPath, SCRIPT),
       script = data[0]?.Script,
       localFileExtension = this.globalState.get(LOCAL_FILE_EXTENSION),
       OPEN_FILE = true;
@@ -235,7 +239,11 @@ export class TreeDataProviderWebTemp extends TreeDataProviderBase {
     );
 
   createTreeViewData = async (searchSpec: string) => {
-    const data = await getDataFromRESTAPI(this.objectUrl, NAME, searchSpec);
+    const data: WebTempResponse[] = await getDataFromSiebel(
+      this.objectUrl,
+      NAME,
+      searchSpec
+    );
     this.dataObject = {};
     for (let row of data) {
       this.dataObject[row.Name] = existsSync(
@@ -247,10 +255,7 @@ export class TreeDataProviderWebTemp extends TreeDataProviderBase {
 
   getWebTemplate = async (objectName: string) => {
     const objectUrlPath = joinUrl(this.objectUrl, objectName),
-      data: WebTempResponse[] = await getDataFromRESTAPI(
-        objectUrlPath,
-        DEFINITION
-      ),
+      data = await getDataFromSiebel(objectUrlPath, DEFINITION),
       webtemp = data[0]?.Definition,
       OPEN_FILE = true;
     if (webtemp === undefined) return;

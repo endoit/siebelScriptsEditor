@@ -122,7 +122,7 @@ type Settings = {
     | undefined;
 };
 
-//overloaded function interface
+//overloaded function interfaces
 interface IAxiosInstance {
   (
     { url, username, password }: Connection,
@@ -134,6 +134,16 @@ interface IAxiosInstance {
     method: "put",
     paramsOrPayload: Payload
   ): Promise<number>;
+}
+
+interface IGetDataFromSiebel {
+  (url: string, fields: "Name", searchSpec: string): Promise<
+    ScriptResponse[] | WebTempResponse[]
+  >;
+  (url: string, fields: "Name" | "Name,Script" | "Script"): Promise<
+    ScriptResponse[]
+  >;
+  (url: string, fields: "Definition"): Promise<WebTempResponse[]>;
 }
 
 //Deprecated settings
