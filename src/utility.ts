@@ -22,6 +22,7 @@ export interface GlobalState extends vscode.Memento {
   get(key: "localFileExtension"): Settings["localFileExtension"];
   get(key: "singleFileAutoDownload"): boolean;
 }
+
 //create url path from parts
 export const joinUrl = (...args: string[]) => args.join("/");
 
@@ -134,6 +135,8 @@ export const moveDeprecatedSettings = async () => {
         vscode.ConfigurationTarget.Global
       );
   } catch (err: any) {
-    vscode.window.showErrorMessage(`An error occured when moving the deprecated parameters to the new settings: ${err.message}, please check and fill the new settings manually!`);
+    vscode.window.showErrorMessage(
+      `An error occured when moving the deprecated parameters to the new settings: ${err.message}, please check and fill the new settings manually!`
+    );
   }
 };

@@ -1,5 +1,12 @@
 //Siebel object types
-type SiebelObject = "service" | "buscomp" | "applet" | "application" | "webtemp";
+type SiebelObject =
+  | "service"
+  | "buscomp"
+  | "applet"
+  | "application"
+  | "webtemp";
+
+type NotWebTemp = Exclude<SiebelObject, "webtemp">;
 
 //Connections object
 type Connections = Record<
@@ -27,9 +34,9 @@ type WebTempObject = Record<string, boolean>;
 //Query parameters
 type QueryParams = {
   searchSpec?: string;
-  workspace?: string;
+  workspace?: "MAIN";
   fields?: "Name" | "Script" | "Definition" | "Name,Script";
-  pageSize?: 20 | 100;
+  pageSize?: 100;
   childLinks?: "None";
   uniformresponse?: "y";
 };
@@ -51,6 +58,7 @@ type InfoObject = {
   connection: string;
   workspace: string;
   type: SiebelObject;
+  files: Record<string, PullPushDate>;
   siebelObjectName?: string;
   scripts?: Record<string, PullPushDate>;
   definitions?: Record<string, PullPushDate>;
@@ -114,10 +122,24 @@ type Settings = {
     | undefined;
 };
 
+//overloaded function interface
+interface IAxiosInstance {
+  (
+    { url, username, password }: Connection,
+    method: "get",
+    paramsOrPayload: QueryParams
+  ): Promise<any[]>;
+  (
+    { url, username, password }: Connection,
+    method: "put",
+    paramsOrPayload: Payload
+  ): Promise<number>;
+}
 
 //Deprecated settings
 type OldSettings = {
   "REST EndpointConfigurations": string[];
   workspaces: string[];
   getWorkspacesFromREST: boolean;
+  defaultConnection: string;
 };

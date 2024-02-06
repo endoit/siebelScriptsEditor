@@ -24,8 +24,11 @@ import {
   DEFINITION,
   SCRIPT,
   ERR_NO_INFO_JSON_ENTRY,
+  INFO_KEY_LAST_UPDATE,
+  INFO_KEY_LAST_PUSH,
+  ERR_CONN_PARAM_PARSE,
 } from "./constants";
-import { GlobalState, joinUrl } from "./utility";
+import { GlobalState, joinUrl, openSettings } from "./utility";
 import { writeFile } from "./fileRW";
 
 export const createInterceptor = (globalState: GlobalState) => {
@@ -61,7 +64,7 @@ export const getDataFromRESTAPI = async (
     const params: QueryParams = { fields };
     if (searchSpec) params["searchSpec"] = `Name LIKE '${searchSpec}*'`;
     const response = await axios({ url, params });
-    return response.data.items;
+    return response.data?.items;
   } catch (err: any) {
     if (err.response?.status !== 404) {
       vscode.window.showErrorMessage(
@@ -74,7 +77,7 @@ export const getDataFromRESTAPI = async (
   }
 };
 
-const callRESTAPIInstance = async (
+const axiosInstance: IAxiosInstance = async (
   { url, username, password }: Connection,
   method: RestMethod,
   paramsOrPayload: QueryParams | Payload
@@ -94,10 +97,11 @@ const callRESTAPIInstance = async (
             ...paramsOrPayload,
           },
           response = await instance.get(url, { params });
-        return response.data.items;
+        return response.data?.items;
       }
       case PUT: {
-        return await instance.put(url, paramsOrPayload);
+        const response = await instance.put(url, paramsOrPayload);
+        return response.status;
       }
     }
   } catch (err: any) {
@@ -123,7 +127,7 @@ export const checkBaseWorkspaceIOB = async ({
       searchSpec: `Name='Base Workspace'`,
     },
     workspacesUrl = joinUrl(url, PATH_MAIN_INTEG_OBJ),
-    data = await callRESTAPIInstance(
+    data = await axiosInstance(
       { url: workspacesUrl, username, password },
       GET,
       params
@@ -143,7 +147,7 @@ export const getWorkspaces = async ({
     },
     workspacesUrl = joinUrl(url, PATH_WORKSPACE_IOB),
     workspaces = [],
-    data = await callRESTAPIInstance(
+    data = await axiosInstance(
       { url: workspacesUrl, username, password },
       GET,
       params
@@ -155,7 +159,7 @@ export const getWorkspaces = async ({
 };
 
 //push/pull script from/to database
-export const pushOrPullScript = async (
+const pushOrPullScript = async (
   action: ButtonAction,
   globalState: GlobalState
 ) => {
@@ -170,8 +174,12 @@ export const pushOrPullScript = async (
     infoJSON: InfoObject = JSON.parse(Buffer.from(readInfo).toString()),
     isWebTemp = infoJSON.type === WEBTEMP,
     field = isWebTemp ? DEFINITION : SCRIPT,
-    dateInfoObjectKey = `${field.toLowerCase()}s` as "definitions" | "scripts",
-    isInfo = infoJSON[dateInfoObjectKey]!.hasOwnProperty(fileName);
+    oldDateInfoKey = isWebTemp ? "definitions" : "scripts";
+  if (infoJSON.hasOwnProperty(oldDateInfoKey)) {
+    infoJSON.files = infoJSON[oldDateInfoKey]!;
+    delete infoJSON[oldDateInfoKey];
+  }
+  const isInfo = infoJSON.files.hasOwnProperty(fileName);
   if (!isInfo && (isWebTemp || action === PULL))
     return vscode.window.showErrorMessage(ERR_NO_INFO_JSON_ENTRY);
   const { connection, workspace, type, siebelObjectName = "" } = infoJSON,
@@ -188,7 +196,11 @@ export const pushOrPullScript = async (
       repositoryObjects[type].parent,
       isWebTemp
         ? fileName
-        : joinUrl(siebelObjectName, repositoryObjects[type].child, fileName)
+        : joinUrl(
+            siebelObjectName,
+            repositoryObjects[type as NotWebTemp].child,
+            fileName
+          )
     ),
     connectionParams = {
       url: urlPath,
@@ -197,14 +209,13 @@ export const pushOrPullScript = async (
     };
   switch (action) {
     case PULL: {
-      const data = await callRESTAPIInstance(connectionParams, GET, {
+      const data = await axiosInstance(connectionParams, GET, {
           fields: field,
         }),
         content = data[0][field];
       if (!content) return;
       writeFile(filePath, content);
-      infoJSON[dateInfoObjectKey]![fileName]["last update from Siebel"] =
-        new Date().toISOString();
+      infoJSON.files[fileName][INFO_KEY_LAST_UPDATE] = new Date().toString();
       break;
     }
     case PUSH: {
@@ -223,12 +234,8 @@ export const pushOrPullScript = async (
           return vscode.window.showErrorMessage(ERR_FILE_FUNCTION_NAME_DIFF);
         payload["Program Language"] = "JS";
       }
-      const response = await callRESTAPIInstance(
-        connectionParams,
-        PUT,
-        payload
-      );
-      if (response.status !== 200)
+      const uploadStatus = await axiosInstance(connectionParams, PUT, payload);
+      if (uploadStatus !== 200)
         return vscode.window.showErrorMessage(ERR_NO_UPDATE);
       vscode.window.showInformationMessage(
         `Successfully updated ${
@@ -236,14 +243,33 @@ export const pushOrPullScript = async (
         } in Siebel!`
       );
       if (!isInfo)
-        infoJSON[dateInfoObjectKey]![fileName] = {
-          "last update from Siebel": "",
-          "last push to Siebel": "",
+        infoJSON.files[fileName] = {
+          [INFO_KEY_LAST_UPDATE]: "",
+          [INFO_KEY_LAST_PUSH]: "",
         };
-      infoJSON[dateInfoObjectKey]![fileName]["last push to Siebel"] =
-        new Date().toISOString();
+      infoJSON.files[fileName][INFO_KEY_LAST_PUSH] = new Date().toString();
       break;
     }
   }
   await writeFile(infoFilePath, JSON.stringify(infoJSON, null, 2));
+};
+
+//callback for the push/pull buttons
+export const pushPullCallback =
+(action: ButtonAction, globalState: GlobalState) => async () => {
+  if (!globalState.get(CONNECTION)) {
+    vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
+    return openSettings();
+  }
+  const answer = await vscode.window.showInformationMessage(
+    `Do you want to overwrite ${
+      action === PULL
+        ? "the current script/web template definition from"
+        : "this script/web template definition in"
+    } Siebel?`,
+    "Yes",
+    "No"
+  );
+  if (answer !== "Yes") return;
+  await pushOrPullScript(action, globalState);
 };

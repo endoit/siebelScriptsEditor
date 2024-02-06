@@ -16,7 +16,7 @@ import {
   CONFIG_DATA,
   OBJECT,
 } from "./constants";
-import { createInterceptor, pushOrPullScript } from "./dataService";
+import { createInterceptor, pushPullCallback } from "./dataService";
 import { createIndexdtsAndJSConfigjson } from "./fileRW";
 import {
   openSettings,
@@ -25,10 +25,13 @@ import {
   GlobalState,
 } from "./utility";
 import {
-  selectionChange,
+  selectionChangeObject,
+  selectionChangeWebTemp,
   TreeDataProviderObject,
-  TreeDataProviderWebtemp,
-  TreeItem,
+  TreeDataProviderWebTemp,
+  TreeItemObject,
+  TreeItemScript,
+  TreeItemWebTemp,
 } from "./treeData";
 import { webViewHTML } from "./webView";
 
@@ -39,17 +42,17 @@ export async function activate(context: vscode.ExtensionContext) {
   const globalState = context.globalState as GlobalState,
     treeViewState: Record<
       SiebelObject,
-      TreeDataProviderObject | TreeDataProviderWebtemp
+      TreeDataProviderObject | TreeDataProviderWebTemp
     > = {
       service: new TreeDataProviderObject(globalState, SERVICE),
       buscomp: new TreeDataProviderObject(globalState, BUSCOMP),
       applet: new TreeDataProviderObject(globalState, APPLET),
       application: new TreeDataProviderObject(globalState, APPLICATION),
-      webtemp: new TreeDataProviderWebtemp(globalState, WEBTEMP),
+      webtemp: new TreeDataProviderWebTemp(globalState, WEBTEMP),
     };
 
   //create the index.d.ts and jsconfig.json if they do not exist
-  createIndexdtsAndJSConfigjson(context);
+  await createIndexdtsAndJSConfigjson(context);
 
   //move the deprecated settings into new settings
   await moveDeprecatedSettings();
@@ -65,11 +68,19 @@ export async function activate(context: vscode.ExtensionContext) {
         showCollapseAll: objectType !== WEBTEMP,
       })
       .onDidChangeSelection(async (e) =>
-        selectionChange(
-          e as vscode.TreeViewSelectionChangeEvent<TreeItem>,
-          treeDataProvider,
-          globalState
-        )
+        objectType !== WEBTEMP
+          ? selectionChangeObject(
+              e as vscode.TreeViewSelectionChangeEvent<
+                TreeItemObject | TreeItemScript
+              >,
+              treeDataProvider as TreeDataProviderObject,
+              globalState
+            )
+          : selectionChangeWebTemp(
+              e as vscode.TreeViewSelectionChangeEvent<TreeItemWebTemp>,
+              treeDataProvider as TreeDataProviderWebTemp,
+              globalState
+            )
       );
   }
 
@@ -80,28 +91,8 @@ export async function activate(context: vscode.ExtensionContext) {
     }
   };
 
-  //create the interceptor for the default/first connection
+  //create the interceptor for the first connection
   createInterceptor(globalState);
-
-  //callback for the push/pull buttons
-  const pushPullCallback = (action: ButtonAction, globalState: GlobalState) => async () => {
-    if (!globalState.get(CONNECTION)) {
-      vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
-      openSettings();
-      return;
-    }
-    const answer = await vscode.window.showInformationMessage(
-      `Do you want to overwrite ${
-        action === PULL
-          ? "the current script/web template definition from"
-          : "this script/web template definition in"
-      } Siebel?`,
-      "Yes",
-      "No"
-    );
-    if (answer !== "Yes") return;
-    pushOrPullScript(action, globalState);
-  };
 
   //buttons to get/update script from/to siebel
   const pullButton = vscode.commands.registerCommand(
@@ -135,7 +126,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
   //handle the datasource selection webview and tree views
   const provider: vscode.WebviewViewProvider = {
-    resolveWebviewView: ({ webview } /*thisWebview: vscode.WebviewView*/) => {
+    resolveWebviewView: ({ webview }) => {
       //watch changes in the settings
       vscode.workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration("siebelScriptAndWebTempEditor")) {
@@ -172,16 +163,14 @@ export async function activate(context: vscode.ExtensionContext) {
               globalState.update(WORKSPACE, firstWorkspace);
               createInterceptor(globalState);
               webview.html = webViewHTML(globalState);
-              clearTreeViews();
-              return;
+              return clearTreeViews();
             }
             case WORKSPACE: {
               //handle workspace selection, create the new interceptor and clear the tree views
               globalState.update(WORKSPACE, workspace);
               createInterceptor(globalState);
               webview.html = webViewHTML(globalState);
-              clearTreeViews();
-              return;
+              return clearTreeViews();
             }
             case OBJECT: {
               //handle Siebel object selection
@@ -195,8 +184,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 debouncedSearch = debounceAsync(() =>
                   treeViewState[objectType].createTreeViewData(searchString)
                 );
-              await debouncedSearch();
-              return;
+              return await debouncedSearch();
             }
             case OPEN_CONFIG: {
               //opens the Settings for the extension
