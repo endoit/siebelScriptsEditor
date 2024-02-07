@@ -12,6 +12,7 @@ import {
   INFO_KEY_FOLDER_CREATED,
   INFO_KEY_LAST_UPDATE,
   INFO_KEY_LAST_PUSH,
+  WORKSPACE_FOLDER,
 } from "./constants";
 import { GlobalState } from "./utility";
 import { basename, join } from "path";
@@ -96,16 +97,16 @@ export const createIndexdtsAndJSConfigjson = async (
   context: vscode.ExtensionContext
 ): Promise<void> => {
   try {
-    const wsPath = vscode.workspace.workspaceFolders![0].uri.fsPath,
-      typeDefFilePath = join(wsPath, FILE_NAME_TYPE_DEF),
-      jsconfigFilePath = join(wsPath, FILE_NAME_JSCONFIG);
+    const workspaceFolder = (context.globalState as GlobalState).get(WORKSPACE_FOLDER),
+      typeDefFilePath = join(workspaceFolder , FILE_NAME_TYPE_DEF),
+      jsconfigFilePath = join(workspaceFolder , FILE_NAME_JSCONFIG);
     if (!existsSync(typeDefFilePath)) {
-      const data = await vscode.workspace.fs.readFile(
+      const fileContent = await vscode.workspace.fs.readFile(
         vscode.Uri.file(context.asAbsolutePath(FILE_NAME_SIEBEL_TYPES))
       );
-      writeFile(typeDefFilePath, data.toString());
+      writeFile(typeDefFilePath, fileContent.toString());
       vscode.window.showInformationMessage(
-        `File index.d.ts was created in ${wsPath} folder!`
+        `File index.d.ts was created in ${workspaceFolder} folder!`
       );
     }
 
@@ -117,7 +118,7 @@ export const createIndexdtsAndJSConfigjson = async (
       );
       writeFile(jsconfigFilePath, jsConfig);
       vscode.window.showInformationMessage(
-        `File jsconfig.json was created in ${wsPath} folder!`
+        `File jsconfig.json was created in ${workspaceFolder} folder!`
       );
     }
   } catch (err: any) {

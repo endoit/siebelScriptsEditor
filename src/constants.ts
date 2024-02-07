@@ -55,7 +55,8 @@ export const CONFIG_DATA = "configData",
   INTERCEPTOR = "interceptor",
   DEFAULT_SCRIPT_FETCHING = "defaultScriptFetching",
   SINGLE_FILE_AUTODOWNLOAD = "singleFileAutoDownload",
-  LOCAL_FILE_EXTENSION = "localFileExtension";
+  LOCAL_FILE_EXTENSION = "localFileExtension",
+  WORKSPACE_FOLDER = "workspaceFolder";
 
 //constant URLs
 export const PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
@@ -72,6 +73,7 @@ export const INFO_KEY_LAST_UPDATE = "last update from Siebel",
   INFO_KEY_LAST_PUSH = "last push to Siebel",
   INFO_KEY_FOLDER_CREATED = "folder created at";
 
+  
 //Constant error messages
 export const ERR_NO_WS_OPEN =
     "Please open a Visual Studio Code workspace folder to use the extension!",

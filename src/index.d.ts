@@ -36,7 +36,6 @@ type QueryParams = {
   searchSpec?: string;
   workspace?: "MAIN";
   fields?: "Name" | "Script" | "Definition" | "Name,Script";
-  pageSize?: 100;
   childLinks?: "None";
   uniformresponse?: "y";
 };

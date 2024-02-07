@@ -3,7 +3,6 @@ import {
   APPLET,
   APPLICATION,
   BUSCOMP,
-  ERR_CONN_PARAM_PARSE,
   ERR_NO_WS_OPEN,
   OPEN_CONFIG,
   PULL,
@@ -15,8 +14,9 @@ import {
   WORKSPACE,
   CONFIG_DATA,
   OBJECT,
+  WORKSPACE_FOLDER,
 } from "./constants";
-import { createInterceptor, pushPullCallback } from "./dataService";
+import { createInterceptor, pushOrPullCallback } from "./dataService";
 import { createIndexdtsAndJSConfigjson } from "./fileRW";
 import {
   openSettings,
@@ -24,32 +24,24 @@ import {
   moveDeprecatedSettings,
   GlobalState,
 } from "./utility";
-import {
-  selectionChangeObject,
-  selectionChangeWebTemp,
-  TreeDataProviderObject,
-  TreeDataProviderWebTemp,
-  TreeItemObject,
-  TreeItemScript,
-  TreeItemWebTemp,
-} from "./treeData";
+import { TreeDataProviderObject, TreeDataProviderWebTemp } from "./treeView";
 import { webViewHTML } from "./webView";
 
 export async function activate(context: vscode.ExtensionContext) {
-  if (vscode.workspace.workspaceFolders?.[0] === undefined)
-    return vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
-  let timeoutId = 0;
-  const globalState = context.globalState as GlobalState,
-    treeViewState: Record<
-      SiebelObject,
-      TreeDataProviderObject | TreeDataProviderWebTemp
-    > = {
-      service: new TreeDataProviderObject(globalState, SERVICE),
-      buscomp: new TreeDataProviderObject(globalState, BUSCOMP),
-      applet: new TreeDataProviderObject(globalState, APPLET),
-      application: new TreeDataProviderObject(globalState, APPLICATION),
-      webtemp: new TreeDataProviderWebTemp(globalState, WEBTEMP),
-    };
+  const workspaceFolder = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+  if (!workspaceFolder) return vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
+  const globalState = context.globalState as GlobalState;
+  globalState.update(WORKSPACE_FOLDER, workspaceFolder);
+  const treeDataProviders: Record<
+    SiebelObject,
+    TreeDataProviderObject | TreeDataProviderWebTemp
+  > = {
+    service: new TreeDataProviderObject(SERVICE, globalState),
+    buscomp: new TreeDataProviderObject(BUSCOMP, globalState),
+    applet: new TreeDataProviderObject(APPLET, globalState),
+    application: new TreeDataProviderObject(APPLICATION, globalState),
+    webtemp: new TreeDataProviderWebTemp(WEBTEMP, globalState),
+  };
 
   //create the index.d.ts and jsconfig.json if they do not exist
   await createIndexdtsAndJSConfigjson(context);
@@ -61,32 +53,20 @@ export async function activate(context: vscode.ExtensionContext) {
   await parseSettings(globalState);
 
   //create the tree views with the selection change callback
-  for (const [objectType, treeDataProvider] of Object.entries(treeViewState)) {
+  for (const [type, treeDataProvider] of Object.entries(treeDataProviders)) {
     vscode.window
-      .createTreeView(objectType, {
+      .createTreeView(type, {
         treeDataProvider,
-        showCollapseAll: objectType !== WEBTEMP,
+        showCollapseAll: type !== WEBTEMP,
       })
       .onDidChangeSelection(async (e) =>
-        objectType !== WEBTEMP
-          ? selectionChangeObject(
-              e as vscode.TreeViewSelectionChangeEvent<
-                TreeItemObject | TreeItemScript
-              >,
-              treeDataProvider as TreeDataProviderObject,
-              globalState
-            )
-          : selectionChangeWebTemp(
-              e as vscode.TreeViewSelectionChangeEvent<TreeItemWebTemp>,
-              treeDataProvider as TreeDataProviderWebTemp,
-              globalState
-            )
+        treeDataProvider.selectionChange(e as any)
       );
   }
 
   //clear the tree views and set the connection and workspace name
   const clearTreeViews = () => {
-    for (const treeDataProvider of Object.values(treeViewState)) {
+    for (const treeDataProvider of Object.values(treeDataProviders)) {
       treeDataProvider.clear();
     }
   };
@@ -97,32 +77,15 @@ export async function activate(context: vscode.ExtensionContext) {
   //buttons to get/update script from/to siebel
   const pullButton = vscode.commands.registerCommand(
     "siebelscriptandwebtempeditor.pullScript",
-    pushPullCallback(PULL, globalState)
+    pushOrPullCallback(PULL, globalState)
   );
   context.subscriptions.push(pullButton);
 
   const pushButton = vscode.commands.registerCommand(
     "siebelscriptandwebtempeditor.pushScript",
-    pushPullCallback(PUSH, globalState)
+    pushOrPullCallback(PUSH, globalState)
   );
   context.subscriptions.push(pushButton);
-
-  //debounce the search input
-  const debounceAsync =
-    <T, Callback extends (...args: any[]) => Promise<T>>(
-      callback: Callback
-    ): ((...args: Parameters<Callback>) => Promise<T>) =>
-    (...args: any[]) => {
-      clearTimeout(timeoutId);
-      return new Promise<T>((resolve) => {
-        const timeoutPromise = new Promise<void>((resolve) => {
-          timeoutId = setTimeout(resolve, 300);
-        });
-        timeoutPromise.then(async () => {
-          resolve(await callback(...args));
-        });
-      });
-    };
 
   //handle the datasource selection webview and tree views
   const provider: vscode.WebviewViewProvider = {
@@ -180,16 +143,11 @@ export async function activate(context: vscode.ExtensionContext) {
             }
             case SEARCH: {
               //get the Siebel objects and create the tree views
-              const objectType = globalState.get(OBJECT),
-                debouncedSearch = debounceAsync(() =>
-                  treeViewState[objectType].createTreeViewData(searchString)
-                );
-              return await debouncedSearch();
+              const type = globalState.get(OBJECT);
+              return await treeDataProviders[type].debouncedSearch(searchString);
             }
-            case OPEN_CONFIG: {
-              //opens the Settings for the extension
+            case OPEN_CONFIG:
               return openSettings();
-            }
           }
         },
         undefined,

@@ -33,7 +33,7 @@ import { writeFile } from "./fileRW";
 
 export const createInterceptor = (globalState: GlobalState) => {
   const connection = globalState.get(CONNECTION);
-  if (!connection) return 0;
+  if (!connection) return;
   const workspace = globalState.get(WORKSPACE),
     { url, username, password } = globalState.get(CONFIG_DATA)[connection];
   let interceptor = globalState.get(INTERCEPTOR);
@@ -42,7 +42,7 @@ export const createInterceptor = (globalState: GlobalState) => {
     config.headers["Content-Type"] = "application/json";
     return {
       ...config,
-      baseURL: joinUrl(url, WORKSPACE, workspace, "/"),
+      baseURL: joinUrl(url, WORKSPACE, workspace),
       method: GET,
       withCredentials: true,
       auth: { username, password },
@@ -159,10 +159,7 @@ export const getWorkspaces = async ({
 };
 
 //push/pull script from/to database
-const pushOrPullScript = async (
-  action: ButtonAction,
-  globalState: GlobalState
-) => {
+const pushOrPull = async (action: ButtonAction, globalState: GlobalState) => {
   const fileUri = vscode.window.activeTextEditor!.document.uri,
     filePath = fileUri.fsPath,
     { name: fileName } = parse(filePath),
@@ -173,7 +170,7 @@ const pushOrPullScript = async (
   const readInfo = await vscode.workspace.fs.readFile(infoFileUri),
     infoJSON: InfoObject = JSON.parse(Buffer.from(readInfo).toString()),
     isWebTemp = infoJSON.type === WEBTEMP,
-    field = isWebTemp ? DEFINITION : SCRIPT,
+    fields = isWebTemp ? DEFINITION : SCRIPT,
     oldDateInfoKey = isWebTemp ? "definitions" : "scripts";
   if (infoJSON.hasOwnProperty(oldDateInfoKey)) {
     infoJSON.files = infoJSON[oldDateInfoKey]!;
@@ -189,7 +186,7 @@ const pushOrPullScript = async (
       `Connection "${connection}" was not found in the Connections settings!`
     );
   const { url, username, password }: Connection = connectionObject,
-    urlPath = joinUrl(
+    objectUrlPath = joinUrl(
       url,
       WORKSPACE,
       workspace,
@@ -203,16 +200,16 @@ const pushOrPullScript = async (
           )
     ),
     connectionParams = {
-      url: urlPath,
+      url: objectUrlPath,
       username,
       password,
     };
   switch (action) {
     case PULL: {
       const data = await axiosInstance(connectionParams, GET, {
-          fields: field,
+          fields,
         }),
-        content = data[0][field];
+        content = data?.[0][fields];
       if (!content) return;
       writeFile(filePath, content);
       infoJSON.files[fileName][INFO_KEY_LAST_UPDATE] = new Date().toString();
@@ -221,7 +218,7 @@ const pushOrPullScript = async (
     case PUSH: {
       const content = await vscode.workspace.fs.readFile(fileUri),
         fileContent = Buffer.from(content).toString(),
-        payload: Payload = { Name: fileName, [field]: fileContent };
+        payload: Payload = { Name: fileName, [fields]: fileContent };
       if (!isInfo) {
         const answer = await vscode.window.showInformationMessage(
           `Script was not found in info.json, would you like to create this file as a new method of the Siebel Object?`,
@@ -255,7 +252,7 @@ const pushOrPullScript = async (
 };
 
 //callback for the push/pull buttons
-export const pushPullCallback =
+export const pushOrPullCallback =
   (action: ButtonAction, globalState: GlobalState) => async () => {
     if (!globalState.get(CONNECTION)) {
       vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
@@ -271,5 +268,5 @@ export const pushPullCallback =
       "No"
     );
     if (answer !== "Yes") return;
-    await pushOrPullScript(action, globalState);
+    await pushOrPull(action, globalState);
   };

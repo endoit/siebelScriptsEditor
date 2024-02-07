@@ -16,11 +16,12 @@ import { checkBaseWorkspaceIOB, getWorkspaces } from "./dataService";
 export interface GlobalState extends vscode.Memento {
   get(key: "connection" | "workspace"): string;
   get(key: "object"): SiebelObject;
-  get(key: "interceptor"): number;
   get(key: "configData"): Connections;
+  get(key: "interceptor"): number;
   get(key: "defaultScriptFetching"): Settings["defaultScriptFetching"];
   get(key: "localFileExtension"): Settings["localFileExtension"];
-  get(key: "singleFileAutoDownload"): boolean;
+  get(key: "singleFileAutoDownload"): Settings["singleFileAutoDownload"];
+  get(key: "workspaceFolder"): string;
 }
 
 //create url path from parts
@@ -48,8 +49,8 @@ export const parseSettings = async (globalState: GlobalState) => {
     if (Object.keys(connections).length === 0)
       throw new Error(ERR_NO_CONN_SETTING);
     for (const [configString, workspaceString] of Object.entries(connections)) {
-      const [connUserPwString, url] = configString.split("@");
-      const [connectionName, username, password] = connUserPwString.split("/");
+      const [connUserPwString, url] = configString.split("@"),
+        [connectionName, username, password] = connUserPwString.split("/");
       if (!(url && username && password))
         throw new Error(
           `Missing parameter(s) for the ${connectionName} connection, check the Connections settings!`
@@ -97,6 +98,8 @@ export const parseSettings = async (globalState: GlobalState) => {
     globalState.update(SINGLE_FILE_AUTODOWNLOAD, singleFileAutoDownload);
     globalState.update(LOCAL_FILE_EXTENSION, localFileExtension);
   } catch (err: any) {
+    globalState.update(CONNECTION, "");
+    globalState.update(CONFIG_DATA, {});
     vscode.window.showErrorMessage(err.message);
   }
 };

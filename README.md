@@ -25,8 +25,3 @@ Siebel Script And Web Template Editor is a Visual Studio Code extension, which e
 
 - Siebel REST API and workspaces should be enabled.
 [See full documentation for detailed installation instructions](https://github.com/endoit/siebelScriptsEditor/wiki).
-
-# 3. Known Issues
-
-- Currently only basic authentication is supported for the Siebel REST API.
-- Only one VS Code workspace folder is supported.
