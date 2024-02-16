@@ -27,15 +27,16 @@ import {
   INFO_KEY_LAST_UPDATE,
   INFO_KEY_LAST_PUSH,
   ERR_CONN_PARAM_PARSE,
+  CONNECTIONS,
 } from "./constants";
-import { GlobalState, joinUrl, openSettings } from "./utility";
+import { GlobalState, getSetting, joinUrl, openSettings } from "./utility";
 import { writeFile } from "./fileRW";
 
 export const createInterceptor = (globalState: GlobalState) => {
   const connection = globalState.get(CONNECTION);
   if (!connection) return;
   const workspace = globalState.get(WORKSPACE),
-    { url, username, password } = globalState.get(CONFIG_DATA)[connection];
+    { url, username, password } = getSetting(CONNECTIONS)[connection];
   let interceptor = globalState.get(INTERCEPTOR);
   axios.interceptors.request.eject(interceptor);
   interceptor = axios.interceptors.request.use((config) => {
@@ -180,7 +181,7 @@ const pushOrPull = async (action: ButtonAction, globalState: GlobalState) => {
   if (!isInfo && (isWebTemp || action === PULL))
     return vscode.window.showErrorMessage(ERR_NO_INFO_JSON_ENTRY);
   const { connection, workspace, type, siebelObjectName = "" } = infoJSON,
-    connectionObject = globalState.get(CONFIG_DATA)[connection];
+    connectionObject = getSetting(CONNECTIONS)[connection];
   if (!connectionObject)
     return vscode.window.showErrorMessage(
       `Connection "${connection}" was not found in the Connections settings!`

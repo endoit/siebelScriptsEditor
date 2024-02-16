@@ -31,7 +31,10 @@ export const workspaceQueryParams = {
 
 //webview commands
 export const SEARCH = "search",
-  OPEN_CONFIG = "openConfig";
+  CONFIGURE_CONNECTIONS = "configureConnections",
+  OPEN_SETTINGS = "openSettings",
+  TEST_CONNECTION = "testConnection",
+  CREATE_OR_UPDATE_CONNECTION = "createOrUpdateConnection";
 
 //REST methods
 export const GET = "get",
@@ -47,16 +50,20 @@ export const FILE_NAME_INFO = "info.json",
   FILE_NAME_JSCONFIG = "jsconfig.json",
   FILE_NAME_SIEBEL_TYPES = "siebelTypes.txt";
 
+//setting names
+export const CONNECTIONS = "connections",
+  DEFAULT_CONNECTION_NAME = "defaultConnectionName",
+  DEFAULT_SCRIPT_FETCHING = "defaultScriptFetching",
+  SINGLE_FILE_AUTODOWNLOAD = "singleFileAutoDownload",
+  LOCAL_FILE_EXTENSION = "localFileExtension";
+
 //global state parameters
 export const CONFIG_DATA = "configData",
   CONNECTION = "connection",
   WORKSPACE = "workspace",
+  WORKSPACE_FOLDER = "workspaceFolder",
   OBJECT = "object",
-  INTERCEPTOR = "interceptor",
-  DEFAULT_SCRIPT_FETCHING = "defaultScriptFetching",
-  SINGLE_FILE_AUTODOWNLOAD = "singleFileAutoDownload",
-  LOCAL_FILE_EXTENSION = "localFileExtension",
-  WORKSPACE_FOLDER = "workspaceFolder";
+  INTERCEPTOR = "interceptor";
 
 //constant URLs
 export const PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
@@ -73,7 +80,6 @@ export const INFO_KEY_LAST_UPDATE = "last update from Siebel",
   INFO_KEY_LAST_PUSH = "last push to Siebel",
   INFO_KEY_FOLDER_CREATED = "folder created at";
 
-  
 //Constant error messages
 export const ERR_NO_WS_OPEN =
     "Please open a Visual Studio Code workspace folder to use the extension!",

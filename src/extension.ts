@@ -4,7 +4,6 @@ import {
   APPLICATION,
   BUSCOMP,
   ERR_NO_WS_OPEN,
-  OPEN_CONFIG,
   PULL,
   PUSH,
   SEARCH,
@@ -15,23 +14,32 @@ import {
   CONFIG_DATA,
   OBJECT,
   WORKSPACE_FOLDER,
+  CONNECTIONS,
+  OPEN_SETTINGS,
+  CONFIGURE_CONNECTIONS,
+  TEST_CONNECTION,
+  CREATE_OR_UPDATE_CONNECTION,
 } from "./constants";
 import { createInterceptor, pushOrPullCallback } from "./dataService";
 import { createIndexdtsAndJSConfigjson } from "./fileRW";
 import {
-  openSettings,
-  parseSettings,
+  //openSettings,
+  initState,
   moveDeprecatedSettings,
   GlobalState,
+  getSetting,
+  openSettings,
+  configureConnections,
 } from "./utility";
 import { TreeDataProviderObject, TreeDataProviderWebTemp } from "./treeView";
-import { webViewHTML } from "./webView";
+import { configureConnectionsWebview, webViewHTML } from "./webView";
 
 export async function activate(context: vscode.ExtensionContext) {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
   if (!workspaceFolder) return vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
   const globalState = context.globalState as GlobalState;
   globalState.update(WORKSPACE_FOLDER, workspaceFolder);
+  let configWebview: vscode.WebviewPanel | undefined = undefined;
   const treeDataProviders: Record<
     SiebelObject,
     TreeDataProviderObject | TreeDataProviderWebTemp
@@ -49,8 +57,8 @@ export async function activate(context: vscode.ExtensionContext) {
   //move the deprecated settings into new settings
   await moveDeprecatedSettings();
 
-  //parse the configurations and put them into the globalState
-  await parseSettings(globalState);
+  //get the configuration data into the globalState
+  await initState(globalState);
 
   //create the tree views with the selection change callback
   for (const [type, treeDataProvider] of Object.entries(treeDataProviders)) {
@@ -87,6 +95,47 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(pushButton);
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "siebelscriptandwebtempeditor.config",
+      () => {
+        const columnToShowIn = vscode.window.activeTextEditor
+          ? vscode.window.activeTextEditor.viewColumn
+          : undefined;
+
+        if (configWebview) return configWebview.reveal(columnToShowIn);
+        configWebview = vscode.window.createWebviewPanel(
+          "siebelConnections",
+          "Siebel Connections",
+          columnToShowIn || vscode.ViewColumn.One,
+          { enableScripts: true }
+        );
+        configWebview.webview.html = configureConnectionsWebview(
+          globalState.get(CONNECTION)
+        );
+        configWebview.onDidDispose(
+          () => {
+            configWebview = undefined;
+          },
+          null,
+          context.subscriptions
+        );
+        configWebview.webview.onDidReceiveMessage(
+          async (message) => {
+            switch (message.command) {
+              case TEST_CONNECTION:
+                return;
+              case CREATE_OR_UPDATE_CONNECTION:
+                return;
+            }
+          },
+          undefined,
+          context.subscriptions
+        );
+      }
+    )
+  );
+
   //handle the datasource selection webview and tree views
   const provider: vscode.WebviewViewProvider = {
     resolveWebviewView: ({ webview }) => {
@@ -95,8 +144,8 @@ export async function activate(context: vscode.ExtensionContext) {
         if (e.affectsConfiguration("siebelScriptAndWebTempEditor")) {
           const prevConnection = globalState.get(CONNECTION),
             prevWorkspace = globalState.get(WORKSPACE);
-          await parseSettings(globalState);
-          const prevConfigData = globalState.get(CONFIG_DATA)[prevConnection];
+          await initState(globalState);
+          const prevConfigData = getSetting(CONNECTIONS)[prevConnection];
           if (prevConfigData) {
             globalState.update(CONNECTION, prevConnection);
             const workspace = prevConfigData.workspaces.includes(prevWorkspace)
@@ -121,8 +170,8 @@ export async function activate(context: vscode.ExtensionContext) {
             case CONNECTION: {
               //handle connection selection, create the new interceptor and clear the tree views
               globalState.update(CONNECTION, connectionName);
-              const firstWorkspace =
-                globalState.get(CONFIG_DATA)[connectionName].workspaces[0];
+              const firstWorkspace: string =
+                getSetting(CONNECTIONS)[connectionName].defaultWorkspace;
               globalState.update(WORKSPACE, firstWorkspace);
               createInterceptor(globalState);
               webview.html = webViewHTML(globalState);
@@ -144,9 +193,13 @@ export async function activate(context: vscode.ExtensionContext) {
             case SEARCH: {
               //get the Siebel objects and create the tree views
               const type = globalState.get(OBJECT);
-              return await treeDataProviders[type].debouncedSearch(searchString);
+              return await treeDataProviders[type].debouncedSearch(
+                searchString
+              );
             }
-            case OPEN_CONFIG:
+            case CONFIGURE_CONNECTIONS:
+              return configureConnections();
+            case OPEN_SETTINGS:
               return openSettings();
           }
         },

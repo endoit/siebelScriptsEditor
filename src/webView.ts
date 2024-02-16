@@ -5,16 +5,14 @@ import {
   APPLICATION,
   WEBTEMP,
   repositoryObjects,
-  CONFIG_DATA,
   CONNECTION,
   WORKSPACE,
   OBJECT,
+  CONNECTIONS,
 } from "./constants";
-import { GlobalState } from "./utility";
+import { GlobalState, getSetting } from "./utility";
 
-//generates the HTML page for the webview to select the REST endpoint, workspace, resource and for the searchbar
-export const webViewHTML = (globalState: GlobalState): string => {
-  const css = `
+const css = `
 		<style>
 			.divitem {
 				margin: 0.2em;
@@ -61,7 +59,9 @@ export const webViewHTML = (globalState: GlobalState): string => {
 			}
 		</style>`;
 
-  const configData = globalState.get(CONFIG_DATA),
+//generates the HTML page for the webview to select the REST endpoint, workspace, resource and for the searchbar
+export const webViewHTML = (globalState: GlobalState): string => {
+  const configData = getSetting(CONNECTIONS),
     connection = globalState.get(CONNECTION),
     workspace = globalState.get(WORKSPACE),
     object = globalState.get(OBJECT);
@@ -74,14 +74,20 @@ export const webViewHTML = (globalState: GlobalState): string => {
 			</head>
 			<body>
 				<div class="text">Error in parsing the settings, please give at least one valid REST Endpoint configuration, and at least one workspace for that REST configuration!</div>
-					<div class="divitem">
-						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>
+				<div class="divitem">
+				<Button class="button-small" id="connections" onclick="configureConnections()">Configure connections</Button>  
+			</div>		
+				<div class="divitem">
+						<Button class="button-small" id="settings" onclick="openSettings()">Open settings</Button>
 					</div>
 				</div>
 				<script>
 					const vscode = acquireVsCodeApi();
-					const openConfig = () => {
-						vscode.postMessage({command: "openConfig"});
+					const configureConnections = () => {
+						vscode.postMessage({command: "configureConnections"});
+					}
+					const openSettings = () => {
+						vscode.postMessage({command: "openSettings"});
 					}
 				</script>
 			</body>
@@ -144,8 +150,11 @@ export const webViewHTML = (globalState: GlobalState): string => {
 						<input type="search" name="search-bar" class="input-field" id="search-bar" oninput="handleSearch()" placeholder="Type here to search">
 					</div>
 					<div class="divitem">
-						<Button class="button-small" id="config" onclick="openConfig()">Open settings</Button>  
-					</div>	
+					<Button class="button-small" id="connections" onclick="configureConnections()">Configure connections</Button>  
+				</div>	
+					<div class="divitem">
+						<Button class="button-small" id="settings" onclick="openSettings()">Open settings</Button>  
+					</div>
 				</div>
 				<script>
 					const vscode = acquireVsCodeApi();
@@ -165,10 +174,92 @@ export const webViewHTML = (globalState: GlobalState): string => {
 						const searchString = document.getElementById("search-bar").value;
 						if (searchString !== "") vscode.postMessage({command: "search", searchString});
 					}
-					const openConfig = () => {
-						vscode.postMessage({command: "openConfig"});
+					const openSettings = () => {
+						vscode.postMessage({command: "openSettings"});
+					}
+					const configureConnections = () => {
+						vscode.postMessage({command: "configureConnections"});
 					}
 				</script>
 			</body>
 		</html>`;
+};
+
+export const configureConnectionsWebview = (connectionName: string) => {
+  const {
+    url,
+    username,
+    password,
+    workspaces,
+    restWorkspaces,
+    defaultWorkspace,
+  } = getSetting(CONNECTIONS)[connectionName];
+  const workspaceList = workspaces
+    .map((item) => `<option class="opt" value="${item}">${item}</option>`)
+    .join("");
+
+  return `<!doctype><html>
+	<head>
+		${css}
+	</head>
+	<body>
+		<div class="container">
+			<div class="divitem">
+				<label for="connection-name">Connection Name</label>
+				<input type="text" name="connection-name" class="input-field" id="connection-name" value=${connectionName}>
+			</div>
+			<div class="divitem">
+				<label for="url">Siebel REST API endpoint</label>
+				<input type="text" name="url" class="input-field" id="url" value=${url}>
+			</div>
+			<div class="divitem">
+			<label for="username">Username</label> 
+			<input type="text" name="username" class="input-field" id="username" value=${username}>
+			</div>
+			<div class="divitem">
+			<label for="password">Password</label> 
+			<input type="password" name="username" class="input-field" id="password" value=${password}>
+			</div>
+			<div class="divitem">
+			<label for="workspaces">Workspaces</label> 
+			<select>
+${workspaceList}
+			</select>
+			</div>
+			<div class="divitem">
+			<label for="rest-workspaces">Get workspaces from the Siebel REST API</label> 
+			<input type="checkbox" name="rest-workspaces" class="input-field" id="rest-workspaces" ${restWorkspaces ? "checked" : ""}>
+			</div>
+			<div class="divitem">
+			<label for="username">Default workspace</label> 
+			<input type="text" name="default-workspace" class="input-field" id="default-workspace" value=${defaultWorkspace}>
+			</div>
+			<div class="divitem">
+				<Button class="button-small" id="test" onclick="testConnection()">Test connection</Button>  
+			</div>
+			<div class="divitem">
+			<Button class="button-small" id="create" onclick="createOrUpdateConnection()">Save connection</Button>  
+		</div>	
+		</div>
+		<script>
+			const vscode = acquireVsCodeApi();
+			const testConnection = () => {
+				const url = document.getElementById("url").value,
+				username = document.getElementById("username").value,
+				password = document.getElementById("password").value;
+				vscode.postMessage({command: "testConnection", url, username, password});
+			}
+			const createOrUpdateConnection = () => {
+				const connectionName = document.getElementById("connection-name").value,
+				 url = document.getElementById("url").value,
+				username = document.getElementById("username").value,
+				password = document.getElementById("password").value,
+				restWorkspaces = document.getElementById("rest-workspaces").value,
+				defaultWorkspace =  document.getElementById("default-workspace").value,
+				workspaces = "test";
+				vscode.postMessage({command: "createOrUpdateConnection", url, username, password, workspaces, restWorkspaces, defaultWorkspace});
+			}
+			</script>
+		</body>
+	</html>`;
 };

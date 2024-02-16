@@ -91,7 +91,10 @@ type MessageCommand =
   | "workspace"
   | "object"
   | "search"
-  | "openConfig";
+  | "openSettings"
+  | "configureConnections"
+  | "createOrUpdateConnection"
+  | "testConnection";
 
 //REST methods
 type GET = "get";
@@ -109,7 +112,8 @@ type ButtonAction = PUSH | PULL;
 
 //Settings
 type Settings = {
-  connections: Record<string, string>;
+  connections: Record<string, Config>;
+  defaultConnectionName: string;
   singleFileAutoDownload: boolean;
   localFileExtension: ".js" | ".ts";
   defaultScriptFetching:
@@ -119,6 +123,15 @@ type Settings = {
     | "All scripts"
     | "None - always ask"
     | undefined;
+};
+
+type Config = {
+  username: string;
+  password: string;
+  url: string;
+  workspaces: string[];
+  defaultWorkspace: string;
+  restWorkspaces: boolean;
 };
 
 //overloaded function interfaces
@@ -143,6 +156,14 @@ interface IGetDataFromSiebel {
     ScriptResponse[]
   >;
   (url: string, fields: "Definition"): Promise<WebTempResponse[]>;
+}
+
+interface IGetSetting {
+  (settingName: "connections"): Settings["connections"];
+  (settingName: "defaultConnectionName"): Settings["defaultConnectionName"];
+  (settingName: "singleFileAutoDownload"): Settings["singleFileAutoDownload"];
+  (settingName: "localFileExtension"): Settings["localFileExtension"];
+  (settingName: "defaultScriptFetching"): Settings["defaultScriptFetching"];
 }
 
 //Deprecated settings

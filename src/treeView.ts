@@ -18,7 +18,7 @@ import {
 import { getDataFromSiebel } from "./dataService";
 import { writeFile, writeInfo } from "./fileRW";
 import { existsSync, readdirSync } from "fs";
-import { GlobalState, joinUrl } from "./utility";
+import { GlobalState, getSetting, joinUrl } from "./utility";
 
 type TreeItem = TreeItemObject | TreeItemScript | TreeItemWebTemp;
 
@@ -139,7 +139,7 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
       ),
       OPEN_FILE = true,
       scriptNames = [],
-      localFileExtension = this.globalState.get(LOCAL_FILE_EXTENSION);
+      localFileExtension = getSetting(LOCAL_FILE_EXTENSION);
     for (const { Name, Script } of data) {
       const fileNameNoExt = join(folderPath, Name);
       scriptNames.push(Name);
@@ -164,7 +164,7 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
       ),
       data = await getDataFromSiebel(objectUrlPath, SCRIPT),
       script = data[0]?.Script,
-      localFileExtension = this.globalState.get(LOCAL_FILE_EXTENSION),
+      localFileExtension = getSetting(LOCAL_FILE_EXTENSION),
       OPEN_FILE = true;
     if (!script) return;
     this.dataObject[parentName][objectName] = true;
@@ -179,11 +179,9 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
   }: vscode.TreeViewSelectionChangeEvent<TreeItemObject | TreeItemScript>) => {
     if (!selectedItem) return;
     const { label } = selectedItem,
-      singleFileAutoDownload = this.globalState.get(SINGLE_FILE_AUTODOWNLOAD);
+      singleFileAutoDownload = getSetting(SINGLE_FILE_AUTODOWNLOAD);
     if (selectedItem instanceof TreeItemObject) {
-      const defaultScriptFetching = this.globalState.get(
-          DEFAULT_SCRIPT_FETCHING
-        ),
+      const defaultScriptFetching = getSetting(DEFAULT_SCRIPT_FETCHING),
         answer =
           defaultScriptFetching !== "None - always ask"
             ? defaultScriptFetching
@@ -263,7 +261,7 @@ export class TreeDataProviderWebTemp extends TreeDataProviderBase {
   }: vscode.TreeViewSelectionChangeEvent<TreeItemWebTemp>) => {
     if (!selectedItem) return;
     const { label } = selectedItem,
-      singleFileAutoDownload = this.globalState.get(SINGLE_FILE_AUTODOWNLOAD);
+      singleFileAutoDownload = getSetting(SINGLE_FILE_AUTODOWNLOAD);
     const answer = singleFileAutoDownload
       ? "Yes"
       : await vscode.window.showInformationMessage(
