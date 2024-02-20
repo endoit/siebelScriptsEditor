@@ -8,6 +8,7 @@ import {
   OBJECT,
   SERVICE,
   WORKSPACE,
+  MAX_PAGE_SIZE
 } from "./constants";
 
 export interface GlobalState extends vscode.Memento {

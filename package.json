@@ -2,7 +2,7 @@
 	"name": "siebelscriptandwebtempeditor",
 	"displayName": "Siebel Script And Web Template Editor",
 	"description": "Enables the editing of Siebel object server scripts and web templates in VSCode and updating them in Siebel using the Siebel REST API",
-	"version": "1.4.0",
+	"version": "1.4.1",
 	"publisher": "endoIT",
 	"icon": "media/icon.png",
 	"engines": {
@@ -137,6 +137,19 @@
 					],
 					"default": ".js",
 					"markdownDescription": "The default file extension for the downloaded server scripts. If you use type definitons in eScript, it is recommended to save the files as .ts."
+				},
+				"siebelScriptAndWebTempEditor.maxPageSize": {
+					"type": "integer",
+					"enum": [
+						10,
+						20,
+						50,
+						100,
+						200,
+						500
+					],
+					"default": 10,
+					"markdownDescription": "The default number of records that get fetched from the siebel API."
 				}
 			}
 		},
@@ -163,7 +176,7 @@
 	"devDependencies": {
 		"@types/glob": "^7.1.4",
 		"@types/mocha": "^10.0.1",
-		"@types/node": "^14.18.34",
+		"@types/node": "^14.18.63",
 		"@types/vscode": "^1.73.0",
 		"@types/webpack-env": "^1.18.0",
 		"@typescript-eslint/eslint-plugin": "^5.45.0",

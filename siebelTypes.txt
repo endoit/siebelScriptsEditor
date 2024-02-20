@@ -5,7 +5,7 @@
 ****************************************************************************/
 
 //Siebel eScript specific objects
-declare function TheApplication(): TheApplication;
+declare function TheApplication(): Application;
 declare function EAICreateIntMsgOut(propSet: PropertySet): EAIMsg;
 declare const Clib: Clib;
 declare const SElib: SElib;
@@ -44,139 +44,544 @@ declare const STDCALL: Convention;
 declare const PASCAL: Convention;
 
 //Interfaces for the Siebel eScript specific objects
-interface TheApplication {
+interface Application {
+  /**
+   * Custom Methods not covered
+   */
+  [x: string]: any;
+  /**
+   * Returns the name of the active view.
+   */
   ActiveViewName(): string;
+  /**
+   * Returns the name of the business object that the active view references.
+   */
   ActiveBusObject(): BusObject;
+  /**
+   * Returns the currency code that is associated with the division of the user position.
+   */
   CurrencyCode(): string;
+  /**
+   * Creates a new instance of a business object.
+   * @param busObjName String variable or literal that contains the name of the business object.
+   */
   GetBusObject(busObjName: string): BusObject;
+  /**
+   * GetProfileAttr returns the value of an attribute in a user profile.
+   * @param profAttrName A string indicating the name of the attribute
+   */
   GetProfileAttr(profAttrName: string): string;
+  /**
+   * Locates a business service. If this business service is not already running, then Siebel CRM starts it.
+   * @param svcName The name of the business service to start.
+   */
   GetService(svcName: string): Service;
+  /**
+   * Returns the shared global variables.
+   * @param shGlobalName String literal or variable that contains the name of the global variable.
+   */
   GetSharedGlobal(shGlobalName: string): string;
+  /**
+   * Activates a view.
+   * @param viewName The name of the view that the Siebel application must display.
+   * @param busObjName [Optional] The business object that Siebel CRM uses to display the view. You cannot specify the current active business object. If you do not provide this argument, or if you specify Nothing in this argument, then Siebel CRM activates a new business object in the normal way.
+   */
   GotoView(viewName: string, busObjName?: string): void;
+  /**
+   * Calls a method.
+   * @param methodName The name of the method.
+   * @param args One or more strings that contain arguments for the methodName argument.
+   */
   InvokeMethod(
     methodName: string,
     ...args: string[]
   ): any;
+  /**
+   * Returns the login ID of the user.
+   */
   LoginId(): string;
+  /**
+   * Returns the login name of the user.
+   */
   LoginName(): string;
+  /**
+    * The LookupMessage method returns the translated string for the specified key, in the current language, from the specified category. The optional arguments are used to format the string if it contains any substitution arguments (%1,%2).
+    * @param category Name of the Message Category object, as defined in Siebel Tools, that is the parent of Key value.
+    * @param key Name of the Message object, as defined in Siebel Tools, whose text contains the value to be investigated.
+    * @param args Optional arguments used to format the error message if it contains any substitution arguments (%1, %2).
+    */
   LookupMessage(category: string, key: string, ...args: string[]): string;
+  /**
+   * Creates a new property set.
+   */
   NewPropertySet(): PropertySet;
+  /**
+   * Returns the position ID of the user position.
+   */
   PositionId(): string;
+  /**
+   * Returns the name of the current user position.
+   */
   PositionName(): string;
+  /**
+   * Sends a scripting error message to the browser. To determine the error text, Siebel CRM uses a key to look up the current language.
+   * @param key Name of the Message object whose text contains the value that Siebel CRM must format. You can define this value in Siebel Tools.
+   * @param subVals If the error message contains a substitution argument, such as %1, then Siebel CRM uses these optional arguments to format the error message.
+   */
   RaiseError(key: string, ...subVals: string[]): void;
+  /**
+   * Sends a scripting error message to the browser.
+   * @param message The error text message.
+   */
   RaiseErrorText(message: string): void;
+  /**
+   * Sets the active position to a position ID.
+   * @param positionId A string that contains the Position Id.
+   */
   SetPositionId(positionId: string): boolean;
+  /**
+   * Sets the active position to a position name.
+   * @param positionName A string that contains the name of the position.
+   */
   SetPositionName(positionName: string): boolean;
+  /**
+   * Personalization uses this method to set a value for an attribute in a user profile.
+   * @param profAttrName A string that contains the name of the attribute.
+   * @param profAttrValue The value of the attribute.
+   */
   SetProfileAttr(profAttrName: string, profAttrValue: string): void;
+  /**
+   * Sets a shared global variable.
+   * @param shGlobalName String variable or literal that contains the name of the shared global variable that Siebel CRM must set.
+   * @param shGlobalValue String variable or literal that contains the value of the shared global variable.
+   */
   SetSharedGlobal(shGlobalName: string, shGlobalValue: string): void;
+  /**
+   * Appends a message to the trace file.
+   * @param message String variable or literal that contains message text that Siebel CRM appends to the trace file.
+   */
   Trace(message: string): void;
-  TraceOn(fName: string, type: string, selection: string): void;
+  /**
+   * Turns on tracing.
+   * @param fName Output filename for trace messages. If you do not use this argument, then Siebel CRM logs tracing information to the Object Manager log file.
+   * @param type The type of tracing to start. You can use the following values: Allocation / SQL
+   * @param selection Identifies the Siebel objects that Siebel CRM must trace for the Allocation trace type (Script / OLE / All). This argument is "" if the trace type is SQL.
+   */
+  TraceOn(fName: string, type: "Allocation" | "SQL", selection: "Script" | "OLE" | "All" | ""): void;
+  /**
+   * Turns off tracing.
+   */
   TraceOff(): void;
 }
 
 interface BusObject {
+  /**
+   * Returns a instance of the named business component.
+   * @param busCompName String that contains the name of a business component.
+   */
   GetBusComp(busCompName: string): BusComp;
+  /**
+   * Returns the name of a business object.
+   */
   Name(): string;
 }
 
 interface BusComp {
+  /**
+   * Activates a field.
+   * @param fieldName String variable or literal that contains the name of the field.
+   */
   ActivateField(fieldName: string): void;
+  /**
+   * Activates multiple fields.
+   * @param fields Property set that identifies a collection of properties. These properties identify the fields that Siebel CRM must activate.
+   */
   ActivateMultipleFields(fields: PropertySet): void;
-  Associate(position: number): void;
+  /**
+   * Creates a new many-to-many relationship for the parent object through an association business component.
+   * @param whereIndicator Indicates where the record is inserted. You must use one of the following predefined constants:
+   * - **NewBefore**
+   * - **NewAfter**
+   */
+  Associate(whereIndicator: 0 | 1): void;
+  /**
+   * Returns the business object that the business component references.
+   */
   BusObject(): BusObject;
+  /**
+   * Clears the current query but does not clear sort specifications on a business component.
+   */
   ClearToQuery(): void;
+  /**
+   * CountRecords uses database aggregation to count the records returned by the last ExecuteQuery() call.
+   */
   CountRecords(): number;
+  /**
+   * Deactivates the fields that are currently active from the SQL query statement of a business component.
+   */
   DeactivateFields(): void;
+  /**
+   * Removes the current record from a business component.
+   */
   DeleteRecord(): void;
-  ExecuteQuery(cursorMode?: number): void;
-  ExecuteQuery2(cursorMode: number, ignoreMaxCursorSize: "TRUE" | "FALSE"): void;
+  /**
+   * Executes the query and fetches a set of business component records.
+   * @param cursorMode An integer. You must use one of the following constants:
+   * - **ForwardBackward**. Siebel CRM processes records from first to last or from last to first. If you do not provide a value for the cursorMode argument, then Siebel CRM uses ForwardBackward.
+   * - **ForwardOnly**. Siebel CRM processes records only from the first record to the last record. Siebel CRM does return to a prior record.
+   */
+  ExecuteQuery(cursorMode?: 257 | 256): void;
+  /**
+   * Executes the query and fetches a set of business component records. Allows you to control the number of records Siebel CRM fetches.
+   * @param cursorMode An integer. You must use one of the following constants:
+   * - ForwardBackward. Siebel CRM processes records from first to last or from last to first. If you do not provide a value for the cursorMode argument, then Siebel CRM uses ForwardBackward.
+   * - ForwardOnly. Siebel CRM processes records only from the first record to the last record. Siebel CRM does return to a prior record.
+   * @param ignoreMaxCursorSize You can use one of the following values:
+   * - **TRUE**: Returns every record from a business component. This value might result in lower performance.
+   * - **FALSE**: Returns the number of records according to the value in the MaxCursorSize argument. You can define the MaxCursorSize argument in the Siebel application configuration (CFG) file.
+   */
+  ExecuteQuery2(cursorMode: 257 | 256, ignoreMaxCursorSize: "TRUE" | "FALSE"): void;
+  /**
+   * Moves the record pointer to the first record in a business component, making that record the current record. Returns an boolean indicating if there is at least one record or not.
+   */
   FirstRecord(): boolean;
+  /**
+   * Makes the first record of the multiple selection in a business component active. Returns an boolean indicating if there is at least one record selected or not.
+   */
   FirstSelected(): boolean;
+  /**
+   * Returns the name of the association business component.
+   */
   GetAssocBusComp(): BusComp;
+  /**
+   * Returns the value of a field from the current record of a business component.
+   * - A string that contains the value of a field from the current record of a business component.
+   * - An empty string if the field is empty.
+   * - An error message if the field is inactive. To avoid this situation, activate the field before you use the GetFieldValue method.
+   * @param fieldName String variable or literal that contains the name of the field.
+   */
   GetFieldValue(fieldName: string): string;
+  /**
+   * Returns a field value that is in the same format that the Siebel client uses.
+   * @param fieldName String variable or literal that contains the name of the field.
+   */
   GetFormattedFieldValue(fieldName: string): string;
-  GetMultipleFieldValues(fields: PropertySet): PropertySet;
+  /**
+   * Returns a value for each field specified in a property set.
+   * @param fieldNamesPropSet A property set that identifies a collection of fields.
+   * @param fieldValuesPropSet A property set that provides values for the fields specified in the fieldNamesPropSet argument.
+   */
+  GetMultipleFieldValues(fieldNamesPropSet: PropertySet, fieldValuesPropSet: PropertySet): PropertySet;
+  /**
+   * Returns the multivalue group business component that is associated a business component field.
+   * @param fieldName String variable or literal that contains the name of the field.
+   */
   GetMVGBusComp(fieldName: string): BusComp;
+  /**
+   * Returns the name of a search specification.
+   * @param searchName Name of the search specification that references the search string.
+   */
   GetNamedSearch(searchName: string): string;
+  /**
+   * Returns the name of the pick business component that is associated with a field in the current business component.
+   * @param fieldName String variable or literal that contains the name of the field.
+   */
   GetPicklistBusComp(fieldName: string): BusComp;
+  /**
+   * Returns the current search expression that is defined for a business component.
+   */
   GetSearchExpr(): string;
+  /**
+   * Returns the search specification that is defined for a business component.
+   * @param fieldName - String variable or literal that contains the name of the field.
+   */
   GetSearchSpec(fieldName: string): string;
-  GetUserProp(propName: string): string;
+  /**
+   * Returns the sort specification for a business component.
+   */
+  GetSortSpec(): string;
+  /**
+   * Returns the value of a user property.
+   * @param propName The name of the user property.
+   */
   GetUserProperty(propName: string): string;
-  GetViewMode(): number;
+  /**
+   * Returns the visibility mode for a business component.
+   */
+  GetViewMode(): 0|1|2|3|5|7|8|9;
+  /**
+   * Calls a method.
+   * @param methodName - The name of the method.
+   * @param inPropSet - A PropertySet with the input arguments.
+   * @param outPropSet - A PropertySet with the output arguments.
+   */
   InvokeMethod(
     methodName: string,
     inPropSet?: PropertySet,
     outPropSet?: PropertySet
   ): void;
+  /**
+   * Moves the record pointer to the last record in a business component. Returns an boolean indicating if there is at least one record or not.
+   */
   LastRecord(): boolean;
+  /**
+   * Returns the name of a business component.
+   */
   Name(): string;
-  NewRecord(cursorMode: number): void;
+  /**
+   * Adds a new record to a business component.
+   * @param cursorMode Predefined constant that configures where Siebel CRM must add the new record. You can use one of the following values:
+   * - NewBefore
+   * - NewAfter
+   * - NewBeforeCopy
+   * - NewAfterCopy
+   */
+  NewRecord(cursorMode: IntRange<0, 3>): void;
+  /**
+   * Moves the record pointer to the next record in a business component, making that record the current record. Returns an boolean indicating if the pointer has a record or not.
+   */
   NextRecord(): boolean;
+  /**
+   * Makes the next record of the current multiple selection the active record. Returns an boolean indicating if the pointer has a record or not.
+   */
   NextSelected(): boolean;
+  /**
+   * Returns the parent business component.
+   */
   ParentBusComp(): BusComp;
+  /**
+   * Places the currently chosen record in a pick business component into the appropriate fields of the parent business component.
+   */
   Pick(): void;
+  /**
+   * Moves the record pointer to the previous record in a business component, making that record the current record.
+   */
   PreviousRecord(): boolean;
+  /**
+   * Refines a query.
+   */
   RefineQuery(): void;
-  SearchExpr(expr: string): string;
+  /**
+   * Returns the current search expression that is defined for a business component.
+   */
+  GetSearchExpr(): string;
+  /**
+   * Sets a new value in a field for the current record of a business component.
+   * @param expr Sets a new value in a field for the current record of a business component.
+   */
   SetFieldValue(fieldName: string, fieldValue: string | number): void;
+  /**
+   * Sets a new value in a field in the current record of a business component. It accepts the field value in the current local format.
+   * @param fieldName String that contains the name of the field.
+   * @param fieldValue String that contains the value to set.
+   */
   SetFormattedFieldValue(fieldName: string, fieldValue: string | number): void;
+  /**
+   * Sets new values in the fields of the current record of a business component.
+   * @param fields Property set that identifies a collection of properties. This argument identifies the fields to set and the value to set for each field.
+   */
   SetMultipleFieldValues(fields: PropertySet): void;
+  /**
+   * Sets a named search specification on a business component.
+   * @param searchName String that identifies the name of the search specification.
+   * @param searchValue String that contains the search specification.
+   */
   SetNamedSearch(searchName: string, searchValue: string): void;
+  /**
+   * Sets a search expression for a business component.
+   * @param searchExpr String that identifies the search specification.
+   */
   SetSearchExpr(searchExpr: string): void;
+  /**
+   * Sets the search specification for a business component.
+   * @param fieldName String that identifies the name of the field where Siebel CRM sets the search specification.
+   * @param fieldValue String that contains the search specification.
+   */
   SetSearchSpec(fieldName: string, fieldValue: string): void;
+  /**
+   * Sets the sort specification for a business component.
+   * @param sortSpec String that contains the sort specification.
+   */
   SetSortSpec(sortSpec: string): void;
+  /**
+   * Sets the value of a user property in a business component.
+   * @param propName String that identifies the name of the user property.
+   * @param propValue String that contains the new value.
+   */
   SetUserProperty(propName: string, propValue: string): void;
-  SetViewMode(viewMode: number): void;
+  /**
+   * Sets the visibility type for a business component.
+   * @param viewMode A Siebel ViewMode constant or the corresponding integer value for the constant. For more information, see Constants You Can Use with the SetViewMode Method.
+   */
+  SetViewMode(viewMode: 0|1|2|3|5|7|8|9): void;
+  /**
+   * Reverses any unsaved modifications made to the record.
+   */
   UndoRecord(): void;
+  /**
+   * Saves to the Siebel database any modifications made to the current record.
+   */
   WriteRecord(): void;
 }
 
 interface Service {
   [x: string]: any;
+  /**
+   * Returns the name of the first property of a business service.
+   */
   GetFirstProperty(): string;
+  /**
+   * Returns the name of the next property of a business service.
+   */
   GetNextProperty(): string;
+  /**
+   * Returns the value of a property.
+   * @param propName - A string that contains the name of the property that Siebel CRM returns.
+   */
   GetProperty(propName: string): string;
+  /**
+   * Calls a method.
+   * @param methodName - The name of the method.
+   * @param inPropSet - A PropertySet with the input arguments.
+   * @param outPropSet - A PropertySet with the output arguments.
+   */
   InvokeMethod(
     methodName: string,
     inPropSet: PropertySet,
     outPropSet: PropertySet
   ): void;
+  /**
+   * Returns the name of a business service.
+   */
   Name(): string;
+  /**
+   * Returns a Boolean value that indicates if the property that the argument identifies exists.
+   * @param propName - A string that contains the name of the property.
+   */
   PropertyExists(propName: string): boolean;
+  /**
+   * Removes a property from a business service.
+   * @param propName - A string that contains the name of the property.
+   */
   RemoveProperty(propName: string): void;
+  /**
+   * Sets a value for a property of a business service.
+   * @param propName - A string that contains the name of the property that Siebel CRM must modify.
+   * @param propValue - A string that contains the value that Siebel CRM sets in the property that the propName argument identifies.
+   */
   SetProperty(propName: string, propValue: string): void;
 }
 
 interface PropertySet {
+  /**
+   * Adds a child property set to a property set.
+   * @param propSet - A property set that Siebel CRM must make as a child to the property set that the oPropSet variable identifies.
+   */
   AddChild(propSet: PropertySet): number;
+  /**
+   * Returns a copy of a property set.
+   */
   Copy(): PropertySet;
+  /**
+   * Returns the index number of a child property set.
+   * @param index - An integer that identifies the index number of the child property set that Siebel CRM must return.
+   */
   GetChild(index: number): PropertySet;
+  /**
+   * Returns the number of child property sets that exist for a parent property set.
+   */
   GetChildCount(): number;
+  /**
+   * Returns the name of the first property in a property set.
+   */
   GetFirstProperty(): string;
+  /**
+   * Returns the name of the next property in a property set.
+   */
   GetNextProperty(): string;
+  /**
+   * Returns the value of a property.
+   * @param propName - A string that contains the name of the property that Siebel CRM returns.
+   */
   GetProperty(propName: string): string;
+  /**
+   * Returns the number of properties that exist in the current level in the hierarchy.
+   */
   GetPropertyCount(): number;
+  /**
+   * Returns the value of the type attribute of a property set.
+   */
   GetType(): string;
+  /**
+   * Returns the value of the value attribute of a property set.
+   */
   GetValue(): string;
+  /**
+   * Inserts a child property set in a parent property set at a specific location.
+   * @param propSet - The property set that Siebel CRM must make a child. It makes this property set a child of the property set that the oPropSet variable identifies.
+   * @param index - An integer that identifies the position where Siebel CRM must insert the property set. The childObject argument identifies this property set.
+   */
   InsertChildAt(propSet: PropertySet, index: number): void;
+  /**
+   * Returns a Boolean value that indicates if the property that the argument identifies exists.
+   * @param propName - A string that contains the name of the property.
+   */
   PropertyExists(propName: string): boolean;
+  /**
+   * Removes a child property set from a parent property set.
+   * @param index - An integer that identifies the index number of the child property set that Siebel CRM must remove.
+   */
   RemoveChild(index: number): void;
+  /**
+   * Removes a property from a property set.
+   * @param propName - A string that contains the name of the property.
+   */
   RemoveProperty(propName: string): void;
+  /**
+   * Removes every property and child property set from a property set.
+   */
   Reset(): void;
+  /**
+   * Sets a value in the property of a property set.
+   * @param propName - A string that contains the name of the property that Siebel CRM must modify.
+   * @param propValue - A string that contains the value that Siebel CRM sets in the property that the propName argument identifies.
+   */
   SetProperty(propName: string, propValue: string): void;
+  /**
+   * Sets the value for the type attribute of a property set.
+   * @param typeVal - A string that contains data that Siebel CRM must store in the type attribute.
+   */
   SetType(typeVal: string): void;
+  /**
+   * Sets the value for the value attribute of a property set.
+   * @param value - A string that contains data that Siebel CRM must store in the value attribute.
+   */
   SetValue(value: string): void;
 }
 
 interface WebApplet {
+  /**
+   * Returns the business component that the applet references.
+   */
   BusComp(): BusComp;
+  /**
+   * Returns the business object for the business component that the applet references.
+   */
   BusObject(): BusObject;
+  /**
+   * Calls a method.
+   * @param methodName - The name of the method.
+   * @param inPropSet - A PropertySet with the input arguments.
+   * @param outPropSet - A PropertySet with the output arguments.
+   */
   InvokeMethod(
     methodName: string,
     inPropSet: PropertySet,
     outPropSet: PropertySet
   ): void;
+  /**
+   * Returns the name of the applet.
+   */
   Name(): string;
 }
 
