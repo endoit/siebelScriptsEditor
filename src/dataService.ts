@@ -55,7 +55,7 @@ export const createInterceptor = (globalState: GlobalState) => {
       },
     };
   });
-  globalState.update(INTERCEPTOR, interceptor)!;
+  globalState.update(INTERCEPTOR, interceptor);
 };
 
 export const getDataFromSiebel: IGetDataFromSiebel = async (
@@ -65,9 +65,8 @@ export const getDataFromSiebel: IGetDataFromSiebel = async (
 ): Promise<ScriptResponse[] | WebTempResponse[]> => {
   try {
     const params: QueryParams = { fields };
-    if (searchSpec) params["searchSpec"] = `Name LIKE '${searchSpec}*'`;
-
-    url += `?PageSize=${getSetting(MAX_PAGE_SIZE)}`;
+    params.pageSize = getSetting(MAX_PAGE_SIZE);
+    if (searchSpec) params.searchSpec = `Name LIKE '${searchSpec}*'`;
     const response = await axios({ url, params });
     return response.data?.items;
   } catch (err: any) {

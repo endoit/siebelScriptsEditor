@@ -38,7 +38,7 @@ type QueryParams = {
   fields?: "Name" | "Script" | "Definition" | "Name,Script";
   childLinks?: "None";
   uniformresponse?: "y";
-  pageSize?: 100;
+  pageSize?: number;
 };
 
 //Response scripts from Siebel
@@ -183,7 +183,7 @@ interface IGetSetting {
   (settingName: "singleFileAutoDownload"): Settings["singleFileAutoDownload"];
   (settingName: "localFileExtension"): Settings["localFileExtension"];
   (settingName: "defaultScriptFetching"): Settings["defaultScriptFetching"];
-  (setting: "maxPageSize"): Settings["maxPageSize"];
+  (settingName: "maxPageSize"): Settings["maxPageSize"];
 }
 
 //Deprecated settings

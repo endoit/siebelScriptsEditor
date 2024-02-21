@@ -6,16 +6,18 @@ import {
   DEFAULT_CONNECTION_NAME,
   ERR_NO_CONN_SETTING,
   OBJECT,
+  REST_WORKSPACES,
   SERVICE,
-  WORKSPACE,
-  MAX_PAGE_SIZE
+  WORKSPACE
 } from "./constants";
+import { getWorkspaces } from "./dataService";
 
 export interface GlobalState extends vscode.Memento {
   get(key: "connection" | "workspace" | "workspaceFolder"): string;
   get(key: "object"): SiebelObject;
   get(key: "interceptor"): number;
   get(key: "newConnection"): boolean;
+  get(key: "restWorkspaces"): string[];
 }
 
 //create url path from parts
@@ -60,11 +62,16 @@ export const initState = async (globalState: GlobalState) => {
   try {
     if (Object.keys(connections).length === 0)
       throw new Error(ERR_NO_CONN_SETTING);
-    globalState.update(CONNECTION, defaultConnectionName);
-    globalState.update(
-      WORKSPACE,
-      connections[defaultConnectionName].defaultWorkspace
-    );
+    const connectionName = connections[defaultConnectionName]
+      ? defaultConnectionName
+      : Object.keys(connections)[0],
+      connection = connections[connectionName];
+    globalState.update(CONNECTION, connectionName);
+    if (connection.restWorkspaces) {
+      const restWorkspaces = getWorkspaces(connection);
+      globalState.update(REST_WORKSPACES, restWorkspaces);
+    }
+    globalState.update(WORKSPACE, connections[connectionName].defaultWorkspace);
     globalState.update(OBJECT, SERVICE);
   } catch (err: any) {
     globalState.update(CONNECTION, "");

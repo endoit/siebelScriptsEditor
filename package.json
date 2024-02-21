@@ -149,8 +149,8 @@
 						200,
 						500
 					],
-					"default": 10,
-					"markdownDescription": "The default number of records that get fetched from the siebel API."
+					"default": 100,
+					"markdownDescription": "Number of records to fetch from the Siebel REST API."
 				}
 			}
 		},

@@ -143,7 +143,6 @@ export async function activate(context: vscode.ExtensionContext) {
         );
         configWebview.webview.onDidReceiveMessage(
           async (message: MessageConfig) => {
-            console.log(message)
             const {
                 command,
                 action,
@@ -153,15 +152,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 username,
                 password,
                 restWorkspaces,
-                workspaces,
-                defaultWorkspace,
                 defaultConnection,
               } = message,
               connections = getSetting(CONNECTIONS),
               connection = connections[connectionName];
+            let { workspaces = [], defaultWorkspace = "" } = connection;
             switch (command) {
               case WORKSPACE: {
-                let { workspaces, defaultWorkspace } = connection;
                 switch (action) {
                   case ADD: {
                     if (workspaces.includes(workspace)) break;
@@ -221,6 +218,8 @@ export async function activate(context: vscode.ExtensionContext) {
                 await setSetting(CONNECTIONS, newConnections);
                 if (defaultConnection)
                   await setSetting(DEFAULT_CONNECTION_NAME, name);
+                globalState.update(NEW_CONNECTION, false);
+                initState(globalState);
                 break;
               }
               case DELETE_CONNECTION: {
@@ -229,10 +228,12 @@ export async function activate(context: vscode.ExtensionContext) {
                 };
                 delete newConnections[name];
                 await setSetting(CONNECTIONS, newConnections);
+                if (globalState.get(CONNECTION) === name)
+                  initState(globalState);
                 break;
               }
             }
-            configWebview.webview.html = configureConnectionsWebview(
+            configWebview!.webview.html = configureConnectionsWebview(
               connectionName,
               globalState.get(NEW_CONNECTION)
             );

@@ -69,7 +69,8 @@ export const CONFIG_DATA = "configData",
   WORKSPACE = "workspace",
   WORKSPACE_FOLDER = "workspaceFolder",
   OBJECT = "object",
-  INTERCEPTOR = "interceptor";
+  INTERCEPTOR = "interceptor",
+  REST_WORKSPACES = "restWorkspaces";
 
 //constant URLs
 export const 
@@ -92,9 +93,9 @@ export const INFO_KEY_LAST_UPDATE = "last update from Siebel",
 export const ERR_NO_WS_OPEN =
     "Please open a Visual Studio Code workspace folder to use the extension!",
   ERR_NO_CONN_SETTING =
-    "Please add at least one connection in the Connections setting!",
+    "Please add create least one connection with the New Connection button!",
   ERR_CONN_MISSING_PARAMS =
-    "Missing Siebel REST API Endpoint/Username/Password, please check the format of the connection configuration!",
+    "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
   ERR_NO_WS_CONN =
     "No workspace was found for any connection, please check Connections setting!",
   ERR_NO_INFO_JSON =
