@@ -60,7 +60,8 @@ export const CONNECTIONS = "connections",
   DEFAULT_CONNECTION_NAME = "defaultConnectionName",
   DEFAULT_SCRIPT_FETCHING = "defaultScriptFetching",
   SINGLE_FILE_AUTODOWNLOAD = "singleFileAutoDownload",
-  LOCAL_FILE_EXTENSION = "localFileExtension";
+  LOCAL_FILE_EXTENSION = "localFileExtension",
+  MAX_PAGE_SIZE = "maxPageSize";
 
 //global state parameters
 export const CONFIG_DATA = "configData",

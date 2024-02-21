@@ -27,8 +27,9 @@ import {
   INFO_KEY_LAST_UPDATE,
   INFO_KEY_LAST_PUSH,
   CONNECTIONS,
+  MAX_PAGE_SIZE,
   PATH_TO_APPLICATION,
-  ERR_CONN_MISSING_PARAMS,
+  ERR_CONN_MISSING_PARAMS
 } from "./constants";
 import { GlobalState, getSetting, joinUrl, openSettings } from "./utility";
 import { writeFile } from "./fileRW";
@@ -65,6 +66,8 @@ export const getDataFromSiebel: IGetDataFromSiebel = async (
   try {
     const params: QueryParams = { fields };
     if (searchSpec) params["searchSpec"] = `Name LIKE '${searchSpec}*'`;
+
+    url += `?PageSize=${getSetting(MAX_PAGE_SIZE)}`;
     const response = await axios({ url, params });
     return response.data?.items;
   } catch (err: any) {

@@ -141,6 +141,7 @@ type Settings = {
     | "All scripts"
     | "None - always ask"
     | undefined;
+  maxPageSize: number;
 };
 
 type Config = {
@@ -182,6 +183,7 @@ interface IGetSetting {
   (settingName: "singleFileAutoDownload"): Settings["singleFileAutoDownload"];
   (settingName: "localFileExtension"): Settings["localFileExtension"];
   (settingName: "defaultScriptFetching"): Settings["defaultScriptFetching"];
+  (setting: "maxPageSize"): Settings["maxPageSize"];
 }
 
 //Deprecated settings
