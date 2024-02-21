@@ -9,6 +9,7 @@ import {
   WORKSPACE,
   OBJECT,
   CONNECTIONS,
+	DEFAULT_CONNECTION_NAME,
 } from "./constants";
 import { GlobalState, getSetting } from "./utility";
 
@@ -23,6 +24,11 @@ const css = `
 			}
 			.input-field {
 				flex: 1 1 auto;
+			}
+			.input-field[readonly] {
+        background-color: #ced4da;
+        color: #6c757d;
+        cursor: not-allowed;
 			}
 			label {
 				margin: 0.1em;
@@ -57,6 +63,12 @@ const css = `
 				border-radius: 0.4em;
 				box-sizing: border-box;
 			}
+			.button-small:disabled {
+        background-color: #ced4da;
+        color: #6c757d;
+        cursor: not-allowed;
+    }
+		
 		</style>`;
 
 //generates the HTML page for the webview to select the REST endpoint, workspace, resource and for the searchbar
@@ -65,33 +77,6 @@ export const webViewHTML = (globalState: GlobalState): string => {
     connection = globalState.get(CONNECTION),
     workspace = globalState.get(WORKSPACE),
     object = globalState.get(OBJECT);
-
-  if (!connection)
-    return `
-		<!doctype><html>
-			<head>
-				${css}
-			</head>
-			<body>
-				<div class="text">Error in parsing the settings, please give at least one valid REST Endpoint configuration, and at least one workspace for that REST configuration!</div>
-				<div class="divitem">
-				<Button class="button-small" id="connections" onclick="configureConnections()">Configure connections</Button>  
-			</div>		
-				<div class="divitem">
-						<Button class="button-small" id="settings" onclick="openSettings()">Open settings</Button>
-					</div>
-				</div>
-				<script>
-					const vscode = acquireVsCodeApi();
-					const configureConnections = () => {
-						vscode.postMessage({command: "configureConnections"});
-					}
-					const openSettings = () => {
-						vscode.postMessage({command: "openSettings"});
-					}
-				</script>
-			</body>
-		</html>`;
 
   const connections = Object.keys(configData)
     .map(
@@ -147,13 +132,19 @@ export const webViewHTML = (globalState: GlobalState): string => {
 						</select>
 					</div>
 					<div class="divitem">
-						<input type="search" name="search-bar" class="input-field" id="search-bar" oninput="handleSearch()" placeholder="Type here to search">
+						<input type="search" name="search-bar" class="input-field" id="search-bar" oninput="handleSearch()" placeholder="Type here to search"
+						${connections.length === 0 ? "readonly" : ""}>
 					</div>
 					<div class="divitem">
-					<Button class="button-small" id="connections" onclick="configureConnections()">Configure connections</Button>  
+					<Button class="button-small" id="new" onclick="newConnection()">New Connection</Button>  
+				</div>
+					<div class="divitem">
+					<Button class="button-small" id="config" onclick="configureConnection()" ${
+            connections.length === 0 ? "disabled" : ""
+          }>Configure Connection</Button>  
 				</div>	
 					<div class="divitem">
-						<Button class="button-small" id="settings" onclick="openSettings()">Open settings</Button>  
+						<Button class="button-small" id="settings" onclick="openSettings()">Open Settings</Button>  
 					</div>
 				</div>
 				<script>
@@ -174,29 +165,43 @@ export const webViewHTML = (globalState: GlobalState): string => {
 						const searchString = document.getElementById("search-bar").value;
 						if (searchString !== "") vscode.postMessage({command: "search", searchString});
 					}
+					const newConnection = () => {
+						vscode.postMessage({command: "newConnection"});
+					}
+					const configureConnection = () => {
+						vscode.postMessage({command: "configureConnection"});
+					}
 					const openSettings = () => {
 						vscode.postMessage({command: "openSettings"});
-					}
-					const configureConnections = () => {
-						vscode.postMessage({command: "configureConnections"});
 					}
 				</script>
 			</body>
 		</html>`;
 };
 
-export const configureConnectionsWebview = (connectionName: string) => {
+export const configureConnectionsWebview = (
+  connectionName: string,
+  isNewConnection = false
+) => {
   const {
-    url,
-    username,
-    password,
-    workspaces,
-    restWorkspaces,
-    defaultWorkspace,
-  } = getSetting(CONNECTIONS)[connectionName];
-  const workspaceList = workspaces
-    .map((item) => `<option class="opt" value="${item}">${item}</option>`)
-    .join("");
+      url = "",
+      username = "",
+      password = "",
+      workspaces = [],
+      restWorkspaces = false,
+      defaultWorkspace = "",
+    } = isNewConnection ? {} : getSetting(CONNECTIONS)[connectionName],
+		defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME),
+    workspaceList = workspaces
+      .map(
+        (item) => `<li class="li" data-value="${item}">${item}
+		<Button class="button-small" onclick="editWorkspaces()" name="default" ${
+      item === defaultWorkspace ? "disabled" : ""
+    }>${item === defaultWorkspace ? "Default" : "Set as default"}</Button>
+		<Button class="button-small" name="delete" onclick="editWorkspaces()">Delete</Button>
+		</li>`
+      )
+      .join("");
 
   return `<!doctype><html>
 	<head>
@@ -206,10 +211,12 @@ export const configureConnectionsWebview = (connectionName: string) => {
 		<div class="container">
 			<div class="divitem">
 				<label for="connection-name">Connection Name</label>
-				<input type="text" name="connection-name" class="input-field" id="connection-name" value=${connectionName}>
+				<input type="text" name="connection-name" class="input-field" id="connection-name" value=${
+          isNewConnection ? "" : connectionName
+        } ${isNewConnection ? "" : "readonly"}>
 			</div>
 			<div class="divitem">
-				<label for="url">Siebel REST API endpoint</label>
+				<label for="url">Siebel REST API Endpoint</label>
 				<input type="text" name="url" class="input-field" id="url" value=${url}>
 			</div>
 			<div class="divitem">
@@ -221,28 +228,43 @@ export const configureConnectionsWebview = (connectionName: string) => {
 			<input type="password" name="username" class="input-field" id="password" value=${password}>
 			</div>
 			<div class="divitem">
-			<label for="workspaces">Workspaces</label> 
-			<select>
-${workspaceList}
-			</select>
+				<div>Workspaces <input type="text" name="add-workspace" class="input-field" id="add-workspace">
+					<Button class="button-small" name="add" onclick="editWorkspaces()">Add</Button>			
+				</div>
+				<ul id="workspace-list">${workspaceList}</li>
 			</div>
 			<div class="divitem">
 			<label for="rest-workspaces">Get workspaces from the Siebel REST API</label> 
-			<input type="checkbox" name="rest-workspaces" class="input-field" id="rest-workspaces" ${restWorkspaces ? "checked" : ""}>
+			<input type="checkbox" name="rest-workspaces" class="input-field" id="rest-workspaces" ${
+        restWorkspaces ? "checked" : ""
+      }>
 			</div>
 			<div class="divitem">
-			<label for="username">Default workspace</label> 
-			<input type="text" name="default-workspace" class="input-field" id="default-workspace" value=${defaultWorkspace}>
+			<label for="default-connection">Set as default connection</label> 
+			<input type="checkbox" name="default-connection" class="input-field" id="default-connection" ${
+        defaultConnectionName === connectionName ? "checked" : ""
+      }>
 			</div>
 			<div class="divitem">
-				<Button class="button-small" id="test" onclick="testConnection()">Test connection</Button>  
+				<Button class="button-small" id="test" onclick="testConnection()">Test Connection</Button>  
 			</div>
 			<div class="divitem">
-			<Button class="button-small" id="create" onclick="createOrUpdateConnection()">Save connection</Button>  
-		</div>	
+			<Button class="button-small" id="createOrUpdateConnection" onclick="createOrUpdateConnection()">Save Connection</Button>  
+		</div>
+		<div class="divitem">
+		<Button class="button-small" id="deleteConnection" onclick="deleteConnection()" ${
+      isNewConnection ? "disabled" : ""
+    }>Delete Connection</Button>  
+	</div>	
 		</div>
 		<script>
 			const vscode = acquireVsCodeApi();
+			const editWorkspaces = () => {
+				const action = event.target.name,
+					workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;
+				if (!workspace) return;
+				vscode.postMessage({command: "workspace", action, workspace});
+			}
 			const testConnection = () => {
 				const url = document.getElementById("url").value,
 				username = document.getElementById("username").value,
@@ -250,14 +272,20 @@ ${workspaceList}
 				vscode.postMessage({command: "testConnection", url, username, password});
 			}
 			const createOrUpdateConnection = () => {
-				const connectionName = document.getElementById("connection-name").value,
-				 url = document.getElementById("url").value,
-				username = document.getElementById("username").value,
-				password = document.getElementById("password").value,
-				restWorkspaces = document.getElementById("rest-workspaces").value,
-				defaultWorkspace =  document.getElementById("default-workspace").value,
-				workspaces = "test";
-				vscode.postMessage({command: "createOrUpdateConnection", url, username, password, workspaces, restWorkspaces, defaultWorkspace});
+				const name = document.getElementById("connection-name").value,
+					url = document.getElementById("url").value,
+					username = document.getElementById("username").value,
+					password = document.getElementById("password").value,
+					restWorkspaces = document.getElementById("rest-workspaces").checked,
+					defaultConnection = document.getElementById("default-connection").checked,
+					defaultWorkspace = "", //document.getElementById("default-workspace").value,
+					workspaces = [];
+				
+				vscode.postMessage({command: "createOrUpdateConnection", name, url, username, password, workspaces, restWorkspaces, defaultWorkspace, defaultConnection});
+			}
+			const deleteConnection = () => {
+				const name = document.getElementById("connection-name").value;
+				vscode.postMessage({command: "deleteConnection", name});
 			}
 			</script>
 		</body>

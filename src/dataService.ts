@@ -26,8 +26,9 @@ import {
   ERR_NO_INFO_JSON_ENTRY,
   INFO_KEY_LAST_UPDATE,
   INFO_KEY_LAST_PUSH,
-  ERR_CONN_PARAM_PARSE,
   CONNECTIONS,
+  PATH_TO_APPLICATION,
+  ERR_CONN_MISSING_PARAMS,
 } from "./constants";
 import { GlobalState, getSetting, joinUrl, openSettings } from "./utility";
 import { writeFile } from "./fileRW";
@@ -117,7 +118,22 @@ const axiosInstance: IAxiosInstance = async (
   }
 };
 
-//check for workspace integration object
+//test connection
+export const testConnection = async ({
+  url,
+  username,
+  password,
+}: Connection) => {
+  const testUrl = joinUrl(url, PATH_TO_APPLICATION),
+    data = await axiosInstance(
+      { url: testUrl, username, password },
+      GET,
+      baseQueryParams
+    );
+  return data.length !== 0;
+};
+
+//check for the workspace integration object
 export const checkBaseWorkspaceIOB = async ({
   url,
   username,
@@ -256,7 +272,7 @@ const pushOrPull = async (action: ButtonAction, globalState: GlobalState) => {
 export const pushOrPullCallback =
   (action: ButtonAction, globalState: GlobalState) => async () => {
     if (!globalState.get(CONNECTION)) {
-      vscode.window.showErrorMessage(ERR_CONN_PARAM_PARSE);
+      vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
       return openSettings();
     }
     const answer = await vscode.window.showInformationMessage(

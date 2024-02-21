@@ -31,8 +31,13 @@ export const workspaceQueryParams = {
 
 //webview commands
 export const SEARCH = "search",
-  CONFIGURE_CONNECTIONS = "configureConnections",
+  NEW_CONNECTION = "newConnection",
+  CONFIGURE_CONNECTION = "configureConnection",
+  DELETE_CONNECTION = "deleteConnection",
   OPEN_SETTINGS = "openSettings",
+  ADD = "add",
+  DEFAULT = "default",
+  DELETE = "delete",
   TEST_CONNECTION = "testConnection",
   CREATE_OR_UPDATE_CONNECTION = "createOrUpdateConnection";
 
@@ -66,7 +71,9 @@ export const CONFIG_DATA = "configData",
   INTERCEPTOR = "interceptor";
 
 //constant URLs
-export const PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
+export const 
+PATH_TO_APPLICATION = "workspace/MAIN/Application",
+PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
   PATH_WORKSPACE_IOB = "data/Workspace/Repository Workspace";
 
 //fields
@@ -85,8 +92,8 @@ export const ERR_NO_WS_OPEN =
     "Please open a Visual Studio Code workspace folder to use the extension!",
   ERR_NO_CONN_SETTING =
     "Please add at least one connection in the Connections setting!",
-  ERR_CONN_PARAM_PARSE =
-    "Error parsing the connection parameters, please check format of Connections settings!",
+  ERR_CONN_MISSING_PARAMS =
+    "Missing Siebel REST API Endpoint/Username/Password, please check the format of the connection configuration!",
   ERR_NO_WS_CONN =
     "No workspace was found for any connection, please check Connections setting!",
   ERR_NO_INFO_JSON =

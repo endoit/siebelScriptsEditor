@@ -82,7 +82,7 @@
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.config",
-				"title": "Get script/web template from Siebel",
+				"title": "Open Configure Connection webview panel",
 				"when": "workspaceFolderCount > 0"
 			}
 		],
@@ -105,6 +105,7 @@
 			"properties": {
 				"siebelScriptAndWebTempEditor.connections": {
 					"type": "object",
+					"markdownDescription": "Do not modify manually, change through the Configure Connection panel!",
 					"additionalProperties": {
 						"type": "object"
 					},
@@ -112,7 +113,7 @@
 				},
 				"siebelScriptAndWebTempEditor.defaultConnectionName": {
 					"type": "string",
-					"markdownDescription": "Use the Set as default button to change this in the Siebel connections webview, do not modify here!"
+					"markdownDescription": "Use the Set as default button to change this in the Configure Connection panel, do not modify here!"
 				},
 				"siebelScriptAndWebTempEditor.defaultScriptFetching": {
 					"type": "string",

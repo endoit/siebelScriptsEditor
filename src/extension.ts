@@ -16,11 +16,22 @@ import {
   WORKSPACE_FOLDER,
   CONNECTIONS,
   OPEN_SETTINGS,
-  CONFIGURE_CONNECTIONS,
   TEST_CONNECTION,
+  CONFIGURE_CONNECTION,
+  ADD,
+  DEFAULT,
+  DELETE,
   CREATE_OR_UPDATE_CONNECTION,
+  NEW_CONNECTION,
+  DELETE_CONNECTION,
+  ERR_CONN_MISSING_PARAMS,
+  DEFAULT_CONNECTION_NAME,
 } from "./constants";
-import { createInterceptor, pushOrPullCallback } from "./dataService";
+import {
+  createInterceptor,
+  pushOrPullCallback,
+  testConnection,
+} from "./dataService";
 import { createIndexdtsAndJSConfigjson } from "./fileRW";
 import {
   //openSettings,
@@ -29,7 +40,8 @@ import {
   GlobalState,
   getSetting,
   openSettings,
-  configureConnections,
+  configureConnection,
+  setSetting,
 } from "./utility";
 import { TreeDataProviderObject, TreeDataProviderWebTemp } from "./treeView";
 import { configureConnectionsWebview, webViewHTML } from "./webView";
@@ -100,18 +112,27 @@ export async function activate(context: vscode.ExtensionContext) {
       "siebelscriptandwebtempeditor.config",
       () => {
         const columnToShowIn = vscode.window.activeTextEditor
-          ? vscode.window.activeTextEditor.viewColumn
-          : undefined;
+            ? vscode.window.activeTextEditor.viewColumn
+            : undefined,
+          connectionName = globalState.get(CONNECTION),
+          isNewConnection = globalState.get(NEW_CONNECTION);
 
-        if (configWebview) return configWebview.reveal(columnToShowIn);
+        if (configWebview) {
+          configWebview.webview.html = configureConnectionsWebview(
+            connectionName,
+            isNewConnection
+          );
+          return configWebview.reveal(columnToShowIn);
+        }
         configWebview = vscode.window.createWebviewPanel(
-          "siebelConnections",
-          "Siebel Connections",
+          "configureConnection",
+          "Configure Connection",
           columnToShowIn || vscode.ViewColumn.One,
           { enableScripts: true }
         );
         configWebview.webview.html = configureConnectionsWebview(
-          globalState.get(CONNECTION)
+          connectionName,
+          isNewConnection
         );
         configWebview.onDidDispose(
           () => {
@@ -121,13 +142,100 @@ export async function activate(context: vscode.ExtensionContext) {
           context.subscriptions
         );
         configWebview.webview.onDidReceiveMessage(
-          async (message) => {
-            switch (message.command) {
-              case TEST_CONNECTION:
-                return;
-              case CREATE_OR_UPDATE_CONNECTION:
-                return;
+          async (message: MessageConfig) => {
+            console.log(message)
+            const {
+                command,
+                action,
+                workspace,
+                name,
+                url,
+                username,
+                password,
+                restWorkspaces,
+                workspaces,
+                defaultWorkspace,
+                defaultConnection,
+              } = message,
+              connections = getSetting(CONNECTIONS),
+              connection = connections[connectionName];
+            switch (command) {
+              case WORKSPACE: {
+                let { workspaces, defaultWorkspace } = connection;
+                switch (action) {
+                  case ADD: {
+                    if (workspaces.includes(workspace)) break;
+                    workspaces.unshift(workspace);
+                    if (workspaces.length === 1) defaultWorkspace = workspace;
+                    break;
+                  }
+                  case DEFAULT: {
+                    defaultWorkspace = workspace;
+                    break;
+                  }
+                  case DELETE: {
+                    workspaces.splice(workspaces.indexOf(workspace), 1);
+                    if (connection.defaultWorkspace === workspace)
+                      defaultWorkspace = workspaces[0] ?? "";
+                  }
+                }
+                const newConnections = {
+                  ...connections,
+                  [connectionName]: {
+                    ...connection,
+                    workspaces,
+                    defaultWorkspace,
+                  },
+                };
+                await setSetting(CONNECTIONS, newConnections);
+                break;
+              }
+              case TEST_CONNECTION: {
+                const testResult = await testConnection({
+                  url,
+                  username,
+                  password,
+                });
+                if (testResult)
+                  vscode.window.showInformationMessage(
+                    "Connection is working!"
+                  );
+                break;
+              }
+              case CREATE_OR_UPDATE_CONNECTION: {
+                if (!(name && url && username && password))
+                  return vscode.window.showErrorMessage(
+                    ERR_CONN_MISSING_PARAMS
+                  );
+                const newConnections = {
+                  ...connections,
+                  [name]: {
+                    url,
+                    username,
+                    password,
+                    restWorkspaces,
+                    workspaces,
+                    defaultWorkspace,
+                  },
+                };
+                await setSetting(CONNECTIONS, newConnections);
+                if (defaultConnection)
+                  await setSetting(DEFAULT_CONNECTION_NAME, name);
+                break;
+              }
+              case DELETE_CONNECTION: {
+                const newConnections = {
+                  ...connections,
+                };
+                delete newConnections[name];
+                await setSetting(CONNECTIONS, newConnections);
+                break;
+              }
             }
+            configWebview.webview.html = configureConnectionsWebview(
+              connectionName,
+              globalState.get(NEW_CONNECTION)
+            );
           },
           undefined,
           context.subscriptions
@@ -197,10 +305,17 @@ export async function activate(context: vscode.ExtensionContext) {
                 searchString
               );
             }
-            case CONFIGURE_CONNECTIONS:
-              return configureConnections();
-            case OPEN_SETTINGS:
+            case NEW_CONNECTION: {
+              globalState.update(NEW_CONNECTION, true);
+              return configureConnection();
+            }
+            case CONFIGURE_CONNECTION: {
+              globalState.update(NEW_CONNECTION, false);
+              return configureConnection();
+            }
+            case OPEN_SETTINGS: {
               return openSettings();
+            }
           }
         },
         undefined,
