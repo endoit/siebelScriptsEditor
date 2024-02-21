@@ -15,13 +15,14 @@ export interface GlobalState extends vscode.Memento {
   get(key: "connection" | "workspace" | "workspaceFolder"): string;
   get(key: "object"): SiebelObject;
   get(key: "interceptor"): number;
+  get(key: "newConnection"): boolean;
 }
 
 //create url path from parts
 export const joinUrl = (...args: string[]) => args.join("/");
 
 //open the configure connections webview
-export const configureConnections = () =>
+export const configureConnection = () =>
   vscode.commands.executeCommand("siebelscriptandwebtempeditor.config");
 
 //open the extension settings
@@ -59,7 +60,6 @@ export const initState = async (globalState: GlobalState) => {
   try {
     if (Object.keys(connections).length === 0)
       throw new Error(ERR_NO_CONN_SETTING);
-    console.log({ connections });
     globalState.update(CONNECTION, defaultConnectionName);
     globalState.update(
       WORKSPACE,

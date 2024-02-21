@@ -38,6 +38,7 @@ type QueryParams = {
   fields?: "Name" | "Script" | "Definition" | "Name,Script";
   childLinks?: "None";
   uniformresponse?: "y";
+  pageSize?: 100;
 };
 
 //Response scripts from Siebel
@@ -86,15 +87,32 @@ type Message = {
   searchString: string;
 };
 
+//message object sent from the configuration webview
+type MessageConfig = {
+  command: MessageCommandConfig;
+  testConnection: Partial<Config>;
+  action: WorkspaceAction;
+  workspace: string;
+  name: string;
+  defaultConnection: boolean;
+} & Config;
+
 type MessageCommand =
   | "connection"
   | "workspace"
   | "object"
   | "search"
   | "openSettings"
-  | "configureConnections"
+  | "configureConnection"
+  | "newConnection";
+
+type MessageCommandConfig =
   | "createOrUpdateConnection"
-  | "testConnection";
+  | "testConnection"
+  | "workspace"
+  | "deleteConnection";
+
+type WorkspaceAction = "add" | "default" | "delete";
 
 //REST methods
 type GET = "get";
