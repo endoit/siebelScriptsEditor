@@ -32,9 +32,7 @@ export const workspaceQueryParams = {
 //webview commands
 export const SEARCH = "search",
   NEW_CONNECTION = "newConnection",
-  CONFIGURE_CONNECTION = "configureConnection",
   DELETE_CONNECTION = "deleteConnection",
-  OPEN_SETTINGS = "openSettings",
   ADD = "add",
   DEFAULT = "default",
   DELETE = "delete",
@@ -88,6 +86,10 @@ export const NAME = "Name",
 export const INFO_KEY_LAST_UPDATE = "last update from Siebel",
   INFO_KEY_LAST_PUSH = "last push to Siebel",
   INFO_KEY_FOLDER_CREATED = "folder created at";
+
+//Booleans
+export const IS_NEW_CONNECTION = true;
+
 
 //Constant error messages
 export const ERR_NO_WS_OPEN =

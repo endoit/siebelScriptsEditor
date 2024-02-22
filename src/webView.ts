@@ -13,12 +13,26 @@ import {
   DEFAULT_CONNECTION_NAME,
   REST_WORKSPACES,
 } from "./constants";
-import { GlobalState, getSetting } from "./utility";
+import { GlobalState, getConnection, getSetting } from "./utility";
+import { checkBaseWorkspaceIOB } from "./dataService";
 
 const css = `
 		<style>
 			h1 {
 				text-align:center;
+			}
+
+			.datasource {
+				margin: 0 auto;
+				display: grid;
+				grid-template-columns: repeat(2, 1fr);
+				gap: 10px;
+			}
+			
+			.datasource-item {
+				text-align: left;
+				display: flex;
+				flex-direction: column;
 			}
 
 			.divitem {
@@ -28,32 +42,21 @@ const css = `
 			.text {
 				text-align: center;
 			}
-			.input-field {
-				flex: 1 1 auto;
+			input {
+				background-color: var(--vscode-input-background);
 			}
+			select {
+				background-color: var(--vscode-input-background);
+			}
+
 			.input-field[readonly] {
         background-color: #ced4da;
         color: #6c757d;
         cursor: not-allowed;
 			}
-			label {
-				margin: 0.1em;
-			}
-			.opt {
-				background: rgba(83, 89, 93, 1);
-				color: rgb(204, 204, 204);
-			}
-			#connection, #workspace, #object, #search-bar {
-				border-radius: 0.4em;
-				margin: 0.1em;
-				text-align: center;
-				background-color: rgba(83, 89, 93, 0.5);
-				color: rgb(204, 204, 204);
-				border: 0;
-				padding: 0.2em;
-				width: 10em;
-			}
-			.button-small {
+
+
+			.button-smalla {
 				flex: 1 1 auto;
 				margin: 0.2em;
 				border: none;
@@ -69,7 +72,7 @@ const css = `
 				border-radius: 0.4em;
 				box-sizing: border-box;
 			}
-			.button-small:disabled {
+			.button-smalla:disabled {
         background-color: #ced4da;
         color: #6c757d;
         cursor: not-allowed;
@@ -93,8 +96,8 @@ const css = `
 				display: grid;
 				grid-template-columns: auto auto auto auto;
 				gap: 10px;
-
 			}
+
 			.config-item {
 				text-align: left;
 				display: flex;
@@ -110,7 +113,11 @@ const css = `
 			}
 
 			.grid-12 {
-				grid-column: 1 / 2;
+				grid-column: 1 / span 2;
+			}
+
+			.grid-13 {
+				grid-column: 1 / span 3;
 			}
 			
 			.grid-3 {
@@ -142,24 +149,25 @@ const css = `
 		</style>`;
 
 //generates the HTML page for the webview to select the REST endpoint, workspace, resource and for the searchbar
-export const webViewHTML = (globalState: GlobalState): string => {
-  const configData = getSetting(CONNECTIONS),
-    connection = globalState.get(CONNECTION),
+export const dataSourceWebview = (globalState: GlobalState): string => {
+  const connections = getSetting(CONNECTIONS),
+    connectionName = globalState.get(CONNECTION),
     workspace = globalState.get(WORKSPACE),
     object = globalState.get(OBJECT),
-    workspacesList = configData[connection].restWorkspaces
+    connection = getConnection(connectionName),
+    workspaces = connection.restWorkspaces
       ? globalState.get(REST_WORKSPACES)
-      : configData[connection].workspaces;
+      : connection.workspaces;
 
-  const connections = Object.keys(configData)
+  const connectionsOptions = connections
     .map(
-      (item) =>
-        `<option class="opt" value="${item}" ${
-          connection === item ? "selected" : ""
-        }>${item}</option>`
+      ({ name }) =>
+        `<option class="opt" value="${name}" ${
+          name === connectionName ? "selected" : ""
+        }>${name}</option>`
     )
     .join("");
-  const workspaces = workspacesList
+  const workspacesOptions = workspaces
     .map(
       (item) =>
         `<option class="opt" value="${item}" ${
@@ -167,7 +175,7 @@ export const webViewHTML = (globalState: GlobalState): string => {
         }>${item}</option>`
     )
     .join("");
-  const objects = (
+  const objectsOptions = (
     [SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP] as SiebelObject[]
   )
     .map(
@@ -185,46 +193,35 @@ export const webViewHTML = (globalState: GlobalState): string => {
 				${css}
 			</head>
 			<body>
-				<div class="container">
-					<div class="divitem">
-						<label for="connection">Connection</label>
+				<div class="datasource">
+					<div class="datasource-item grid-1">
+						<label for="connection">Connection</label></div><div class="datasource-item grid-2">
 						<select name="connection" class="input-field" id="connection" onchange="selectConnection()">
-							${connections}
+							${connectionsOptions}
 						</select>
 					</div>
-					<div class="divitem">
-						<label for="workspace">Workspace</label>
-					  <select name="workspace" class="input-field" id="workspace" onchange="selectWorkspace()" >
-							${workspaces}
+					<div class="datasource-item grid-1">
+						<label for="workspace">Workspace</label></div><div class="datasource-item grid-2">
+					  <select name="workspace" class="input-fielda" id="workspace" onchange="selectWorkspace()" >
+							${workspacesOptions}
 						</select>
 					</div>
-					<div class="divitem">
-						<label for="object">Object type</label> 
-						<select name="object" class="input-field" id="object" onchange="selectObject()">                       
-							${objects}
+					<div class="datasource-item grid-1">
+						<label for="object">Object type</label></div><div class="datasource-item grid-2"> 
+						<select name="object" class="input-fielda" id="object" onchange="selectObject()">                       
+							${objectsOptions}
 						</select>
 					</div>
-					<div class="divitem">
+					<div class="datasource-item grid-12">
 						<input type="search" name="search-bar" class="input-field" id="search-bar" oninput="handleSearch()" placeholder="Type here to search"
 						${connections.length === 0 ? "readonly" : ""}>
-					</div>
-					<div class="divitem">
-					<Button class="button-small" id="new" onclick="newConnection()">New Connection</Button>  
-				</div>
-					<div class="divitem">
-					<Button class="button-small" id="config" onclick="configureConnection()" ${
-            connections.length === 0 ? "disabled" : ""
-          }>Configure Connection</Button>  
-				</div>	
-					<div class="divitem">
-						<Button class="button-small" id="settings" onclick="openSettings()">Open Settings</Button>  
 					</div>
 				</div>
 				<script>
 					const vscode = acquireVsCodeApi();
 					const selectConnection = () => {
-						const connectionName = document.getElementById("connection").value;
-						vscode.postMessage({command: "connection", connectionName});
+						const name = document.getElementById("connection").value;
+						vscode.postMessage({command: "connection", name});
 					}
 					const selectWorkspace= () => {
 						const workspace = document.getElementById("workspace").value;
@@ -238,24 +235,12 @@ export const webViewHTML = (globalState: GlobalState): string => {
 						const searchString = document.getElementById("search-bar").value;
 						if (searchString !== "") vscode.postMessage({command: "search", searchString});
 					}
-					const newConnection = () => {
-						vscode.postMessage({command: "newConnection"});
-					}
-					const configureConnection = () => {
-						vscode.postMessage({command: "configureConnection"});
-					}
-					const openSettings = () => {
-						vscode.postMessage({command: "openSettings"});
-					}
 				</script>
 			</body>
 		</html>`;
 };
 
-export const configureConnectionsWebview = (
-  connectionName: string,
-  isNewConnection = false
-) => {
+export const connectionWebview = (name: string, isNewConnection = false) => {
   const {
       url = "",
       username = "",
@@ -263,7 +248,7 @@ export const configureConnectionsWebview = (
       workspaces = [],
       restWorkspaces = false,
       defaultWorkspace = "",
-    } = isNewConnection ? {} : getSetting(CONNECTIONS)[connectionName],
+    } = isNewConnection ? {} : getConnection(name),
     defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME),
     workspaceList = workspaces
       .map(
@@ -278,6 +263,7 @@ export const configureConnectionsWebview = (
       )
       .join("");
 
+
   return `<!doctype><html>
 	<head>
 		${css}
@@ -287,21 +273,21 @@ export const configureConnectionsWebview = (
 		<div class="config">
 			<div class="config-item grid-1">
 				<label for="connection-name">Connection Name</label></div><div class="config-item grid-24">
-				<input type="text" class="input-field" name="connection-name" id="connection-name" value=${
-          isNewConnection ? "" : connectionName
-        } ${isNewConnection ? "" : "readonly"}>
+				<input type="text" class="input-field" name="connection-name" id="connection-name" value="${
+          isNewConnection ? "" : name
+        }" ${isNewConnection ? "" : "readonly"}>
 			</div>
 			<div class="config-item grid-1">
 				<label for="url">Siebel REST API Base URI</label></div><div class="config-item grid-24">
-				<input type="text" name="url" id="url" value=${url}>
+				<input type="text" name="url" id="url" value="${url}" placeholder="https://Server Name:Port/siebel/v1.0">
 			</div>
 			<div class="config-item grid-1">
 			<label for="username">Username</label></div><div class="config-item grid-24"> 
-			<input type="text" name="username" id="username" value=${username}>
+			<input type="text" name="username" id="username" value="${username}">
 			</div>
 			<div class="config-item grid-1">
 			<label for="password">Password</label></div><div class="config-item grid-24">
-			<input type="password" name="username" id="password" value=${password}>
+			<input type="password" name="username" id="password" value="${password}">
 			</div>
 			${
         isNewConnection
@@ -313,21 +299,25 @@ export const configureConnectionsWebview = (
 				</div>
 			${workspaceList}`
       }
-			<div class="config-item grid-1 checkbox"> 
+			${
+        isNewConnection
+          ? ""
+          : `<div class="config-item grid-1 checkbox"> 
 			<input type="checkbox" name="rest-workspaces" id="rest-workspaces" ${
         restWorkspaces ? "checked" : ""
-      }>			
+      } onchange="restWorkspaces()">			
 			</div>
 			<div class="config-item grid-2"> 
 			<label for="rest-workspaces">Get Workspaces From The Siebel REST API</label>
 			</div>
 			<div class="config-item grid-1 checkbox"> 
 			<input type="checkbox" name="default-connection" id="default-connection" ${
-        defaultConnectionName === connectionName ? "checked" : ""
+        defaultConnectionName === name ? "checked" : ""
       }>				</div>
 			<div class="config-item grid-2"> 
 			<label for="default-connection">Default Connection</label>
-			</div>
+			</div>`
+      }
 			<div class="config-item grid-1">
 				<Button class="button-config-small" id="test" onclick="testConnection()">Test Connection</Button>  
 			</div>
@@ -353,10 +343,18 @@ export const configureConnectionsWebview = (
 				});
 			}
 			const editWorkspaces = () => {
-				const action = event.target.name,
+				const name = document.getElementById("connection-name").value, 
+					action = event.target.name,
 					workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;
 				if (!workspace) return;
-				vscode.postMessage({command: "workspace", action, workspace});
+				vscode.postMessage({command: "workspace", name, action, workspace});
+			}
+			const restWorkspaces = () => {
+				const url = document.getElementById("url").value,
+					username = document.getElementById("username").value,
+					password = document.getElementById("password").value,
+					restWorkspaces = document.getElementById("rest-workspaces").checked;
+			if (restWorkspaces) vscode.postMessage({command: "restWorkspaces", url, username, password});
 			}
 			const testConnection = () => {
 				const url = document.getElementById("url").value,

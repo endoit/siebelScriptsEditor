@@ -81,7 +81,7 @@ type Payload = {
 //message object sent from the webview
 type Message = {
   command: MessageCommand;
-  connectionName: string;
+  name: string;
   workspace: string;
   object: SiebelObject;
   searchString: string;
@@ -110,6 +110,7 @@ type MessageCommandConfig =
   | "createOrUpdateConnection"
   | "testConnection"
   | "workspace"
+  | "restWorkspaces"
   | "deleteConnection";
 
 type WorkspaceAction = "add" | "default" | "delete";
@@ -130,7 +131,7 @@ type ButtonAction = PUSH | PULL;
 
 //Settings
 type Settings = {
-  connections: Record<string, Config>;
+  connections: Config[];
   defaultConnectionName: string;
   singleFileAutoDownload: boolean;
   localFileExtension: ".js" | ".ts";
@@ -145,6 +146,7 @@ type Settings = {
 };
 
 type Config = {
+  name: string;
   username: string;
   password: string;
   url: string;

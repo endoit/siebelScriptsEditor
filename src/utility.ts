@@ -8,7 +8,7 @@ import {
   OBJECT,
   REST_WORKSPACES,
   SERVICE,
-  WORKSPACE
+  WORKSPACE,
 } from "./constants";
 import { getWorkspaces } from "./dataService";
 
@@ -55,23 +55,28 @@ export const setSetting = async <T extends keyof Settings>(
       vscode.ConfigurationTarget.Global
     );
 
+export const getConnection = (name: string) =>
+  getSetting(CONNECTIONS).find((item) => item.name === name) || {} as Config;
+
 //parse the configurations
-export const initState = async (globalState: GlobalState) => {
+export const refreshState = async (globalState: GlobalState) => {
   const connections = getSetting(CONNECTIONS),
     defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME);
   try {
-    if (Object.keys(connections).length === 0)
-      throw new Error(ERR_NO_CONN_SETTING);
-    const connectionName = connections[defaultConnectionName]
-      ? defaultConnectionName
-      : Object.keys(connections)[0],
-      connection = connections[connectionName];
-    globalState.update(CONNECTION, connectionName);
+    if (connections.length === 0) throw new Error(ERR_NO_CONN_SETTING);
+    const name = connections.some((item) => item.name === defaultConnectionName)
+        ? defaultConnectionName
+        : connections[0].name,
+      connection = getConnection(name);
+    globalState.update(CONNECTION, name);
     if (connection.restWorkspaces) {
       const restWorkspaces = getWorkspaces(connection);
       globalState.update(REST_WORKSPACES, restWorkspaces);
     }
-    globalState.update(WORKSPACE, connections[connectionName].defaultWorkspace);
+    globalState.update(
+      WORKSPACE,
+      connection.defaultWorkspace || connection.workspaces[0]
+    );
     globalState.update(OBJECT, SERVICE);
   } catch (err: any) {
     globalState.update(CONNECTION, "");
@@ -90,7 +95,7 @@ export const moveDeprecatedSettings = async () => {
     } = vscode.workspace.getConfiguration(
       "siebelScriptAndWebTempEditor"
     ) as unknown as Settings & OldSettings,
-    connectionsSetting: Settings["connections"] = {},
+    newConnections: Settings["connections"] = [],
     workspaceObject: Workspaces = {};
   let isDefault = false;
   try {
@@ -99,35 +104,36 @@ export const moveDeprecatedSettings = async () => {
       defaultConnection?.split(":") || [];
 
     for (const workspace of workspaces) {
-      const [connectionName, workspaceString] = workspace.split(":");
-      workspaceObject[connectionName] = workspaceString
-        ? workspaceString.split(",")
-        : [];
+      const [name, workspaceString] = workspace.split(":");
+      workspaceObject[name] = workspaceString ? workspaceString.split(",") : [];
     }
 
     for (const config of connectionConfigs) {
       const [connUserPwString, url] = config.split("@"),
-        [connectionName, username, password] = connUserPwString?.split("/");
-      connectionsSetting[connectionName] = {
-        username,
-        password,
-        url,
-        workspaces: workspaceObject[connectionName] ?? [],
-        restWorkspaces: false,
-        defaultWorkspace: workspaceObject[connectionName][0] ?? "",
-      };
+        [name, username, password] = connUserPwString?.split("/"),
+        connection = {
+          name,
+          username,
+          password,
+          url,
+          workspaces: workspaceObject[name] ?? [],
+          restWorkspaces: false,
+          defaultWorkspace: workspaceObject[name][0] ?? "",
+        };
+
       if (
-        connectionName === defaultConnectionName &&
-        workspaceObject[connectionName].includes(defaultWorkspace)
+        name === defaultConnectionName &&
+        workspaceObject[name].includes(defaultWorkspace)
       ) {
-        connectionsSetting[connectionName].defaultWorkspace = defaultWorkspace;
+        connection.defaultWorkspace = defaultWorkspace;
         isDefault = true;
       }
+      newConnections.push(connection);
     }
-    await setSetting(CONNECTIONS, connectionsSetting);
+    await setSetting(CONNECTIONS, newConnections);
     await setSetting(
       DEFAULT_CONNECTION_NAME,
-      isDefault ? defaultConnectionName : Object.keys(connectionsSetting)[0]
+      isDefault ? defaultConnectionName : newConnections[0].name
     );
   } catch (err: any) {
     vscode.window.showErrorMessage(

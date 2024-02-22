@@ -31,14 +31,14 @@ import {
   PATH_TO_APPLICATION,
   ERR_CONN_MISSING_PARAMS
 } from "./constants";
-import { GlobalState, getSetting, joinUrl, openSettings } from "./utility";
+import { GlobalState, getConnection, getSetting, joinUrl, openSettings } from "./utility";
 import { writeFile } from "./fileRW";
 
 export const createInterceptor = (globalState: GlobalState) => {
-  const connection = globalState.get(CONNECTION);
-  if (!connection) return;
+  const name = globalState.get(CONNECTION);
+  if (!name) return;
   const workspace = globalState.get(WORKSPACE),
-    { url, username, password } = getSetting(CONNECTIONS)[connection];
+    { url, username, password } = getConnection(name);
   let interceptor = globalState.get(INTERCEPTOR);
   axios.interceptors.request.eject(interceptor);
   interceptor = axios.interceptors.request.use((config) => {
@@ -141,6 +141,7 @@ export const checkBaseWorkspaceIOB = async ({
   username,
   password,
 }: Connection) => {
+  if (!url) return false;
   const params = {
       ...workspaceQueryParams,
       searchSpec: `Name='Base Workspace'`,
@@ -198,11 +199,11 @@ const pushOrPull = async (action: ButtonAction, globalState: GlobalState) => {
   const isInfo = infoJSON.files.hasOwnProperty(fileName);
   if (!isInfo && (isWebTemp || action === PULL))
     return vscode.window.showErrorMessage(ERR_NO_INFO_JSON_ENTRY);
-  const { connection, workspace, type, siebelObjectName = "" } = infoJSON,
-    connectionObject = getSetting(CONNECTIONS)[connection];
+  const { connection: name, workspace, type, siebelObjectName = "" } = infoJSON,
+    connectionObject = getConnection(name);
   if (!connectionObject)
     return vscode.window.showErrorMessage(
-      `Connection "${connection}" was not found in the Connections settings!`
+      `Connection "${name}" was not found in the Connections settings!`
     );
   const { url, username, password }: Connection = connectionObject,
     objectUrlPath = joinUrl(
