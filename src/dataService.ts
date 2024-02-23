@@ -3,7 +3,6 @@ import { existsSync } from "fs";
 import { dirname, parse, join } from "path";
 import * as vscode from "vscode";
 import {
-  CONFIG_DATA,
   CONNECTION,
   ERR_FILE_FUNCTION_NAME_DIFF,
   ERR_NO_INFO_JSON,
@@ -65,8 +64,8 @@ export const getDataFromSiebel: IGetDataFromSiebel = async (
 ): Promise<ScriptResponse[] | WebTempResponse[]> => {
   try {
     const params: QueryParams = { fields };
-    params.pageSize = getSetting(MAX_PAGE_SIZE);
-    if (searchSpec) params.searchSpec = `Name LIKE '${searchSpec}*'`;
+    params.PageSize = getSetting(MAX_PAGE_SIZE);
+    if (searchSpec) params.searchspec = `Name LIKE '${searchSpec}*'`;
     const response = await axios({ url, params });
     return response.data?.items;
   } catch (err: any) {

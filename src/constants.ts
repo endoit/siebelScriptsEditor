@@ -20,8 +20,7 @@ export const repositoryObjects = {
 //query params
 export const baseQueryParams = {
   uniformresponse: "y",
-  childLinks: "None",
-  pageSize: 100,
+  childlinks: "None",
 } as const;
 
 export const workspaceQueryParams = {
@@ -62,8 +61,7 @@ export const CONNECTIONS = "connections",
   MAX_PAGE_SIZE = "maxPageSize";
 
 //global state parameters
-export const CONFIG_DATA = "configData",
-  CONNECTION = "connection",
+export const CONNECTION = "connection",
   WORKSPACE = "workspace",
   WORKSPACE_FOLDER = "workspaceFolder",
   OBJECT = "object",
@@ -71,9 +69,8 @@ export const CONFIG_DATA = "configData",
   REST_WORKSPACES = "restWorkspaces";
 
 //constant URLs
-export const 
-PATH_TO_APPLICATION = "workspace/MAIN/Application",
-PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
+export const PATH_TO_APPLICATION = "workspace/MAIN/Application",
+  PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
   PATH_WORKSPACE_IOB = "data/Workspace/Repository Workspace";
 
 //fields
@@ -88,8 +85,8 @@ export const INFO_KEY_LAST_UPDATE = "last update from Siebel",
   INFO_KEY_FOLDER_CREATED = "folder created at";
 
 //Booleans
-export const IS_NEW_CONNECTION = true;
-
+export const IS_NEW_CONNECTION = true,
+  OPEN_FILE = true;
 
 //Constant error messages
 export const ERR_NO_WS_OPEN =

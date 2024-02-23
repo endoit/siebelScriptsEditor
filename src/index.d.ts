@@ -33,12 +33,12 @@ type WebTempObject = Record<string, boolean>;
 
 //Query parameters
 type QueryParams = {
-  searchSpec?: string;
+  searchspec?: string;
   workspace?: "MAIN";
   fields?: "Name" | "Script" | "Definition" | "Name,Script";
-  childLinks?: "None";
+  childlinks?: "None";
   uniformresponse?: "y";
-  pageSize?: number;
+  PageSize?: number;
 };
 
 //Response scripts from Siebel

@@ -188,7 +188,7 @@
 						500
 					],
 					"default": 100,
-					"markdownDescription": "Number of records to fetch from the Siebel REST API."
+					"markdownDescription": "Number of records to fetch from the Siebel REST API. Can not be greater than the value of the MaximumPageSize parameter of the component EAI Object Manager (default is 100)!"
 				}
 			}
 		},

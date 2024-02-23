@@ -1,6 +1,5 @@
 import * as vscode from "vscode";
 import {
-  CONFIG_DATA,
   CONNECTION,
   CONNECTIONS,
   DEFAULT_CONNECTION_NAME,
@@ -70,7 +69,7 @@ export const refreshState = async (globalState: GlobalState) => {
       connection = getConnection(name);
     globalState.update(CONNECTION, name);
     if (connection.restWorkspaces) {
-      const restWorkspaces = getWorkspaces(connection);
+      const restWorkspaces = await getWorkspaces(connection);
       globalState.update(REST_WORKSPACES, restWorkspaces);
     }
     globalState.update(
@@ -80,7 +79,6 @@ export const refreshState = async (globalState: GlobalState) => {
     globalState.update(OBJECT, SERVICE);
   } catch (err: any) {
     globalState.update(CONNECTION, "");
-    globalState.update(CONFIG_DATA, {});
     vscode.window.showErrorMessage(err.message);
   }
 };

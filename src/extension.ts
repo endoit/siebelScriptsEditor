@@ -11,7 +11,6 @@ import {
   WEBTEMP,
   CONNECTION,
   WORKSPACE,
-  CONFIG_DATA,
   OBJECT,
   WORKSPACE_FOLDER,
   CONNECTIONS,
@@ -117,6 +116,8 @@ export async function activate(context: vscode.ExtensionContext) {
           ? vscode.window.activeTextEditor.viewColumn
           : undefined,
         connectionName = globalState.get(CONNECTION);
+      if (!isNewConnection)
+        isNewConnection = getSetting(CONNECTIONS).length === 0;
 
       if (configWebview) {
         configWebview.webview.html = connectionWebview(
@@ -207,6 +208,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 return vscode.window.showInformationMessage(
                   "Connection is working!"
                 );
+              return vscode.window.showErrorMessage("Error in connection!");
             }
             case CREATE_OR_UPDATE_CONNECTION: {
               if (!(name && url && username && password))
@@ -318,7 +320,11 @@ export async function activate(context: vscode.ExtensionContext) {
               } = getConnection(name);
               globalState.update(WORKSPACE, defaultWorkspace);
               if (restWorkspaces) {
-                const workspaces = await getWorkspaces({url, username, password});
+                const workspaces = await getWorkspaces({
+                  url,
+                  username,
+                  password,
+                });
                 globalState.update(REST_WORKSPACES, workspaces);
               }
               createInterceptor(globalState);

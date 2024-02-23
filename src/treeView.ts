@@ -14,6 +14,7 @@ import {
   WEBTEMP,
   WORKSPACE_FOLDER,
   FILE_NAME_INFO,
+  OPEN_FILE,
 } from "./constants";
 import { getDataFromSiebel } from "./dataService";
 import { writeFile, writeInfo } from "./fileRW";
@@ -137,7 +138,6 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
         objectUrlPath,
         namesOnly ? NAME : NAMESCRIPT
       ),
-      OPEN_FILE = true,
       scriptNames = [],
       localFileExtension = getSetting(LOCAL_FILE_EXTENSION);
     for (const { Name, Script } of data) {
