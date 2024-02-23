@@ -16,6 +16,7 @@ import { GlobalState, getConnection, getSetting } from "./utility";
 
 const css = `
 		<style>
+
 			h1 {
 				text-align:center;
 			}
@@ -29,10 +30,10 @@ const css = `
 			}
 
 			.datasource {
-				margin: 5px auto 5px;
+				margin: 10px auto 5px;
 				display: grid;
 				grid-template-columns: auto auto;
-				gap: 10px;
+				gap: 6px;
 			}
 			
 			.grid-item {
@@ -182,26 +183,32 @@ export const dataSourceWebview = (globalState: GlobalState): string => {
 			<body>
 				<div class="datasource">
 					<div class="grid-item grid-1">
-						<label for="connection">Connection</label></div><div class="grid-item grid-2">
+						<label for="connection">Connection</label>
+					</div>
+					<div class="grid-item grid-2">
 						<select name="connection" class="input select" id="connection" onchange="selectConnection()">
 							${connectionsOptions}
 						</select>
 					</div>
 					<div class="grid-item grid-1">
-						<label for="workspace">Workspace</label></div><div class="grid-item grid-2">
+						<label for="workspace">Workspace</label>
+					</div>
+					<div class="grid-item grid-2">
 					  <select name="workspace" class="input select" id="workspace" onchange="selectWorkspace()" >
 							${workspacesOptions}
 						</select>
 					</div>
 					<div class="grid-item grid-1">
-						<label for="object">Object type</label></div><div class="grid-item grid-2"> 
+						<label for="object">Object type</label>
+					</div>
+					<div class="grid-item grid-2"> 
 						<select name="object" class="input select" id="object" onchange="selectObject()">                       
 							${objectsOptions}
 						</select>
 					</div>
 					<div class="grid-item grid-12">
 						<input type="search" name="search-bar" class="input" id="search-bar" oninput="handleSearch()" placeholder="Type here to search"
-						${connections.length === 0 ? "readonly" : ""}>
+						${connections.length === 0 || workspaces.length === 0 ? "readonly" : ""}>
 					</div>
 				</div>
 				<script>
@@ -256,10 +263,12 @@ export const connectionWebview = (name: string, isNewConnection = false) => {
 		${css}
 	</head>
 	<body>
-	<h1>${isNewConnection ? "Create New Connection" : "Edit Connection"}</h1>
+		<h1>${isNewConnection ? "Create New Connection" : "Edit Connection"}</h1>
 		<div class="config">
 			<div class="grid-item grid-1">
-				<label for="connection-name">Connection Name</label></div><div class="grid-item grid-24">
+				<label for="connection-name">Connection Name</label>
+			</div>
+			<div class="grid-item grid-24">
 				<input type="text" class="input" name="connection-name" id="connection-name" value="${
           isNewConnection ? "" : name
         }" ${isNewConnection ? "" : "readonly"}>
@@ -276,51 +285,60 @@ export const connectionWebview = (name: string, isNewConnection = false) => {
 			<label for="password">Password</label></div><div class="grid-item grid-24">
 			<input type="password" class="input" name="username" id="password" value="${password}">
 			</div>
+	${
+    isNewConnection
+      ? ""
+      : `
+			<div class="grid-item  grid-1">
+				<label for="add-workspace">Workspaces
+			</div>
+			<div class="grid-item  grid-2">
+				<input class="input" type="text" name="add-workspace" id="add-workspace">
+			</div>
+			<div class="grid-item grid-34">
+				<Button class="button button-small" name="add" onclick="editWorkspaces()" id="add-workspace-button">Add</Button>			
+			</div>
+	${workspaceList}`
+  }
 			${
         isNewConnection
           ? ""
-          : `<div class="grid-item  grid-1"><label for="add-workspace">Workspaces</div>
-					<div class="grid-item  grid-2"><input class="input" type="text" name="add-workspace" id="add-workspace">
-					</div><div class="grid-item grid-34">
-					<Button class="button" name="add" onclick="editWorkspaces()" id="add-workspace-button">Add</Button>			
-				</div>
-			${workspaceList}`
-      }
-			${
-        isNewConnection
-          ? ""
-          : `<div class="grid-item grid-1 checkbox-container"> 
-			<input type="checkbox" class="checkbox" name="rest-workspaces" id="rest-workspaces" ${
-        restWorkspaces ? "checked" : ""
-      } onchange="restWorkspaces()">			
-			</div>
-			<div class="grid-item grid-2"> 
-			<label for="rest-workspaces">Get Workspaces From The Siebel REST API</label>
-			</div>
-			<div class="grid-item grid-1 checkbox-container"> 
-			<input type="checkbox" class="checkbox" name="default-connection" id="default-connection" ${
-        defaultConnectionName === name ? "checked" : ""
-      }>				</div>
-			<div class="grid-item grid-2"> 
-			<label for="default-connection">Default Connection</label>
-			</div>`
+          : `
+					<div class="grid-item grid-1 checkbox-container"> 
+						<input type="checkbox" class="checkbox" name="rest-workspaces" id="rest-workspaces" ${
+              restWorkspaces ? "checked" : ""
+            } onchange="restWorkspaces()">			
+					</div>
+					<div class="grid-item grid-2"> 
+						<label for="rest-workspaces">Get Workspaces From The Siebel REST API</label>
+					</div>
+					<div class="grid-item grid-1 checkbox-container"> 
+					<input type="checkbox" class="checkbox" name="default-connection" id="default-connection" ${
+            defaultConnectionName === name ? "checked" : ""
+          }>				
+					</div>
+					<div class="grid-item grid-2"> 
+						<label for="default-connection">Default Connection</label>
+					</div>`
       }
 			<div class="grid-item grid-1">
 				<Button class="button" id="test" onclick="testConnection()">Test Connection</Button>  
 			</div>
 			<div class="grid-item ${isNewConnection ? "grid-24" : "grid-23"} ">
-			<Button class="button" id="createOrUpdateConnection" onclick="createOrUpdateConnection()">Save Connection</Button></div>  
-			${
-        isNewConnection
-          ? ""
-          : `<div class="grid-item grid-3">
-			<Button class="button" id="deleteConnection" onclick="deleteConnection()">Delete Connection</Button>
+				<Button class="button" id="createOrUpdateConnection" onclick="createOrUpdateConnection()">Save Connection</Button>
+			</div>  
+	${
+    isNewConnection
+      ? ""
+      : `
+			<div class="grid-item grid-3">
+				<Button class="button" id="deleteConnection" onclick="deleteConnection()">Delete Connection</Button>
 			</div>`
-      }
+  }
 		</div>
 		<script>
-			const vscode = acquireVsCodeApi();
-			const addWorkspace = document.getElementById("add-workspace");
+			const vscode = acquireVsCodeApi(),
+				addWorkspace = document.getElementById("add-workspace");
 			if (addWorkspace){
 				addWorkspace.addEventListener("keypress", (e) => {
 					if (e.key === "Enter") {

@@ -55,9 +55,8 @@ export const setSetting = async <T extends keyof Settings>(
     );
 
 export const getConnection = (name: string) =>
-  getSetting(CONNECTIONS).find((item) => item.name === name) || {} as Config;
+  getSetting(CONNECTIONS).find((item) => item.name === name) || ({} as Config);
 
-//parse the configurations
 export const refreshState = async (globalState: GlobalState) => {
   const connections = getSetting(CONNECTIONS),
     defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME);
@@ -100,12 +99,10 @@ export const moveDeprecatedSettings = async () => {
     if (!connectionConfigs || !(Object.keys(connections).length === 0)) return;
     const [defaultConnectionName = "", defaultWorkspace = ""] =
       defaultConnection?.split(":") || [];
-
     for (const workspace of workspaces) {
       const [name, workspaceString] = workspace.split(":");
       workspaceObject[name] = workspaceString ? workspaceString.split(",") : [];
     }
-
     for (const config of connectionConfigs) {
       const [connUserPwString, url] = config.split("@"),
         [name, username, password] = connUserPwString?.split("/"),
@@ -118,7 +115,6 @@ export const moveDeprecatedSettings = async () => {
           restWorkspaces: false,
           defaultWorkspace: workspaceObject[name][0] ?? "",
         };
-
       if (
         name === defaultConnectionName &&
         workspaceObject[name].includes(defaultWorkspace)
@@ -135,7 +131,7 @@ export const moveDeprecatedSettings = async () => {
     );
   } catch (err: any) {
     vscode.window.showErrorMessage(
-      `An error occured when moving the deprecated parameters to the new settings: ${err.message}, please check and fill the new settings manually!`
+      `An error occured when moving the deprecated parameters to the new settings: ${err.message}, please create connections manually!`
     );
   }
 };

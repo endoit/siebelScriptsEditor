@@ -25,6 +25,7 @@ import {
   NEW_CONNECTION,
   IS_NEW_CONNECTION,
   REST_WORKSPACES,
+  ERR_NO_BASE_WS_IOB,
 } from "./constants";
 import {
   checkBaseWorkspaceIOB,
@@ -84,7 +85,7 @@ export async function activate(context: vscode.ExtensionContext) {
       );
   }
 
-  //clear the tree views and set the connection and workspace name
+  //clear the tree views
   const clearTreeViews = () => {
     for (const treeDataProvider of Object.values(treeDataProviders)) {
       treeDataProvider.clear();
@@ -194,9 +195,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 return vscode.window.showInformationMessage(
                   "Getting workspaces from the Siebel REST API is working!"
                 );
-              return vscode.window.showErrorMessage(
-                "Error in getting workspaces from the Siebel REST API, Base Workspace integration object is missing!"
-              );
+              return vscode.window.showErrorMessage(ERR_NO_BASE_WS_IOB);
             }
             case TEST_CONNECTION: {
               const testResult = await testConnection({
@@ -208,7 +207,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 return vscode.window.showInformationMessage(
                   "Connection is working!"
                 );
-              return vscode.window.showErrorMessage("Error in connection!");
+              return;
             }
             case CREATE_OR_UPDATE_CONNECTION: {
               if (!(name && url && username && password))
@@ -283,24 +282,40 @@ export async function activate(context: vscode.ExtensionContext) {
     resolveWebviewView: ({ webview }) => {
       //watch changes in the settings
       vscode.workspace.onDidChangeConfiguration(async (e) => {
-        if (e.affectsConfiguration("siebelScriptAndWebTempEditor")) {
+        if (
+          e.affectsConfiguration("siebelScriptAndWebTempEditor.connections")
+        ) {
           const prevName = globalState.get(CONNECTION),
             prevWorkspace = globalState.get(WORKSPACE);
           await refreshState(globalState);
-          const { name, workspaces } = getConnection(prevName);
+          const {
+            url,
+            username,
+            password,
+            workspaces,
+            restWorkspaces,
+            defaultWorkspace,
+          } = getConnection(prevName);
           if (name) {
             globalState.update(CONNECTION, prevName);
-            const workspace = workspaces.includes(prevWorkspace)
-              ? prevWorkspace
-              : workspaces[0];
-            globalState.update(WORKSPACE, workspace);
+            if (restWorkspaces) {
+              const restWorkspacesList = await getWorkspaces({
+                url,
+                username,
+                password,
+              });
+              globalState.update(REST_WORKSPACES, restWorkspacesList);
+              globalState.update(WORKSPACE, restWorkspacesList[0]);
+            } else {
+              const workspace = workspaces.includes(prevWorkspace)
+                ? prevWorkspace
+                : workspaces[0];
+              globalState.update(WORKSPACE, workspace);
+            }
           }
           createInterceptor(globalState);
           webview.html = dataSourceWebview(globalState);
-          if (
-            e.affectsConfiguration("siebelScriptAndWebTempEditor.connections")
-          )
-            clearTreeViews();
+          clearTreeViews();
         }
       });
       webview.options = { enableScripts: true };

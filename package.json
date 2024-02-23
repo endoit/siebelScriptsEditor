@@ -100,7 +100,7 @@
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.openSettings",
-				"title": "Open settings",
+				"title": "Open Settings",
 				"when": "workspaceFolderCount > 0",
 				"icon": {
 					"light": "./media/settings_light.png",

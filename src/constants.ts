@@ -95,6 +95,7 @@ export const ERR_NO_WS_OPEN =
     "Please add create least one connection with the New Connection button!",
   ERR_CONN_MISSING_PARAMS =
     "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
+    ERR_NO_BASE_WS_IOB = "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing!",
   ERR_NO_WS_CONN =
     "No workspace was found for any connection, please check Connections setting!",
   ERR_NO_INFO_JSON =
