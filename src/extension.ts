@@ -22,7 +22,6 @@ import {
   DELETE_CONNECTION,
   ERR_CONN_MISSING_PARAMS,
   DEFAULT_CONNECTION_NAME,
-  NEW_CONNECTION,
   IS_NEW_CONNECTION,
   REST_WORKSPACES,
   ERR_NO_BASE_WS_IOB,
@@ -364,7 +363,7 @@ export async function activate(context: vscode.ExtensionContext) {
               const type = globalState.get(OBJECT);
               return await treeDataProviders[type].debouncedSearch(
                 searchString
-              );
+              ); //await treeViews.search(type, searchString)
             }
           }
         },

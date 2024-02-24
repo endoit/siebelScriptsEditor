@@ -15,6 +15,10 @@ import {
   WORKSPACE_FOLDER,
   FILE_NAME_INFO,
   OPEN_FILE,
+  BUSCOMP,
+  SERVICE,
+  APPLET,
+  APPLICATION,
 } from "./constants";
 import { getDataFromSiebel } from "./dataService";
 import { writeFile, writeInfo } from "./fileRW";
@@ -29,6 +33,48 @@ const checkmarkIconPath = {
   dark: join(__filename, "..", "..", "media", "checkmark.png"),
 } as const;
 
+//container for the tree views
+class TreeViews {
+  service = new TreeDataProviderObject(SERVICE, globalState);
+  buscomp = new TreeDataProviderObject(BUSCOMP, globalState);
+  applet = new TreeDataProviderObject(APPLET, globalState);
+  application = new TreeDataProviderObject(APPLICATION, globalState);
+  webtemp = new TreeDataProviderWebTemp(WEBTEMP, globalState);
+  connection = "";
+  workspace = "";
+
+  constructor() {
+    this.createTreeView(SERVICE, this.service);
+    this.createTreeView(BUSCOMP, this.buscomp);
+    this.createTreeView(APPLET, this.applet);
+    this.createTreeView(APPLICATION, this.application);
+    this.createTreeView(WEBTEMP, this.webtemp);
+  }
+
+  createTreeView = (
+    type: SiebelObject,
+    treeDataProvider: TreeDataProviderObject | TreeDataProviderWebTemp
+  ) =>
+    vscode.window
+      .createTreeView(type, {
+        treeDataProvider,
+        showCollapseAll: type !== WEBTEMP,
+      })
+      .onDidChangeSelection(async (e) =>
+        treeDataProvider.selectionChange(e as any)
+      );
+
+  clearTreeViews = () => {
+    this.service.clear();
+    this.buscomp.clear();
+    this.applet.clear();
+    this.application.clear();
+    this.webtemp.clear();
+  };
+  search = async (type: SiebelObject, searchString: string) =>
+    await this[type].debouncedSearch(searchString);
+}
+
 //classes for the tree data providers
 class TreeDataProviderBase {
   readonly type: SiebelObject;
@@ -36,6 +82,8 @@ class TreeDataProviderBase {
   readonly objectUrl: string;
   readonly workspaceFolder: string;
   private timeoutId: NodeJS.Timeout | number | null = null;
+  connection = "";
+  workspace = "";
   _onDidChangeTreeData = new vscode.EventEmitter();
   onDidChangeTreeData = this._onDidChangeTreeData.event;
   data: (TreeItemObject | TreeItemWebTemp)[] = [];

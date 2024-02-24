@@ -103,7 +103,6 @@ type MessageCommand =
   | "object"
   | "search"
   | "openSettings"
-  | "configureConnection"
   | "newConnection";
 
 type MessageCommandConfig =

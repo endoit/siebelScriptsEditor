@@ -28,9 +28,8 @@ export const workspaceQueryParams = {
   workspace: "MAIN",
 } as const;
 
-//webview commands
+//webview commands for the connection configuration
 export const SEARCH = "search",
-  NEW_CONNECTION = "newConnection",
   DELETE_CONNECTION = "deleteConnection",
   ADD = "add",
   DEFAULT = "default",
@@ -69,7 +68,7 @@ export const CONNECTION = "connection",
   REST_WORKSPACES = "restWorkspaces";
 
 //constant URLs
-export const PATH_TO_APPLICATION = "workspace/MAIN/Application",
+export const PATH_APPLICATION = "workspace/MAIN/Application",
   PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
   PATH_WORKSPACE_IOB = "data/Workspace/Repository Workspace";
 
@@ -95,7 +94,8 @@ export const ERR_NO_WS_OPEN =
     "Please add create least one connection with the New Connection button!",
   ERR_CONN_MISSING_PARAMS =
     "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
-    ERR_NO_BASE_WS_IOB = "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing!",
+  ERR_NO_BASE_WS_IOB =
+    "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing!",
   ERR_NO_WS_CONN =
     "No workspace was found for any connection, please check Connections setting!",
   ERR_NO_INFO_JSON =

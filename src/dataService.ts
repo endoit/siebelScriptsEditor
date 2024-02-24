@@ -26,10 +26,16 @@ import {
   INFO_KEY_LAST_UPDATE,
   INFO_KEY_LAST_PUSH,
   MAX_PAGE_SIZE,
-  PATH_TO_APPLICATION,
-  ERR_CONN_MISSING_PARAMS
+  PATH_APPLICATION,
+  ERR_CONN_MISSING_PARAMS,
 } from "./constants";
-import { GlobalState, getConnection, getSetting, joinUrl, openSettings } from "./utility";
+import {
+  GlobalState,
+  getConnection,
+  getSetting,
+  joinUrl,
+  openSettings,
+} from "./utility";
 import { writeFile } from "./fileRW";
 
 export const createInterceptor = (globalState: GlobalState) => {
@@ -124,7 +130,7 @@ export const testConnection = async ({
   username,
   password,
 }: Connection) => {
-  const testUrl = joinUrl(url, PATH_TO_APPLICATION),
+  const testUrl = joinUrl(url, PATH_APPLICATION),
     data = await axiosInstance(
       { url: testUrl, username, password },
       GET,
