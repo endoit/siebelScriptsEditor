@@ -37,7 +37,7 @@
 				{
 					"type": "webview",
 					"id": "extensionView",
-					"name": "Select datasource"
+					"name": "Datasource"
 				},
 				{
 					"id": "service",
@@ -151,7 +151,7 @@
 				},
 				"siebelScriptAndWebTempEditor.defaultConnectionName": {
 					"type": "string",
-					"markdownDescription": "Use the Set as default button to change this in the Configure Connection panel, do not modify here!"
+					"markdownDescription": "Use the Default Connection checkbox in the Configure Connection panel and save the connection to change this, do not modify here!"
 				},
 				"siebelScriptAndWebTempEditor.defaultScriptFetching": {
 					"type": "string",

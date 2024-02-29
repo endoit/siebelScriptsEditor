@@ -5,6 +5,8 @@ export const SERVICE = "service",
   APPLICATION = "application",
   WEBTEMP = "webtemp";
 
+export const siebelObjects: SiebelObject[] = [SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP];
+
 //Repository object urls
 export const repositoryObjects = {
   [SERVICE]: {
@@ -45,7 +47,7 @@ export const GET = "get",
 export const PUSH = "push",
   PULL = "pull";
 
-//constant file names
+//constant file/folder names
 export const FILE_NAME_INFO = "info.json",
   FILE_NAME_TYPE_DEF = "index.d.ts",
   FILE_NAME_JSCONFIG = "jsconfig.json",

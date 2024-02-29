@@ -3,13 +3,11 @@ import { existsSync } from "fs";
 import { dirname, parse, join } from "path";
 import * as vscode from "vscode";
 import {
-  CONNECTION,
   ERR_FILE_FUNCTION_NAME_DIFF,
   ERR_NO_INFO_JSON,
   ERR_NO_UPDATE,
   GET,
   FILE_NAME_INFO,
-  INTERCEPTOR,
   PATH_MAIN_INTEG_OBJ,
   PATH_WORKSPACE_IOB,
   PULL,
@@ -27,40 +25,14 @@ import {
   INFO_KEY_LAST_PUSH,
   MAX_PAGE_SIZE,
   PATH_APPLICATION,
-  ERR_CONN_MISSING_PARAMS,
 } from "./constants";
 import {
-  GlobalState,
   getConnection,
   getSetting,
   joinUrl,
-  openSettings,
+  timestamp,
 } from "./utility";
-import { writeFile } from "./fileRW";
-
-export const createInterceptor = (globalState: GlobalState) => {
-  const name = globalState.get(CONNECTION);
-  if (!name) return;
-  const workspace = globalState.get(WORKSPACE),
-    { url, username, password } = getConnection(name);
-  let interceptor = globalState.get(INTERCEPTOR);
-  axios.interceptors.request.eject(interceptor);
-  interceptor = axios.interceptors.request.use((config) => {
-    config.headers["Content-Type"] = "application/json";
-    return {
-      ...config,
-      baseURL: joinUrl(url, WORKSPACE, workspace),
-      method: GET,
-      withCredentials: true,
-      auth: { username, password },
-      params: {
-        ...config.params,
-        ...baseQueryParams,
-      },
-    };
-  });
-  globalState.update(INTERCEPTOR, interceptor);
-};
+import { writeFile } from "./utility";
 
 export const getDataFromSiebel: IGetDataFromSiebel = async (
   url: string,
@@ -183,7 +155,7 @@ export const getWorkspaces = async ({
 };
 
 //push/pull script from/to database
-const pushOrPull = async (action: ButtonAction, globalState: GlobalState) => {
+const pushOrPull = async (action: ButtonAction) => {
   const fileUri = vscode.window.activeTextEditor!.document.uri,
     filePath = fileUri.fsPath,
     { name: fileName } = parse(filePath),
@@ -236,7 +208,7 @@ const pushOrPull = async (action: ButtonAction, globalState: GlobalState) => {
         content = data?.[0][fields];
       if (!content) return;
       writeFile(filePath, content);
-      infoJSON.files[fileName][INFO_KEY_LAST_UPDATE] = new Date().toString();
+      infoJSON.files[fileName][INFO_KEY_LAST_UPDATE] = timestamp();
       break;
     }
     case PUSH: {
@@ -268,7 +240,7 @@ const pushOrPull = async (action: ButtonAction, globalState: GlobalState) => {
           [INFO_KEY_LAST_UPDATE]: "",
           [INFO_KEY_LAST_PUSH]: "",
         };
-      infoJSON.files[fileName][INFO_KEY_LAST_PUSH] = new Date().toString();
+      infoJSON.files[fileName][INFO_KEY_LAST_PUSH] = timestamp();
       break;
     }
   }
@@ -277,11 +249,8 @@ const pushOrPull = async (action: ButtonAction, globalState: GlobalState) => {
 
 //callback for the push/pull buttons
 export const pushOrPullCallback =
-  (action: ButtonAction, globalState: GlobalState) => async () => {
-    if (!globalState.get(CONNECTION)) {
-      vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
-      return openSettings();
-    }
+  (action: ButtonAction) => async () => {
+
     const answer = await vscode.window.showInformationMessage(
       `Do you want to overwrite ${
         action === PULL
@@ -292,5 +261,5 @@ export const pushOrPullCallback =
       "No"
     );
     if (answer !== "Yes") return;
-    await pushOrPull(action, globalState);
+    await pushOrPull(action);
   };

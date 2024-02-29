@@ -1,8 +1,7 @@
-import { basename, extname, join } from "path";
+import { basename, dirname, extname, join } from "path";
 import * as vscode from "vscode";
 import {
   repositoryObjects,
-  CONNECTION,
   WORKSPACE,
   DEFAULT_SCRIPT_FETCHING,
   LOCAL_FILE_EXTENSION,
@@ -12,18 +11,26 @@ import {
   SCRIPT,
   DEFINITION,
   WEBTEMP,
-  WORKSPACE_FOLDER,
   FILE_NAME_INFO,
   OPEN_FILE,
   BUSCOMP,
   SERVICE,
   APPLET,
   APPLICATION,
+  siebelObjects,
+  INFO_KEY_FOLDER_CREATED,
+  INFO_KEY_LAST_PUSH,
+  INFO_KEY_LAST_UPDATE,
+  GET,
+  baseQueryParams,
+  CONNECTIONS,
+  DEFAULT_CONNECTION_NAME,
+  ERR_NO_CONN_SETTING,
 } from "./constants";
-import { getDataFromSiebel } from "./dataService";
-import { writeFile, writeInfo } from "./fileRW";
+import { getDataFromSiebel, getWorkspaces } from "./dataService";
 import { existsSync, readdirSync } from "fs";
-import { GlobalState, getSetting, joinUrl } from "./utility";
+import { getConnection, getSetting, joinUrl, timestamp, writeFile } from "./utility";
+import axios from "axios";
 
 type TreeItem = TreeItemObject | TreeItemScript | TreeItemWebTemp;
 
@@ -33,76 +40,148 @@ const checkmarkIconPath = {
   dark: join(__filename, "..", "..", "media", "checkmark.png"),
 } as const;
 
-//container for the tree views
-class TreeViews {
-  service = new TreeDataProviderObject(SERVICE, globalState);
-  buscomp = new TreeDataProviderObject(BUSCOMP, globalState);
-  applet = new TreeDataProviderObject(APPLET, globalState);
-  application = new TreeDataProviderObject(APPLICATION, globalState);
-  webtemp = new TreeDataProviderWebTemp(WEBTEMP, globalState);
+//container class for the tree views
+export class TreeViews {
+  private readonly workspaceFolder =
+    vscode.workspace.workspaceFolders?.[0].uri.fsPath!;
+  private readonly service = new TreeDataProviderObject(SERVICE);
+  private readonly buscomp = new TreeDataProviderObject(BUSCOMP);
+  private readonly applet = new TreeDataProviderObject(APPLET);
+  private readonly application = new TreeDataProviderObject(APPLICATION);
+  private readonly webtemp = new TreeDataProviderWebTemp();
+  private readonly treeDataProviders: (
+    | TreeDataProviderObject
+    | TreeDataProviderWebTemp
+  )[] = [];
+  private interceptor = 0;
+  private _workspace = "";
+  workspaces: string[] = [];
   connection = "";
-  workspace = "";
+  type: SiebelObject = SERVICE;
 
   constructor() {
-    this.createTreeView(SERVICE, this.service);
-    this.createTreeView(BUSCOMP, this.buscomp);
-    this.createTreeView(APPLET, this.applet);
-    this.createTreeView(APPLICATION, this.application);
-    this.createTreeView(WEBTEMP, this.webtemp);
+    for (const type of siebelObjects) {
+      this.createTreeView(type);
+      this.treeDataProviders.push(this[type]);
+    }
   }
 
-  createTreeView = (
-    type: SiebelObject,
-    treeDataProvider: TreeDataProviderObject | TreeDataProviderWebTemp
-  ) =>
+  createTreeView = (type: SiebelObject) =>
     vscode.window
       .createTreeView(type, {
-        treeDataProvider,
+        treeDataProvider: this[type],
         showCollapseAll: type !== WEBTEMP,
       })
-      .onDidChangeSelection(async (e) =>
-        treeDataProvider.selectionChange(e as any)
-      );
+      .onDidChangeSelection(async (e) => this[type].selectionChange(e as any));
 
-  clearTreeViews = () => {
-    this.service.clear();
-    this.buscomp.clear();
-    this.applet.clear();
-    this.application.clear();
-    this.webtemp.clear();
+  get connections() {
+    return getSetting(CONNECTIONS).map(({ name }) => name);
+  }
+
+  set workspace(newWorkspace: string) {
+    this._workspace = newWorkspace;
+    this.createInterceptor();
+    for (let treeDataProvider of this.treeDataProviders) {
+      treeDataProvider.folder = this.folder;
+      treeDataProvider.clear();
+    }
+  }
+
+  get workspace() {
+    return this._workspace;
+  }
+
+  get folder() {
+    return join(this.workspaceFolder, this.connection || "", this.workspace || "");
+  }
+
+  setState = async () => {
+    if (this.connections.length === 0)
+      return vscode.window.showErrorMessage(ERR_NO_CONN_SETTING);
+    const defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME),
+      name =
+        this.connections.includes(this.connection) ? this.connection :
+        this.connections.includes(defaultConnectionName)
+          ? defaultConnectionName
+          : getSetting(CONNECTIONS)[0].name,
+      {
+        url,
+        username,
+        password,
+        workspaces,
+        defaultWorkspace,
+        restWorkspaces,
+      } = getConnection(name);
+    this.connection = name;
+    this.workspaces = restWorkspaces
+      ? await getWorkspaces({ url, username, password })
+      : workspaces;
+    this.workspace =
+      restWorkspaces || !workspaces.includes(defaultWorkspace)
+        ? this.workspaces[0]
+        : defaultWorkspace;
   };
-  search = async (type: SiebelObject, searchString: string) =>
-    await this[type].debouncedSearch(searchString);
+
+  getState = () => ({
+    connections: this.connections,
+    selectedConnection: this.connection || "",
+    workspaces: this.workspaces,
+    selectedWorkspace: this.workspace || "",
+  });
+
+  createInterceptor = () => {
+    if (!this.connection) return;
+    const { url, username, password } = getConnection(this.connection);
+    axios.interceptors.request.eject(this.interceptor);
+    this.interceptor = axios.interceptors.request.use((config) => {
+      config.headers["Content-Type"] = "application/json";
+      return {
+        ...config,
+        baseURL: joinUrl(url, WORKSPACE, this.workspace),
+        method: GET,
+        withCredentials: true,
+        auth: { username, password },
+        params: {
+          ...config.params,
+          ...baseQueryParams,
+        },
+      };
+    });
+  };
+
+  search = async (searchString: string) =>
+    await this[this.type].debouncedSearch(searchString);
+
+  clear = () => {
+    for (const treeDataProvider of this.treeDataProviders) {
+      treeDataProvider.clear();
+    }
+  };
 }
 
 //classes for the tree data providers
 class TreeDataProviderBase {
   readonly type: SiebelObject;
-  readonly globalState: GlobalState;
   readonly objectUrl: string;
-  readonly workspaceFolder: string;
   private timeoutId: NodeJS.Timeout | number | null = null;
-  connection = "";
-  workspace = "";
+  private _folder = "";
   _onDidChangeTreeData = new vscode.EventEmitter();
   onDidChangeTreeData = this._onDidChangeTreeData.event;
   data: (TreeItemObject | TreeItemWebTemp)[] = [];
   dataObject: ScriptObject | WebTempObject = {};
 
-  constructor(type: SiebelObject, globalState: GlobalState) {
-    this.globalState = globalState;
+  constructor(type: SiebelObject) {
     this.type = type;
     this.objectUrl = repositoryObjects[type].parent;
-    this.workspaceFolder = globalState.get(WORKSPACE_FOLDER);
+    this.folder = "";
+  }
+
+  set folder(siebelWorkspaceFolder: string) {
+    this._folder = join(siebelWorkspaceFolder, this.type);
   }
 
   get folder() {
-    return join(
-      this.workspaceFolder,
-      this.globalState.get(CONNECTION),
-      this.globalState.get(WORKSPACE),
-      this.type
-    );
+    return this._folder;
   }
 
   getTreeItem = (element: TreeItem) => element;
@@ -132,6 +211,46 @@ class TreeDataProviderBase {
     this.data = [];
     this._onDidChangeTreeData.fire(null);
   };
+
+  writeInfo = async (folderPath: string, fileNames: string[]) => {
+    try {
+      vscode.workspace.saveAll(false);
+      let infoJSON: InfoObject;
+      const filePath = join(folderPath, FILE_NAME_INFO),
+        fileUri = vscode.Uri.file(filePath),
+        isWebTemp = this.type === WEBTEMP,
+        dateInfo = {
+          [INFO_KEY_LAST_UPDATE]: timestamp(),
+          [INFO_KEY_LAST_PUSH]: "",
+        };
+      if (existsSync(filePath)) {
+        //update info.json if exists
+        const fileContent = await vscode.workspace.fs.readFile(fileUri);
+        infoJSON = JSON.parse(Buffer.from(fileContent).toString());
+        for (const fileName of fileNames) {
+          if (infoJSON.files.hasOwnProperty(fileName))
+            infoJSON.files[fileName][INFO_KEY_LAST_UPDATE] = timestamp();
+          else infoJSON.files[fileName] = dateInfo;
+        }
+      } else {
+        //create info.json if not exists
+        infoJSON = {
+          [INFO_KEY_FOLDER_CREATED]: timestamp.toString(),
+          connection: basename(dirname(this.folder)),
+          workspace: basename(dirname(dirname(this.folder))),
+          type: this.type,
+          files: {},
+        };
+        if (!isWebTemp) infoJSON.siebelObjectName = basename(folderPath);
+        for (const fileName of fileNames) {
+          infoJSON.files[fileName] = dateInfo;
+        }
+      }
+      writeFile(filePath, JSON.stringify(infoJSON, null, 2));
+    } catch (err: any) {
+      vscode.window.showErrorMessage(err.message);
+    }
+  };
 }
 
 export class TreeDataProviderObject extends TreeDataProviderBase {
@@ -140,8 +259,8 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
   data: TreeItemObject[] = [];
   dataObject: ScriptObject = {};
 
-  constructor(type: NotWebTemp, globalState: GlobalState) {
-    super(type, globalState);
+  constructor(type: NotWebTemp) {
+    super(type);
     this.type = type;
     this.scriptUrl = repositoryObjects[type].child;
   }
@@ -198,7 +317,7 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
       const filePath = join(folderPath, `${Name}${localFileExtension}`);
       await writeFile(filePath, Script, OPEN_FILE);
     }
-    if (!namesOnly) await writeInfo(folderPath, scriptNames, this.globalState);
+    if (!namesOnly) await this.writeInfo(folderPath, scriptNames);
     this.refresh();
   };
 
@@ -218,7 +337,7 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
     this.dataObject[parentName][objectName] = true;
     const filePath = join(folderPath, `${objectName}${localFileExtension}`);
     await writeFile(filePath, script, OPEN_FILE);
-    await writeInfo(folderPath, [objectName], this.globalState);
+    await this.writeInfo(folderPath, [objectName]);
     this.refresh();
   };
 
@@ -260,13 +379,11 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
 }
 
 export class TreeDataProviderWebTemp extends TreeDataProviderBase {
-  readonly type;
   data: TreeItemWebTemp[] = [];
   dataObject: WebTempObject = {};
 
-  constructor(type: typeof WEBTEMP, globalState: GlobalState) {
-    super(type, globalState);
-    this.type = type;
+  constructor() {
+    super(WEBTEMP);
   }
 
   getChildren = (element: TreeItem) => this.data;
@@ -300,7 +417,7 @@ export class TreeDataProviderWebTemp extends TreeDataProviderBase {
     this.dataObject[objectName] = true;
     const filePath = join(this.folder, `${objectName}.html`);
     await writeFile(filePath, webtemp, OPEN_FILE);
-    await writeInfo(this.folder, [objectName], this.globalState);
+    await this.writeInfo(this.folder, [objectName]);
     this.refresh();
   };
 
@@ -329,7 +446,7 @@ class TreeItemObject extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.Collapsed);
     this.label = label;
     this.scripts = scripts;
-    if (Object.values(scripts).some((x) => x))
+    if (Object.values(scripts).some((onDisk) => onDisk))
       this.iconPath = checkmarkIconPath;
   }
 }
