@@ -2,129 +2,128 @@ import { DEFAULT_CONNECTION_NAME } from "./constants";
 import { getConnection, getSetting } from "./utility";
 
 const head = `<head>
-		<style>
-			h1 {
-				text-align:center;
-			}
+	<style>
+		h1 {
+			text-align:center;
+		}
 
-			.config {
-				max-width: 550px;
-				margin: 0 auto;
-				display: grid;
-				grid-template-columns: auto auto auto auto;
-				gap: 10px;
-			}
+		.config {
+			max-width: 550px;
+			margin: 0 auto;
+			display: grid;
+			grid-template-columns: auto auto auto auto;
+			gap: 10px;
+		}
 
-			.datasource {
-				margin: 10px auto 5px;
-				display: grid;
-				grid-template-columns: auto auto;
-				gap: 6px;
-			}
-			
-			.grid-item {
-				text-align: left;
-				display: flex;
-				flex-direction: column;
-			}
+		.datasource {
+			margin: 10px auto 5px;
+			display: grid;
+			grid-template-columns: auto auto;
+			gap: 6px;
+		}
+		
+		.grid-item {
+			text-align: left;
+			display: flex;
+			flex-direction: column;
+		}
 
-			#search-bar {
-				text-align: center;
-			}
+		#search-bar {
+			text-align: center;
+		}
 
-			.input {
-				background-color: var(--vscode-input-background);
-				display: inline-block;
-				box-sizing: border-box;
-				width: 100%;
-				height: 100%;
-				line-height: inherit;
-				border: none;
-				font-family: inherit;
-				font-size: inherit;
-				color: inherit;
-				border-radius: 2px;
-			}
+		.input {
+			background-color: var(--vscode-input-background);
+			display: inline-block;
+			box-sizing: border-box;
+			width: 100%;
+			height: 100%;
+			line-height: inherit;
+			border: none;
+			font-family: inherit;
+			font-size: inherit;
+			color: inherit;
+			border-radius: 2px;
+		}
 
-			.input[readonly] {
-        background-color: var(--vscode-disabledForeground);
-        cursor: not-allowed;
-			}
+		.input[readonly] {
+			background-color: var(--vscode-disabledForeground);
+			cursor: not-allowed;
+		}
 
-			.checkbox {
-				transform: scale(1.5);
-				accent-color: var(--vscode-checkbox-background);
-			}
+		.checkbox {
+			transform: scale(1.5);
+			accent-color: var(--vscode-checkbox-background);
+		}
 
-			.checkbox-container {
-				justify-self: end;
-			}
+		.checkbox-container {
+			justify-self: end;
+		}
 
-			.select, .button, .checkbox {
-				cursor: pointer;
-			}
+		.select, .button, .checkbox {
+			cursor: pointer;
+		}
 
-			.button {
-				color: var(--vscode-button-foreground);
-				background: var(--vscode-button-background);
-				text-align: center;
-				box-sizing: border-box;
-				display: flex;
-				width: 100%;
-				padding: 4px;
-				border-radius: 2px;
-				text-align: center;
-				justify-content: center;
-				align-items: center;
-				border: 1px solid var(--vscode-button-border,transparent);
-				line-height: 18px;
-    	}
+		.button {
+			color: var(--vscode-button-foreground);
+			background: var(--vscode-button-background);
+			text-align: center;
+			box-sizing: border-box;
+			display: flex;
+			width: 100%;
+			padding: 4px;
+			border-radius: 2px;
+			text-align: center;
+			justify-content: center;
+			align-items: center;
+			border: 1px solid var(--vscode-button-border,transparent);
+			line-height: 18px;
+		}
 
-			.button-small {
-				line-height: 10px;
-    	}
+		.button-small {
+			line-height: 10px;
+		}
 
-			.button:hover {
-				background-color: var(--vscode-button-hoverBackground);
-			}
-			
-			.button:disabled,
-			.button[disabled]{
-				background-color: var(--vscode-disabledForeground);
-				cursor: not-allowed;
-			}
+		.button:hover {
+			background-color: var(--vscode-button-hoverBackground);
+		}
+		
+		.button:disabled,
+		.button[disabled]{
+			background-color: var(--vscode-disabledForeground);
+			cursor: not-allowed;
+		}
 
-			.grid-1 {
-				grid-column: 1;
-			}
+		.grid-1 {
+			grid-column: 1;
+		}
 
-			.grid-2 {
-				grid-column: 2;
-			}
+		.grid-2 {
+			grid-column: 2;
+		}
 
-			.grid-3 {
-				grid-column: 3;
-			}
+		.grid-3 {
+			grid-column: 3;
+		}
 
-			.grid-12 {
-				grid-column: 1 / span 2;
-			}
-			
-			.grid-23 {
-				grid-column: 2 / span 1;
-			}
+		.grid-12 {
+			grid-column: 1 / span 2;
+		}
+		
+		.grid-23 {
+			grid-column: 2 / span 1;
+		}
 
-			.grid-24 {
-				grid-column: 2 / span 2;
-			}
+		.grid-24 {
+			grid-column: 2 / span 2;
+		}
 
-			.grid-34 {
-				grid-column: 3 / span 1;
-			}
-		</style>
-	</head>`;
+		.grid-34 {
+			grid-column: 3 / span 1;
+		}
+	</style>
+</head>`;
 
-//creates the HTML page for the Select Datasource webview
 export const dataSourceHTML = `<!doctype><html>
   ${head}
 <body>
@@ -211,8 +210,7 @@ export const dataSourceHTML = `<!doctype><html>
 </body>
 </html>`;
 
-//creates the HTML page for the Create/Edit Connection webview
-export const configHTML = (name: string, isNewConnection = false) => {
+export const configHTML = (connectionName: string, isNewConnection = false) => {
   const {
       url = "",
       username = "",
@@ -220,7 +218,7 @@ export const configHTML = (name: string, isNewConnection = false) => {
       workspaces = [],
       restWorkspaces = false,
       defaultWorkspace = "",
-    } = isNewConnection ? {} : getConnection(name),
+    } = isNewConnection ? {} : getConnection(connectionName),
     defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME);
 
   return `<!doctype><html>
@@ -231,7 +229,7 @@ export const configHTML = (name: string, isNewConnection = false) => {
 			<div class="grid-item grid-1">
 				<label for="connection-name">Connection Name</label></div><div class="grid-item grid-24">
 				<input type="text" class="input" name="connection-name" id="connection-name" value=${
-          isNewConnection ? "" : `"${name}" readonly`
+          isNewConnection ? "" : `"${connectionName}" readonly`
         }> 
 			</div>
 			<div class="grid-item grid-1">
@@ -261,12 +259,16 @@ export const configHTML = (name: string, isNewConnection = false) => {
 			</div>    
 				${workspaces
           .map(
-            (item) => `<div class="grid-item grid-1" data-value="${item}">
+            (
+              workspace
+            ) => `<div class="grid-item grid-1" data-value="${workspace}">
 				<Button class="button button-small" onclick="editWorkspaces()" name="default" ${
-          item === defaultWorkspace ? "disabled>Default" : ">Set As Default"
+          workspace === defaultWorkspace
+            ? "disabled>Default"
+            : ">Set As Default"
         }</Button></div>
-				<div class="grid-item grid-2">${item}</div>
-				<div class="grid-item grid-3" data-value="${item}">
+				<div class="grid-item grid-2">${workspace}</div>
+				<div class="grid-item grid-3" data-value="${workspace}">
 					<Button class="button button-small" name="delete" onclick="editWorkspaces()">Delete</Button>
 				</div>`
           )
@@ -281,7 +283,7 @@ export const configHTML = (name: string, isNewConnection = false) => {
 			</div>
 			<div class="grid-item grid-1 checkbox-container"> 
 			<input type="checkbox" class="checkbox" name="default-connection" id="default-connection" ${
-        defaultConnectionName === name ? "checked" : ""
+        defaultConnectionName === connectionName ? "checked" : ""
       }>				
 			</div>
 			<div class="grid-item grid-2"> 
@@ -320,11 +322,11 @@ export const configHTML = (name: string, isNewConnection = false) => {
 			}
 			const getBaseParameters = () => ({ url: document.getElementById("url").value, username:  document.getElementById("username").value, password: document.getElementById("password").value }),
 			editWorkspaces = () => {
-				const name = document.getElementById("connection-name").value, 
+				const connectionName = document.getElementById("connection-name").value, 
 					action = event.target.name,
 					workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;
 				if (!workspace) return;
-				vscode.postMessage({command: "workspace", name, action, workspace});
+				vscode.postMessage({command: "workspace", connectionName, action, workspace});
 			},
 		 	restWorkspaces = () => {
 				const { url, username, password } = getBaseParameters(),
@@ -336,15 +338,15 @@ export const configHTML = (name: string, isNewConnection = false) => {
 				vscode.postMessage({command: "testConnection", url, username, password});
 			},
 			newOrEditConnection = () => {
-				const name = document.getElementById("connection-name").value,
+				const connectionName = document.getElementById("connection-name").value,
 					{ url, username, password } = getBaseParameters(),
 					restWorkspaces = !!document.getElementById("rest-workspaces")?.checked,
 					defaultConnection = !!document.getElementById("default-connection")?.checked;
-				vscode.postMessage({command: "newOrEditConnection", name, url, username, password, restWorkspaces, defaultConnection});
+				vscode.postMessage({command: "newOrEditConnection", connectionName, url, username, password, restWorkspaces, defaultConnection});
 			},
 			deleteConnection = () => {
-				const name = document.getElementById("connection-name").value;
-				vscode.postMessage({command: "deleteConnection", name});
+				const connectionName = document.getElementById("connection-name").value;
+				vscode.postMessage({command: "deleteConnection", connectionName});
 			};
 			</script>
 		</body>

@@ -50,7 +50,9 @@ export const setSetting: ISetSetting = async (
   settingName:
     | typeof CONNECTIONS
     | typeof DEFAULT_CONNECTION_NAME
-    | keyof OldSettings,
+    | string[]
+    | boolean
+    | string,
   settingValue: Config[] | string | undefined
 ) =>
   await vscode.workspace
@@ -65,17 +67,6 @@ export const getConnection = (connectionName: string) =>
   getSetting(CONNECTIONS).find(({ name }) => name === connectionName) ||
   ({} as Config);
 
-export const timestamp = (now = new Date()) =>
-  `${now.getFullYear()}-${(now.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")}T${now
-    .getHours()
-    .toString()
-    .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now
-    .getSeconds()
-    .toString()
-    .padStart(2, "0")}`;
-
 export const createIndexdtsAndJSConfigjson = async (
   context: vscode.ExtensionContext
 ) => {
@@ -87,7 +78,7 @@ export const createIndexdtsAndJSConfigjson = async (
       const fileContent = await vscode.workspace.fs.readFile(
         vscode.Uri.file(context.asAbsolutePath(FILE_NAME_SIEBEL_TYPES))
       );
-      writeFile(typeDefFilePath, fileContent.toString());
+      await writeFile(typeDefFilePath, fileContent.toString());
       vscode.window.showInformationMessage(
         `File index.d.ts was created in ${workspaceFolder} folder!`
       );
@@ -99,7 +90,7 @@ export const createIndexdtsAndJSConfigjson = async (
       null,
       2
     );
-    writeFile(jsconfigFilePath, jsConfig);
+    await writeFile(jsconfigFilePath, jsConfig);
     vscode.window.showInformationMessage(
       `File jsconfig.json was created in ${workspaceFolder} folder!`
     );
@@ -116,9 +107,13 @@ export const moveDeprecatedSettings = async () => {
       connections,
     } = vscode.workspace.getConfiguration(
       "siebelScriptAndWebTempEditor"
-    ) as unknown as Settings & OldSettings,
+    ) as unknown as Settings & {
+      "REST EndpointConfigurations": string[];
+      workspaces: string[];
+      defaultConnection: string;
+    },
     newConnections: Settings["connections"] = [],
-    workspaceObject: Workspaces = {};
+    workspaceObject: Record<string, string[]> = {};
   let isDefault = false;
   try {
     if (!connectionConfigs || connections.length !== 0) return;

@@ -19,6 +19,8 @@ import {
   REST_WORKSPACES,
   ERR_NO_BASE_WS_IOB,
   TYPE,
+  INF_GET_REST_WORKSPACES,
+  INF_CONN_WORKING,
 } from "./constants";
 import {
   checkBaseWorkspaceIOB,
@@ -40,23 +42,22 @@ export async function activate(context: vscode.ExtensionContext) {
     return vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
   let configWebview: vscode.WebviewPanel | undefined = undefined;
   const treeViews = new TreeViews();
-  
+
   await createIndexdtsAndJSConfigjson(context);
   await moveDeprecatedSettings();
-  
+
   const newOrEditConnection =
     (isNewConnection = false) =>
     () => {
       const columnToShowIn = vscode.window.activeTextEditor
-          ? vscode.window.activeTextEditor.viewColumn
-          : undefined,
-        connectionName = treeViews.connection;
+        ? vscode.window.activeTextEditor.viewColumn
+        : undefined;
       if (!isNewConnection)
         isNewConnection = getSetting(CONNECTIONS).length === 0;
 
       if (configWebview) {
         configWebview.webview.html = configHTML(
-          connectionName,
+          treeViews.connection,
           isNewConnection
         );
         return configWebview.reveal(columnToShowIn);
@@ -67,7 +68,10 @@ export async function activate(context: vscode.ExtensionContext) {
         columnToShowIn || vscode.ViewColumn.One,
         { enableScripts: true, retainContextWhenHidden: true }
       );
-      configWebview.webview.html = configHTML(connectionName, isNewConnection);
+      configWebview.webview.html = configHTML(
+        treeViews.connection,
+        isNewConnection
+      );
       configWebview.onDidDispose(
         () => {
           configWebview = undefined;
@@ -80,15 +84,15 @@ export async function activate(context: vscode.ExtensionContext) {
           command,
           action,
           workspace,
-          name,
+          connectionName,
           url,
           username,
           password,
           restWorkspaces,
           defaultConnection,
-        }: MessageConfig) => {
+        }: ConfigMessage) => {
           const connections = getSetting(CONNECTIONS),
-            connection = getConnection(name);
+            connection = getConnection(connectionName);
           switch (command) {
             case WORKSPACE:
               const { workspaces } = connection;
@@ -109,40 +113,32 @@ export async function activate(context: vscode.ExtensionContext) {
                   break;
               }
               await setSetting(CONNECTIONS, connections);
-              return (configWebview!.webview.html = configHTML(name));
+              return (configWebview!.webview.html = configHTML(connectionName));
             case REST_WORKSPACES:
-              const restEnabled = await checkBaseWorkspaceIOB({
+              return await checkBaseWorkspaceIOB({
                 url,
                 username,
                 password,
               });
-              return restEnabled
-                ? vscode.window.showInformationMessage(
-                    "Getting workspaces from the Siebel REST API is working!"
-                  )
-                : vscode.window.showErrorMessage(ERR_NO_BASE_WS_IOB);
             case TEST_CONNECTION:
-              const testResult = await testConnection({
+              return await testConnection({
                 url,
                 username,
                 password,
               });
-              if (testResult)
-                vscode.window.showInformationMessage("Connection is working!");
-              return;
             case NEW_OR_EDIT_CONNECTION:
-              if (!(name && url && username && password))
+              if (!(connectionName && url && username && password))
                 return vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
-              if (connections.some((item) => item.name === name)) {
+              if (connections.some(({ name }) => name === connectionName)) {
                 connection.url = url;
                 connection.username = username;
                 connection.password = password;
                 connection.restWorkspaces = restWorkspaces;
                 if (defaultConnection)
-                  await setSetting(DEFAULT_CONNECTION_NAME, name);
+                  await setSetting(DEFAULT_CONNECTION_NAME, connectionName);
               } else {
                 connections.unshift({
-                  name,
+                  name: connectionName,
                   url,
                   username,
                   password,
@@ -154,17 +150,17 @@ export async function activate(context: vscode.ExtensionContext) {
               await setSetting(CONNECTIONS, connections);
               if (!isNewConnection) return configWebview?.dispose();
               isNewConnection = false;
-              return (configWebview!.webview.html = configHTML(name));
+              return (configWebview!.webview.html = configHTML(connectionName));
             case DELETE_CONNECTION:
               const answer = await vscode.window.showInformationMessage(
-                `Do you want to delete connection ${name}?`,
+                `Do you want to delete connection ${connectionName}?`,
                 "Yes",
                 "No"
               );
               if (answer !== "Yes") return;
               await setSetting(
                 CONNECTIONS,
-                connections.filter((item) => item.name !== name)
+                connections.filter(({ name }) => name !== connectionName)
               );
               return configWebview?.dispose();
           }
@@ -182,7 +178,7 @@ export async function activate(context: vscode.ExtensionContext) {
       });
       webview.options = { enableScripts: true };
       webview.onDidReceiveMessage(
-        async ({ command, data }: Message) => {
+        async ({ command, data }: DataSourceMessage) => {
           switch (command) {
             case CONNECTION:
               treeViews.connection = data;

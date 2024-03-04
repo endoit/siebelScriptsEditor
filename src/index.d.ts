@@ -8,25 +8,36 @@ type SiebelObject =
 
 type NotWebTemp = Exclude<SiebelObject, "webtemp">;
 
-//Connections object
-type Connections = Record<
-  string,
-  Connection & {
-    workspaces: string[];
-  }
->;
+//Settings
+type Settings = {
+  connections: Config[];
+  defaultConnectionName: string;
+  singleFileAutoDownload: boolean;
+  localFileExtension: ".js" | ".ts";
+  defaultScriptFetching:
+    | "Yes"
+    | "No"
+    | "Only method names"
+    | "All scripts"
+    | "None - always ask"
+    | undefined;
+  maxPageSize: number;
+};
 
-//Connection parameters
-type Connection = {
+type Config = {
+  name: string;
   username: string;
   password: string;
   url: string;
+  workspaces: string[];
+  defaultWorkspace: string;
+  restWorkspaces: boolean;
 };
 
-//Workspaces object
-type Workspaces = Record<string, string[]>;
+//Connection parameters
+type Connection = Pick<Config, "url" | "username" | "password">;
 
-//Data objects the tree views
+//Data objects in the tree views
 type ScriptObject = Record<string, Scripts>;
 type Scripts = Record<string, boolean>;
 type WebTempObject = Record<string, boolean>;
@@ -53,23 +64,6 @@ type WebTempResponse = {
   Definition?: string;
 };
 
-type InfoObject = {
-  "folder created at": string;
-  connection: string;
-  workspace: string;
-  type: SiebelObject;
-  files: Record<string, PullPushDate>;
-  siebelObjectName?: string;
-  scripts?: Record<string, PullPushDate>;
-  definitions?: Record<string, PullPushDate>;
-};
-
-//date fields in the info.json
-type PullPushDate = {
-  "last update from Siebel": string;
-  "last push to Siebel": string;
-};
-
 //payload when upserting script/web template into Siebel
 type Payload = {
   Name: string;
@@ -78,72 +72,35 @@ type Payload = {
   "Program Language"?: "JS";
 };
 
-//message object sent from the webview
-type Message = {
-  command: MessageCommand;
+//message sent from the datasource webview
+type DataSourceMessage = {
+  command: "connection" | "workspace" | "type" | "search";
   data: string | SiebelObject;
 };
 
-//message object sent from the configuration webview
-type MessageConfig = {
-  command: MessageCommandConfig;
-  testConnection: Partial<Config>;
-  action: WorkspaceAction;
+//message sent from the configuration webview
+type ConfigMessage = {
+  command:
+    | "newOrEditConnection"
+    | "testConnection"
+    | "workspace"
+    | "restWorkspaces"
+    | "deleteConnection";
+  connectionName: string;
+  action: "add" | "default" | "delete";
   workspace: string;
-  name: string;
   defaultConnection: boolean;
-} & Config;
-
-type MessageCommand = "connection" | "workspace" | "type" | "search";
-
-type MessageCommandConfig =
-  | "newOrEditConnection"
-  | "testConnection"
-  | "workspace"
-  | "restWorkspaces"
-  | "deleteConnection";
-
-type WorkspaceAction = "add" | "default" | "delete";
-
-//REST methods
-type GET = "get";
-type PUT = "put";
-
-//Button actions
-type PUSH = "push";
-type PULL = "pull";
-
-//REST methods
-type RestMethod = GET | PUT;
-
-//Button actions
-type ButtonAction = PUSH | PULL;
-
-//Settings
-type Settings = {
-  connections: Config[];
-  defaultConnectionName: string;
-  singleFileAutoDownload: boolean;
-  localFileExtension: ".js" | ".ts";
-  defaultScriptFetching:
-    | "Yes"
-    | "No"
-    | "Only method names"
-    | "All scripts"
-    | "None - always ask"
-    | undefined;
-  maxPageSize: number;
-};
-
-type Config = {
-  name: string;
+  url: string;
   username: string;
   password: string;
-  url: string;
-  workspaces: string[];
-  defaultWorkspace: string;
   restWorkspaces: boolean;
 };
+
+//REST methods
+type RestMethod = "get" | "put";
+
+//Button actions
+type ButtonAction = "push" | "pull";
 
 //overloaded function interfaces
 interface IAxiosInstance {
@@ -196,11 +153,3 @@ interface ISetSetting {
     settingValue: undefined
   ): Promise<void>;
 }
-
-//Deprecated settings
-type OldSettings = {
-  "REST EndpointConfigurations": string[];
-  workspaces: string[];
-  getWorkspacesFromREST: boolean;
-  defaultConnection: string;
-};

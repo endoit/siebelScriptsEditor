@@ -1,4 +1,4 @@
-import { basename, dirname, extname, join } from "path";
+import { basename, extname, join } from "path";
 import * as vscode from "vscode";
 import {
   repositoryObjects,
@@ -11,16 +11,12 @@ import {
   SCRIPT,
   DEFINITION,
   WEBTEMP,
-  FILE_NAME_INFO,
   OPEN_FILE,
   BUSCOMP,
   SERVICE,
   APPLET,
   APPLICATION,
   siebelObjects,
-  INFO_KEY_FOLDER_CREATED,
-  INFO_KEY_LAST_PUSH,
-  INFO_KEY_LAST_UPDATE,
   GET,
   baseQueryParams,
   CONNECTIONS,
@@ -30,13 +26,7 @@ import {
 } from "./constants";
 import { getWorkspaces } from "./dataService";
 import { existsSync, readdirSync } from "fs";
-import {
-  getConnection,
-  getSetting,
-  joinUrl,
-  timestamp,
-  writeFile,
-} from "./utility";
+import { getConnection, getSetting, joinUrl, writeFile } from "./utility";
 import axios from "axios";
 
 const getDataFromSiebel: IGetDataFromSiebel = async (
@@ -81,7 +71,7 @@ export class TreeViews {
   )[] = [];
   private interceptor = 0;
   private _workspace = "";
-  workspaces: string[] = [];
+  private workspaces: string[] = [];
   connection = "";
   type: SiebelObject = SERVICE;
 
@@ -122,7 +112,7 @@ export class TreeViews {
         },
       };
     });
-    for (let treeDataProvider of this.treeDataProviders) {
+    for (const treeDataProvider of this.treeDataProviders) {
       treeDataProvider.folder = this.folder;
       treeDataProvider.clear();
     }
@@ -177,12 +167,6 @@ export class TreeViews {
 
   search = async (searchString: string) =>
     await this[this.type].debouncedSearch(searchString);
-
-  clear = () => {
-    for (const treeDataProvider of this.treeDataProviders) {
-      treeDataProvider.clear();
-    }
-  };
 }
 
 class TreeDataProviderBase {
@@ -209,7 +193,8 @@ class TreeDataProviderBase {
     return this._folder;
   }
 
-  getTreeItem = (element: TreeItemObject | TreeItemScript | TreeItemWebTemp) => element;
+  getTreeItem = (element: TreeItemObject | TreeItemScript | TreeItemWebTemp) =>
+    element;
 
   createTreeItems = (): (TreeItemObject | TreeItemWebTemp)[] => [];
 
@@ -235,44 +220,6 @@ class TreeDataProviderBase {
     this.dataObject = {};
     this.data = [];
     this._onDidChangeTreeData.fire(null);
-  };
-
-  writeInfo = async (folderPath: string, fileNames: string[]) => {
-    try {
-      vscode.workspace.saveAll(false);
-      let infoJSON: InfoObject;
-      const filePath = join(folderPath, FILE_NAME_INFO),
-        fileUri = vscode.Uri.file(filePath),
-        isWebTemp = this.type === WEBTEMP,
-        dateInfo = {
-          [INFO_KEY_LAST_UPDATE]: timestamp(),
-          [INFO_KEY_LAST_PUSH]: "",
-        };
-      if (existsSync(filePath)) {
-        const fileContent = await vscode.workspace.fs.readFile(fileUri);
-        infoJSON = JSON.parse(Buffer.from(fileContent).toString());
-        for (const fileName of fileNames) {
-          if (infoJSON.files.hasOwnProperty(fileName))
-            infoJSON.files[fileName][INFO_KEY_LAST_UPDATE] = timestamp();
-          else infoJSON.files[fileName] = dateInfo;
-        }
-      } else {
-        infoJSON = {
-          [INFO_KEY_FOLDER_CREATED]: timestamp.toString(),
-          connection: basename(dirname(this.folder)),
-          workspace: basename(dirname(dirname(this.folder))),
-          type: this.type,
-          files: {},
-        };
-        if (!isWebTemp) infoJSON.siebelObjectName = basename(folderPath);
-        for (const fileName of fileNames) {
-          infoJSON.files[fileName] = dateInfo;
-        }
-      }
-      writeFile(filePath, JSON.stringify(infoJSON, null, 2));
-    } catch (err: any) {
-      vscode.window.showErrorMessage(err.message);
-    }
   };
 }
 
@@ -309,12 +256,11 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
     );
     this.dataObject = {};
     for (const { Name } of data) {
-      const exists = existsSync(join(this.folder, Name));
       this.dataObject[Name] = {};
-      if (!exists) continue;
+      if (!existsSync(join(this.folder, Name))) continue;
       const fileNames = readdirSync(join(this.folder, Name));
-      for (let file of fileNames) {
-        if (file !== FILE_NAME_INFO)
+      for (const file of fileNames) {
+        if (!file.endsWith("json"))
           this.dataObject[Name][basename(file, extname(file))] = true;
       }
     }
@@ -328,11 +274,9 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
         objectUrlPath,
         namesOnly ? NAME : NAMESCRIPT
       ),
-      scriptNames = [],
       localFileExtension = getSetting(LOCAL_FILE_EXTENSION);
     for (const { Name, Script } of data) {
       const fileNameNoExt = join(folderPath, Name);
-      scriptNames.push(Name);
       this.dataObject[parentName][Name] = namesOnly
         ? existsSync(`${fileNameNoExt}.js`) || existsSync(`${fileNameNoExt}.ts`)
         : true;
@@ -340,7 +284,6 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
       const filePath = join(folderPath, `${Name}${localFileExtension}`);
       await writeFile(filePath, Script, OPEN_FILE);
     }
-    if (!namesOnly) await this.writeInfo(folderPath, scriptNames);
     this.refresh();
   };
 
@@ -360,7 +303,6 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
     this.dataObject[parentName][objectName] = true;
     const filePath = join(folderPath, `${objectName}${localFileExtension}`);
     await writeFile(filePath, script, OPEN_FILE);
-    await this.writeInfo(folderPath, [objectName]);
     this.refresh();
   };
 
@@ -423,10 +365,8 @@ export class TreeDataProviderWebTemp extends TreeDataProviderBase {
       searchSpec
     );
     this.dataObject = {};
-    for (let row of data) {
-      this.dataObject[row.Name] = existsSync(
-        join(this.folder, `${row.Name}.html`)
-      );
+    for (const { Name } of data) {
+      this.dataObject[Name] = existsSync(join(this.folder, `${Name}.html`));
     }
     this.refresh();
   };
@@ -440,7 +380,6 @@ export class TreeDataProviderWebTemp extends TreeDataProviderBase {
     this.dataObject[objectName] = true;
     const filePath = join(this.folder, `${objectName}.html`);
     await writeFile(filePath, webtemp, OPEN_FILE);
-    await this.writeInfo(this.folder, [objectName]);
     this.refresh();
   };
 
