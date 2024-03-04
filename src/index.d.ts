@@ -81,10 +81,7 @@ type Payload = {
 //message object sent from the webview
 type Message = {
   command: MessageCommand;
-  name: string;
-  workspace: string;
-  object: SiebelObject;
-  searchString: string;
+  data: string | SiebelObject;
 };
 
 //message object sent from the configuration webview
@@ -97,16 +94,10 @@ type MessageConfig = {
   defaultConnection: boolean;
 } & Config;
 
-type MessageCommand =
-  | "connection"
-  | "workspace"
-  | "object"
-  | "search"
-  | "openSettings"
-  | "newConnection";
+type MessageCommand = "connection" | "workspace" | "type" | "search";
 
 type MessageCommandConfig =
-  | "createOrUpdateConnection"
+  | "newOrEditConnection"
   | "testConnection"
   | "workspace"
   | "restWorkspaces"
@@ -185,6 +176,25 @@ interface IGetSetting {
   (settingName: "localFileExtension"): Settings["localFileExtension"];
   (settingName: "defaultScriptFetching"): Settings["defaultScriptFetching"];
   (settingName: "maxPageSize"): Settings["maxPageSize"];
+}
+
+interface ISetSetting {
+  (
+    settingName: "connections",
+    settingValue: Settings["connections"]
+  ): Promise<void>;
+  (
+    settingName: "defaultConnectionName",
+    settingValue: Settings["defaultConnectionName"]
+  ): Promise<void>;
+  (
+    settingName:
+      | "REST EndpointConfigurations"
+      | "workspaces"
+      | "defaultConnection"
+      | "getWorkspacesFromREST",
+    settingValue: undefined
+  ): Promise<void>;
 }
 
 //Deprecated settings

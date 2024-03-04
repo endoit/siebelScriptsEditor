@@ -1,6 +1,6 @@
 import { default as axios } from "axios";
 import { existsSync } from "fs";
-import { dirname, parse, join } from "path";
+import { dirname, parse, join, basename } from "path";
 import * as vscode from "vscode";
 import {
   ERR_FILE_FUNCTION_NAME_DIFF,
@@ -23,39 +23,10 @@ import {
   ERR_NO_INFO_JSON_ENTRY,
   INFO_KEY_LAST_UPDATE,
   INFO_KEY_LAST_PUSH,
-  MAX_PAGE_SIZE,
   PATH_APPLICATION,
 } from "./constants";
-import {
-  getConnection,
-  getSetting,
-  joinUrl,
-  timestamp,
-} from "./utility";
+import { getConnection, getParentFolder, joinUrl, timestamp } from "./utility";
 import { writeFile } from "./utility";
-
-export const getDataFromSiebel: IGetDataFromSiebel = async (
-  url: string,
-  fields: QueryParams["fields"],
-  searchSpec?: string
-): Promise<ScriptResponse[] | WebTempResponse[]> => {
-  try {
-    const params: QueryParams = { fields };
-    params.PageSize = getSetting(MAX_PAGE_SIZE);
-    if (searchSpec) params.searchspec = `Name LIKE '${searchSpec}*'`;
-    const response = await axios({ url, params });
-    return response.data?.items;
-  } catch (err: any) {
-    if (err.response?.status !== 404) {
-      vscode.window.showErrorMessage(
-        `Error using the Siebel REST API: ${
-          err.response?.data?.ERROR || err.message
-        }`
-      );
-    }
-    return [];
-  }
-};
 
 const axiosInstance: IAxiosInstance = async (
   { url, username, password }: Connection,
@@ -96,7 +67,6 @@ const axiosInstance: IAxiosInstance = async (
   }
 };
 
-//test connection
 export const testConnection = async ({
   url,
   username,
@@ -111,7 +81,6 @@ export const testConnection = async ({
   return data.length !== 0;
 };
 
-//check for the workspace integration object
 export const checkBaseWorkspaceIOB = async ({
   url,
   username,
@@ -131,7 +100,6 @@ export const checkBaseWorkspaceIOB = async ({
   return data.length === 1;
 };
 
-//get workspaces from REST
 export const getWorkspaces = async ({
   url,
   username,
@@ -154,8 +122,7 @@ export const getWorkspaces = async ({
   return workspaces;
 };
 
-//push/pull script from/to database
-const pushOrPull = async (action: ButtonAction) => {
+const pushOrPull2 = async (action: ButtonAction) => {
   const fileUri = vscode.window.activeTextEditor!.document.uri,
     filePath = fileUri.fsPath,
     { name: fileName } = parse(filePath),
@@ -177,7 +144,7 @@ const pushOrPull = async (action: ButtonAction) => {
     return vscode.window.showErrorMessage(ERR_NO_INFO_JSON_ENTRY);
   const { connection: name, workspace, type, siebelObjectName = "" } = infoJSON,
     connectionObject = getConnection(name);
-  if (!connectionObject)
+  if (!connectionObject.name)
     return vscode.window.showErrorMessage(
       `Connection "${name}" was not found in the Connections settings!`
     );
@@ -223,7 +190,7 @@ const pushOrPull = async (action: ButtonAction) => {
         );
         if (answer !== "Yes") return;
         const pattern = new RegExp(`function\\s+${fileName}\\s*\\(`);
-        if (!pattern.test(fileContent))
+        if (!pattern.test(fileContent) && fileName !== "(declarations)")
           return vscode.window.showErrorMessage(ERR_FILE_FUNCTION_NAME_DIFF);
         payload["Program Language"] = "JS";
       }
@@ -247,19 +214,86 @@ const pushOrPull = async (action: ButtonAction) => {
   await writeFile(infoFilePath, JSON.stringify(infoJSON, null, 2));
 };
 
-//callback for the push/pull buttons
-export const pushOrPullCallback =
-  (action: ButtonAction) => async () => {
-
-    const answer = await vscode.window.showInformationMessage(
-      `Do you want to overwrite ${
-        action === PULL
-          ? "the current script/web template definition from"
-          : "this script/web template definition in"
-      } Siebel?`,
-      "Yes",
-      "No"
+const pushOrPull = async (action: ButtonAction) => {
+  const fileUri = vscode.window.activeTextEditor!.document.uri,
+    filePath = fileUri.fsPath,
+    { name: fileName } = parse(filePath),
+    isWebTemp = filePath.endsWith("html"),
+    fields = isWebTemp ? DEFINITION : SCRIPT;
+  let parent = "",
+    type: SiebelObject,
+    workspace = "",
+    connectionName = "";
+  if (isWebTemp) {
+    type = WEBTEMP;
+    workspace = getParentFolder(filePath, 2);
+    connectionName = getParentFolder(filePath, 3);
+  } else {
+    parent = getParentFolder(filePath, 1);
+    type = getParentFolder(filePath, 2) as NotWebTemp;
+    workspace = getParentFolder(filePath, 3);
+    connectionName = getParentFolder(filePath, 4);
+  }
+  const connection = getConnection(connectionName);
+  if (!connection.name)
+    return vscode.window.showErrorMessage(
+      `Connection "${connectionName}" was not found in the Connections settings!`
     );
-    if (answer !== "Yes") return;
-    await pushOrPull(action);
-  };
+  const { url, username, password }: Connection = connection,
+    objectUrlPath = joinUrl(
+      url,
+      WORKSPACE,
+      workspace,
+      repositoryObjects[type].parent,
+      isWebTemp
+        ? fileName
+        : joinUrl(parent, repositoryObjects[type as NotWebTemp].child, fileName)
+    ),
+    connectionParams = {
+      url: objectUrlPath,
+      username,
+      password,
+    };
+  switch (action) {
+    case PULL: {
+      const data = await axiosInstance(connectionParams, GET, {
+          fields,
+        }),
+        content = data?.[0][fields];
+      if (!content) return;
+      return await writeFile(filePath, content);
+    }
+    case PUSH: {
+      const content = await vscode.workspace.fs.readFile(fileUri),
+        fileContent = Buffer.from(content).toString(),
+        payload: Payload = { Name: fileName, [fields]: fileContent },
+        pattern = new RegExp(`function\\s+${fileName}\\s*\\(`);
+      if (!pattern.test(fileContent) && fileName !== "(declarations)")
+        return vscode.window.showErrorMessage(ERR_FILE_FUNCTION_NAME_DIFF);
+      if (type !== WEBTEMP) payload["Program Language"] = "JS";
+      const uploadStatus = await axiosInstance(connectionParams, PUT, payload);
+      if (uploadStatus !== 200)
+        return vscode.window.showErrorMessage(ERR_NO_UPDATE);
+      return vscode.window.showInformationMessage(
+        `Successfully updated ${
+          isWebTemp ? "web template" : "script"
+        } in Siebel!`
+      );
+      break;
+    }
+  }
+};
+
+export const pushOrPullCallback = (action: ButtonAction) => async () => {
+  const answer = await vscode.window.showInformationMessage(
+    `Do you want to overwrite ${
+      action === PULL
+        ? "the current script/web template definition from"
+        : "this script/web template definition in"
+    } Siebel?`,
+    "Yes",
+    "No"
+  );
+  if (answer !== "Yes") return;
+  await pushOrPull(action);
+};

@@ -143,7 +143,7 @@
 			"properties": {
 				"siebelScriptAndWebTempEditor.connections": {
 					"type": "array",
-					"markdownDescription": "Do not modify manually, change through the Configure Connection panel!",
+					"markdownDescription": "Do not modify manually, change through the Create/Edit Connection panel!",
 					"additionalProperties": {
 						"type": "object"
 					},
@@ -151,7 +151,7 @@
 				},
 				"siebelScriptAndWebTempEditor.defaultConnectionName": {
 					"type": "string",
-					"markdownDescription": "Use the Default Connection checkbox in the Configure Connection panel and save the connection to change this, do not modify here!"
+					"markdownDescription": "Do not modify here, use the Default Connection checkbox in the Edit Connection panel!"
 				},
 				"siebelScriptAndWebTempEditor.defaultScriptFetching": {
 					"type": "string",

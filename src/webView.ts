@@ -3,7 +3,6 @@ import { getConnection, getSetting } from "./utility";
 
 const head = `<head>
 		<style>
-
 			h1 {
 				text-align:center;
 			}
@@ -134,30 +133,27 @@ export const dataSourceHTML = `<!doctype><html>
       <label for="connection">Connection</label>
     </div>
     <div class="grid-item grid-2">
-      <select name="connection" class="input select" id="connection" onchange="selectConnection()">
-      </select>
+      <select name="connection" class="input select" id="connection" onchange="selectConnection()"></select>
     </div>
     <div class="grid-item grid-1">
       <label for="workspace">Workspace</label>
     </div>
     <div class="grid-item grid-2">
-      <select name="workspace" class="input select" id="workspace" onchange="selectWorkspace()">
-      </select>
+      <select name="workspace" class="input select" id="workspace" onchange="selectWorkspace()"></select>
     </div>
     <div class="grid-item grid-1">
-      <label for="object">Object type</label>
+      <label for="type">Object type</label>
     </div>
     <div class="grid-item grid-2">
-      <select name="object" class="input select" id="object" onchange="selectObject()">
-      </select>
+      <select name="type" class="input select" id="type" onchange="selectType()"></select>
     </div>
     <div class="grid-item grid-12">
-      <input type="search" name="search-bar" class="input" id="search-bar" oninput="handleSearch()"
-        placeholder="Type here to search">
+      <input type="search" name="search-bar" class="input" id="search-bar" oninput="handleSearch()" placeholder="Type here to search">
     </div>
   </div>
   <script>
     const vscode = acquireVsCodeApi(),
+			currentState = vscode.getState() || {},
       objectNames = {
         service: "Business Service",
         buscomp: "Business Component",
@@ -165,33 +161,52 @@ export const dataSourceHTML = `<!doctype><html>
         application: "Application",
         webtemp: "Web Template"
       },
-      createOptions = (items, selected, isObject = false) =>
+			createOptions = (items = [], selected, isObject = false) =>
         items.map((item) => \`<option class="option" value="\${item}" \${item === selected ? "selected" : ""}>
         \${isObject ? objectNames[item] : item}</option>\`).join(""),
       selectConnection = () => {
-        const name = document.getElementById("connection").value;
-        vscode.postMessage({ command: "connection", name });
+        const connection = document.getElementById("connection").value;
+				currentState.selectedConnection = connection;
+				vscode.setState(currentState);
+        vscode.postMessage({ command: "connection", data: connection });
       },
       selectWorkspace = () => {
         const workspace = document.getElementById("workspace").value;
-        vscode.postMessage({ command: "workspace", workspace });
-        document.getElementById("search-bar").value = "";
+				currentState.selectedWorkspace = workspace;
+				vscode.setState(currentState);
+        vscode.postMessage({ command: "workspace", data: workspace });
       },
-      selectObject = () => {
-        const object = document.getElementById("object").value;
-        vscode.postMessage({ command: "object", object });
-        document.getElementById("search-bar").value = "";
+      selectType= () => {
+        const type = document.getElementById("type").value;
+				currentState.type = type;
+				vscode.setState(currentState);
+        vscode.postMessage({ command: "type", data: type });
       },
       handleSearch = () => {
         const searchString = document.getElementById("search-bar").value;
-        if (searchString !== "") vscode.postMessage({ command: "search", searchString });
-      };
-    window.addEventListener("message", ({ data: { connections, selectedConnection, workspaces, selectedWorkspace } }) => {
-      document.getElementById("connection").innerHTML = createOptions(connections, selectedConnection);
-      document.getElementById("workspace").innerHTML = createOptions(workspaces, selectedWorkspace);
-      document.getElementById("search-bar").readOnly = connections.length === 0 || workspaces.length === 0;
+				currentState.searchString = searchString;
+				vscode.setState(currentState);
+        if (searchString !== "") vscode.postMessage({ command: "search", data: searchString });
+      },
+			populate = () => {
+				const { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "", type = "service", searchString = "" } = currentState;
+				document.getElementById("connection").innerHTML = createOptions(connections, selectedConnection);
+				document.getElementById("workspace").innerHTML = createOptions(workspaces, selectedWorkspace);
+				document.getElementById("type").innerHTML = createOptions(["service", "buscomp", "applet", "application", "webtemp"], type, true);
+				document.getElementById("search-bar").value = searchString;
+				document.getElementById("search-bar").readOnly = connections.length === 0 || workspaces.length === 0;
+			};
+		populate();
+    window.addEventListener("message", ({ data: { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "" } }) => {
+			currentState.connections = connections;
+			currentState.selectedConnection = selectedConnection;
+			currentState.workspaces = workspaces;
+			currentState.selectedWorkspace = selectedWorkspace; 
+			currentState.type = document.getElementById("type").value;
+			currentState.searchString = "";
+			vscode.setState(currentState);
+			populate();
     });
-    document.getElementById("object").innerHTML = createOptions(["service", "buscomp", "applet", "application", "webtemp"], "service", true);
   </script>
 </body>
 </html>`;
@@ -207,7 +222,6 @@ export const configHTML = (name: string, isNewConnection = false) => {
       defaultWorkspace = "",
     } = isNewConnection ? {} : getConnection(name),
     defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME);
-  //isNewConnection = !!name
 
   return `<!doctype><html>
 	${head}
@@ -249,7 +263,7 @@ export const configHTML = (name: string, isNewConnection = false) => {
           .map(
             (item) => `<div class="grid-item grid-1" data-value="${item}">
 				<Button class="button button-small" onclick="editWorkspaces()" name="default" ${
-          item === defaultWorkspace ? "disabled>Default" : ">Set as default"
+          item === defaultWorkspace ? "disabled>Default" : ">Set As Default"
         }</Button></div>
 				<div class="grid-item grid-2">${item}</div>
 				<div class="grid-item grid-3" data-value="${item}">
@@ -278,7 +292,7 @@ export const configHTML = (name: string, isNewConnection = false) => {
 				<Button class="button" id="test" onclick="testConnection()">Test Connection</Button>  
 			</div>
 			<div class="grid-item ${isNewConnection ? "grid-24" : "grid-23"} ">
-				<Button class="button" id="createOrUpdateConnection" onclick="createOrUpdateConnection()">Save Connection</Button>
+				<Button class="button" id="newOrEditConnection" onclick="newOrEditConnection()">Save Connection</Button>
 			</div>  
 			${
         isNewConnection
@@ -304,39 +318,34 @@ export const configHTML = (name: string, isNewConnection = false) => {
 					}
 				});
 			}
-			const editWorkspaces = () => {
+			const getBaseParameters = () => ({ url: document.getElementById("url").value, username:  document.getElementById("username").value, password: document.getElementById("password").value }),
+			editWorkspaces = () => {
 				const name = document.getElementById("connection-name").value, 
 					action = event.target.name,
 					workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;
 				if (!workspace) return;
 				vscode.postMessage({command: "workspace", name, action, workspace});
-			}
-			const restWorkspaces = () => {
-				const url = document.getElementById("url").value,
-					username = document.getElementById("username").value,
-					password = document.getElementById("password").value,
+			},
+		 	restWorkspaces = () => {
+				const { url, username, password } = getBaseParameters(),
 					restWorkspaces = document.getElementById("rest-workspaces").checked;
-			if (restWorkspaces) vscode.postMessage({command: "restWorkspaces", url, username, password});
-			}
-			const testConnection = () => {
-				const url = document.getElementById("url").value,
-					username = document.getElementById("username").value,
-					password = document.getElementById("password").value;
+				if (restWorkspaces) vscode.postMessage({command: "restWorkspaces", url, username, password});
+			},
+			testConnection = () => {
+				const { url, username, password } = getBaseParameters();
 				vscode.postMessage({command: "testConnection", url, username, password});
-			}
-			const createOrUpdateConnection = () => {
+			},
+			newOrEditConnection = () => {
 				const name = document.getElementById("connection-name").value,
-					url = document.getElementById("url").value,
-					username = document.getElementById("username").value,
-					password = document.getElementById("password").value,
+					{ url, username, password } = getBaseParameters(),
 					restWorkspaces = !!document.getElementById("rest-workspaces")?.checked,
 					defaultConnection = !!document.getElementById("default-connection")?.checked;
-				vscode.postMessage({command: "createOrUpdateConnection", name, url, username, password, restWorkspaces, defaultConnection});
-			}
-			const deleteConnection = () => {
+				vscode.postMessage({command: "newOrEditConnection", name, url, username, password, restWorkspaces, defaultConnection});
+			},
+			deleteConnection = () => {
 				const name = document.getElementById("connection-name").value;
 				vscode.postMessage({command: "deleteConnection", name});
-			}
+			};
 			</script>
 		</body>
 	</html>`;

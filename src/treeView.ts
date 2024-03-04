@@ -26,21 +26,47 @@ import {
   CONNECTIONS,
   DEFAULT_CONNECTION_NAME,
   ERR_NO_CONN_SETTING,
+  MAX_PAGE_SIZE,
 } from "./constants";
-import { getDataFromSiebel, getWorkspaces } from "./dataService";
+import { getWorkspaces } from "./dataService";
 import { existsSync, readdirSync } from "fs";
-import { getConnection, getSetting, joinUrl, timestamp, writeFile } from "./utility";
+import {
+  getConnection,
+  getSetting,
+  joinUrl,
+  timestamp,
+  writeFile,
+} from "./utility";
 import axios from "axios";
 
-type TreeItem = TreeItemObject | TreeItemScript | TreeItemWebTemp;
+const getDataFromSiebel: IGetDataFromSiebel = async (
+  url: string,
+  fields: QueryParams["fields"],
+  searchSpec?: string
+): Promise<ScriptResponse[] | WebTempResponse[]> => {
+  try {
+    const params: QueryParams = { fields };
+    params.PageSize = getSetting(MAX_PAGE_SIZE);
+    if (searchSpec) params.searchspec = `Name LIKE '${searchSpec}*'`;
+    const response = await axios({ url, params });
+    return response.data?.items;
+  } catch (err: any) {
+    if (err.response?.status !== 404) {
+      vscode.window.showErrorMessage(
+        `Error using the Siebel REST API: ${
+          err.response?.data?.ERROR || err.message
+        }`
+      );
+    }
+    return [];
+  }
+};
 
-//Icon paths for the checkmark in the tree views
 const checkmarkIconPath = {
   light: join(__filename, "..", "..", "media", "checkmark.png"),
   dark: join(__filename, "..", "..", "media", "checkmark.png"),
 } as const;
 
-//container class for the tree views
 export class TreeViews {
   private readonly workspaceFolder =
     vscode.workspace.workspaceFolders?.[0].uri.fsPath!;
@@ -66,7 +92,7 @@ export class TreeViews {
     }
   }
 
-  createTreeView = (type: SiebelObject) =>
+  private createTreeView = (type: SiebelObject) =>
     vscode.window
       .createTreeView(type, {
         treeDataProvider: this[type],
@@ -80,57 +106,6 @@ export class TreeViews {
 
   set workspace(newWorkspace: string) {
     this._workspace = newWorkspace;
-    this.createInterceptor();
-    for (let treeDataProvider of this.treeDataProviders) {
-      treeDataProvider.folder = this.folder;
-      treeDataProvider.clear();
-    }
-  }
-
-  get workspace() {
-    return this._workspace;
-  }
-
-  get folder() {
-    return join(this.workspaceFolder, this.connection || "", this.workspace || "");
-  }
-
-  setState = async () => {
-    if (this.connections.length === 0)
-      return vscode.window.showErrorMessage(ERR_NO_CONN_SETTING);
-    const defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME),
-      name =
-        this.connections.includes(this.connection) ? this.connection :
-        this.connections.includes(defaultConnectionName)
-          ? defaultConnectionName
-          : getSetting(CONNECTIONS)[0].name,
-      {
-        url,
-        username,
-        password,
-        workspaces,
-        defaultWorkspace,
-        restWorkspaces,
-      } = getConnection(name);
-    this.connection = name;
-    this.workspaces = restWorkspaces
-      ? await getWorkspaces({ url, username, password })
-      : workspaces;
-    this.workspace =
-      restWorkspaces || !workspaces.includes(defaultWorkspace)
-        ? this.workspaces[0]
-        : defaultWorkspace;
-  };
-
-  getState = () => ({
-    connections: this.connections,
-    selectedConnection: this.connection || "",
-    workspaces: this.workspaces,
-    selectedWorkspace: this.workspace || "",
-  });
-
-  createInterceptor = () => {
-    if (!this.connection) return;
     const { url, username, password } = getConnection(this.connection);
     axios.interceptors.request.eject(this.interceptor);
     this.interceptor = axios.interceptors.request.use((config) => {
@@ -147,6 +122,57 @@ export class TreeViews {
         },
       };
     });
+    for (let treeDataProvider of this.treeDataProviders) {
+      treeDataProvider.folder = this.folder;
+      treeDataProvider.clear();
+    }
+  }
+
+  get workspace() {
+    return this._workspace;
+  }
+
+  get folder() {
+    return join(
+      this.workspaceFolder,
+      this.connection || "",
+      this.workspace || ""
+    );
+  }
+
+  setAndGet = async () => {
+    if (this.connections.length === 0) {
+      vscode.window.showErrorMessage(ERR_NO_CONN_SETTING);
+      return {};
+    }
+    const defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME);
+    this.connection = this.connections.includes(this.connection)
+      ? this.connection
+      : this.connections.includes(defaultConnectionName)
+      ? defaultConnectionName
+      : getSetting(CONNECTIONS)[0].name;
+    const {
+      url,
+      username,
+      password,
+      workspaces,
+      defaultWorkspace,
+      restWorkspaces,
+    } = getConnection(this.connection);
+    this.workspaces = restWorkspaces
+      ? await getWorkspaces({ url, username, password })
+      : workspaces;
+    this.workspace = this.workspaces.includes(this.workspace)
+      ? this.workspace
+      : restWorkspaces || !workspaces.includes(defaultWorkspace)
+      ? this.workspaces[0]
+      : defaultWorkspace;
+    return {
+      connections: this.connections,
+      selectedConnection: this.connection,
+      workspaces: this.workspaces,
+      selectedWorkspace: this.workspace,
+    };
   };
 
   search = async (searchString: string) =>
@@ -159,7 +185,6 @@ export class TreeViews {
   };
 }
 
-//classes for the tree data providers
 class TreeDataProviderBase {
   readonly type: SiebelObject;
   readonly objectUrl: string;
@@ -184,7 +209,7 @@ class TreeDataProviderBase {
     return this._folder;
   }
 
-  getTreeItem = (element: TreeItem) => element;
+  getTreeItem = (element: TreeItemObject | TreeItemScript | TreeItemWebTemp) => element;
 
   createTreeItems = (): (TreeItemObject | TreeItemWebTemp)[] => [];
 
@@ -224,7 +249,6 @@ class TreeDataProviderBase {
           [INFO_KEY_LAST_PUSH]: "",
         };
       if (existsSync(filePath)) {
-        //update info.json if exists
         const fileContent = await vscode.workspace.fs.readFile(fileUri);
         infoJSON = JSON.parse(Buffer.from(fileContent).toString());
         for (const fileName of fileNames) {
@@ -233,7 +257,6 @@ class TreeDataProviderBase {
           else infoJSON.files[fileName] = dateInfo;
         }
       } else {
-        //create info.json if not exists
         infoJSON = {
           [INFO_KEY_FOLDER_CREATED]: timestamp.toString(),
           connection: basename(dirname(this.folder)),
@@ -265,7 +288,7 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
     this.scriptUrl = repositoryObjects[type].child;
   }
 
-  getChildren = (element: TreeItem) =>
+  getChildren = (element: TreeItemObject | TreeItemScript) =>
     element instanceof TreeItemObject
       ? Object.entries(element.scripts).map(
           ([scriptName, onDisk]) =>
@@ -386,7 +409,7 @@ export class TreeDataProviderWebTemp extends TreeDataProviderBase {
     super(WEBTEMP);
   }
 
-  getChildren = (element: TreeItem) => this.data;
+  getChildren = (element: TreeItemWebTemp) => this.data;
 
   createTreeItems = () =>
     Object.entries(this.dataObject).map(

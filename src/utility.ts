@@ -7,14 +7,13 @@ import {
   FILE_NAME_TYPE_DEF,
 } from "./constants";
 import { existsSync } from "fs";
-import { join } from "path";
+import { join, dirname, basename } from "path";
 
-//write/create file
 export const writeFile = async (
   filePath: string,
   fileContent: string,
   openFile = false
-): Promise<void> => {
+) => {
   try {
     await vscode.workspace.saveAll(false);
     const fileUri = vscode.Uri.file(filePath),
@@ -30,17 +29,16 @@ export const writeFile = async (
   }
 };
 
-//create url path from parts
+export const getParentFolder = (filePath: string, level = 1) => {
+  while (level > 0) {
+    filePath = dirname(filePath);
+    level--;
+  }
+  return basename(filePath);
+};
+
 export const joinUrl = (...args: string[]) => args.join("/");
 
-//open the extension settings
-export const openSettings = () =>
-  vscode.commands.executeCommand(
-    "workbench.action.openSettings",
-    "siebelScriptAndWebTempEditor"
-  );
-
-//get the settings
 export const getSetting: IGetSetting = <T extends keyof Settings>(
   settingName: T
 ) =>
@@ -48,10 +46,12 @@ export const getSetting: IGetSetting = <T extends keyof Settings>(
     settingName
   ] as unknown as Settings[T];
 
-//set the settings
-export const setSetting = async <T extends keyof Settings>(
-  settingName: T,
-  settingValue: Settings[T]
+export const setSetting: ISetSetting = async (
+  settingName:
+    | typeof CONNECTIONS
+    | typeof DEFAULT_CONNECTION_NAME
+    | keyof OldSettings,
+  settingValue: Config[] | string | undefined
 ) =>
   await vscode.workspace
     .getConfiguration()
@@ -61,8 +61,9 @@ export const setSetting = async <T extends keyof Settings>(
       vscode.ConfigurationTarget.Global
     );
 
-export const getConnection = (name = "") =>
-  getSetting(CONNECTIONS).find((item) => item.name === name) || ({} as Config);
+export const getConnection = (connectionName: string) =>
+  getSetting(CONNECTIONS).find(({ name }) => name === connectionName) ||
+  ({} as Config);
 
 export const timestamp = (now = new Date()) =>
   `${now.getFullYear()}-${(now.getMonth() + 1)
@@ -75,7 +76,6 @@ export const timestamp = (now = new Date()) =>
     .toString()
     .padStart(2, "0")}`;
 
-//copy index.d.ts and create jsconfig.json to the VSCode workspace folder if they do not exist
 export const createIndexdtsAndJSConfigjson = async (
   context: vscode.ExtensionContext
 ) => {
@@ -93,23 +93,21 @@ export const createIndexdtsAndJSConfigjson = async (
       );
     }
 
-    if (!existsSync(jsconfigFilePath)) {
-      const jsConfig = JSON.stringify(
-        { compilerOptions: { allowJs: true, checkJs: true } },
-        null,
-        2
-      );
-      writeFile(jsconfigFilePath, jsConfig);
-      vscode.window.showInformationMessage(
-        `File jsconfig.json was created in ${workspaceFolder} folder!`
-      );
-    }
+    if (existsSync(jsconfigFilePath)) return;
+    const jsConfig = JSON.stringify(
+      { compilerOptions: { allowJs: true, checkJs: true } },
+      null,
+      2
+    );
+    writeFile(jsconfigFilePath, jsConfig);
+    vscode.window.showInformationMessage(
+      `File jsconfig.json was created in ${workspaceFolder} folder!`
+    );
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }
 };
 
-//copy the deprecated settings if they exist to the new setting
 export const moveDeprecatedSettings = async () => {
   const {
       "REST EndpointConfigurations": connectionConfigs,
@@ -123,7 +121,7 @@ export const moveDeprecatedSettings = async () => {
     workspaceObject: Workspaces = {};
   let isDefault = false;
   try {
-    if (!connectionConfigs || !(Object.keys(connections).length === 0)) return;
+    if (!connectionConfigs || connections.length !== 0) return;
     const [defaultConnectionName = "", defaultWorkspace = ""] =
       defaultConnection?.split(":") || [];
     for (const workspace of workspaces) {
@@ -156,6 +154,10 @@ export const moveDeprecatedSettings = async () => {
       DEFAULT_CONNECTION_NAME,
       isDefault ? defaultConnectionName : newConnections[0].name
     );
+    await setSetting("REST EndpointConfigurations", undefined);
+    await setSetting("workspaces", undefined);
+    await setSetting("defaultConnection", undefined);
+    await setSetting("getWorkspacesFromREST", undefined);
   } catch (err: any) {
     vscode.window.showErrorMessage(
       `An error occured when moving the deprecated parameters to the new settings: ${err.message}, please create connections manually!`

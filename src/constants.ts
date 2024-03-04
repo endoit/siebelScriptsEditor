@@ -5,7 +5,13 @@ export const SERVICE = "service",
   APPLICATION = "application",
   WEBTEMP = "webtemp";
 
-export const siebelObjects: SiebelObject[] = [SERVICE, BUSCOMP, APPLET, APPLICATION, WEBTEMP];
+export const siebelObjects: SiebelObject[] = [
+  SERVICE,
+  BUSCOMP,
+  APPLET,
+  APPLICATION,
+  WEBTEMP,
+];
 
 //Repository object urls
 export const repositoryObjects = {
@@ -31,13 +37,17 @@ export const workspaceQueryParams = {
 } as const;
 
 //webview commands for the connection configuration
-export const SEARCH = "search",
-  DELETE_CONNECTION = "deleteConnection",
+export const DELETE_CONNECTION = "deleteConnection",
   ADD = "add",
   DEFAULT = "default",
   DELETE = "delete",
   TEST_CONNECTION = "testConnection",
-  CREATE_OR_UPDATE_CONNECTION = "createOrUpdateConnection";
+  NEW_OR_EDIT_CONNECTION = "newOrEditConnection",
+  CONNECTION = "connection",
+  WORKSPACE = "workspace",
+  TYPE = "type",
+  SEARCH = "search",
+  REST_WORKSPACES = "restWorkspaces";
 
 //REST methods
 export const GET = "get",
@@ -61,20 +71,12 @@ export const CONNECTIONS = "connections",
   LOCAL_FILE_EXTENSION = "localFileExtension",
   MAX_PAGE_SIZE = "maxPageSize";
 
-//global state parameters
-export const CONNECTION = "connection",
-  WORKSPACE = "workspace",
-  WORKSPACE_FOLDER = "workspaceFolder",
-  OBJECT = "object",
-  INTERCEPTOR = "interceptor",
-  REST_WORKSPACES = "restWorkspaces";
-
 //constant URLs
 export const PATH_APPLICATION = "workspace/MAIN/Application",
   PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
   PATH_WORKSPACE_IOB = "data/Workspace/Repository Workspace";
 
-//fields
+//json fields
 export const NAME = "Name",
   SCRIPT = "Script",
   DEFINITION = "Definition",
@@ -98,8 +100,6 @@ export const ERR_NO_WS_OPEN =
     "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
   ERR_NO_BASE_WS_IOB =
     "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing!",
-  ERR_NO_WS_CONN =
-    "No workspace was found for any connection, please check Connections setting!",
   ERR_NO_INFO_JSON =
     "File info.json was not found, please get the Siebel Object again from the extension!",
   ERR_NO_INFO_JSON_ENTRY =
