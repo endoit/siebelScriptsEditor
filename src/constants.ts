@@ -78,7 +78,7 @@ export const SERVICE = "service",
   //Constant information and error messages messages
   INF_CONN_WORKING = "Connection is working!",
   INF_GET_REST_WORKSPACES =
-    "Getting workspaces from the Siebel REST API was successfuly!",
+    "Getting workspaces from the Siebel REST API was successful!",
   ERR_NO_WS_OPEN =
     "Please open a Visual Studio Code workspace folder to use the extension!",
   ERR_NO_CONN_SETTING =
@@ -87,6 +87,8 @@ export const SERVICE = "service",
     "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
   ERR_NO_BASE_WS_IOB =
     "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
+  ERR_NO_EDITABLE_WS =
+    "No workspace with status Checkpointed or Edit-In-Progress was found!",
   ERR_NO_UPDATE = "Update was unsuccessful, check the REST API connection!",
   ERR_FILE_FUNCTION_NAME_DIFF =
     "Unable to create new method, name of the file and the function is not the same!";

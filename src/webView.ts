@@ -220,11 +220,10 @@ export const configHTML = (connectionName: string, isNewConnection = false) => {
       defaultWorkspace = "",
     } = isNewConnection ? {} : getConnection(connectionName),
     defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME);
-
   return `<!doctype><html>
 	${head}
 	<body>
-		<h1>${isNewConnection ? "Create New Connection" : "Edit Connection"}</h1>
+		<h1>${isNewConnection ? "New Connection" : "Edit Connection"}</h1>
 		<div class="config">
 			<div class="grid-item grid-1">
 				<label for="connection-name">Connection Name</label></div><div class="grid-item grid-24">

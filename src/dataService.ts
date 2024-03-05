@@ -21,6 +21,7 @@ import {
   INF_CONN_WORKING,
   ERR_NO_BASE_WS_IOB,
   INF_GET_REST_WORKSPACES,
+  ERR_NO_EDITABLE_WS,
 } from "./constants";
 import { getConnection, getParentFolder, joinUrl } from "./utility";
 import { writeFile } from "./utility";
@@ -64,11 +65,11 @@ const axiosInstance: IAxiosInstance = async (
   }
 };
 
-export const testConnection = async ({
-  url,
-  username,
-  password,
-}: Connection) => {
+export const testConnection = async (
+  url: string,
+  username: string,
+  password: string
+) => {
   const data = await axiosInstance(
     { url: joinUrl(url, PATH_APPLICATION), username, password },
     GET,
@@ -77,11 +78,11 @@ export const testConnection = async ({
   if (data.length !== 0) vscode.window.showInformationMessage(INF_CONN_WORKING);
 };
 
-export const checkBaseWorkspaceIOB = async ({
-  url,
-  username,
-  password,
-}: Connection) => {
+export const checkBaseWorkspaceIOB = async (
+  url: string,
+  username: string,
+  password: string
+) => {
   if (!url) return false;
   const params = {
       ...workspaceQueryParams,
@@ -97,26 +98,22 @@ export const checkBaseWorkspaceIOB = async ({
     : vscode.window.showErrorMessage(ERR_NO_BASE_WS_IOB);
 };
 
-export const getWorkspaces = async ({
-  url,
-  username,
-  password,
-}: Connection): Promise<string[]> => {
+export const getWorkspaces = async (
+  url: string,
+  username: string,
+  password: string
+): Promise<string[]> => {
   const params = {
       ...workspaceQueryParams,
       searchSpec: `Created By Name='${username}' AND (Status='Checkpointed' OR Status='Edit-In-Progress')`,
     },
-    workspacesUrl = joinUrl(url, PATH_WORKSPACE_IOB),
-    workspaces = [],
     data = await axiosInstance(
-      { url: workspacesUrl, username, password },
+      { url: joinUrl(url, PATH_WORKSPACE_IOB), username, password },
       GET,
       params
     );
-  for (let workspace of data) {
-    workspaces.push(workspace.Name);
-  }
-  return workspaces;
+  if (data.length === 0) vscode.window.showErrorMessage(ERR_NO_EDITABLE_WS);
+  return data.map(({ Name }) => Name);
 };
 
 const pushOrPull = async (action: ButtonAction) => {
@@ -158,8 +155,11 @@ const pushOrPull = async (action: ButtonAction) => {
       const data = await axiosInstance(connectionParams, GET, {
           fields,
         }),
-        fileContent = data?.[0][fields];
-      if (!fileContent) return;
+        fileContent = data?.[0]?.[fields];
+      if (fileContent === undefined)
+        return vscode.window.showErrorMessage(
+          `${isWebTemp ? "Web template" : "Script"} was not found in Siebel!`
+        );
       return await writeFile(filePath, fileContent);
     }
     case PUSH: {
@@ -175,13 +175,13 @@ const pushOrPull = async (action: ButtonAction) => {
         return vscode.window.showErrorMessage(ERR_FILE_FUNCTION_NAME_DIFF);
       if (type !== WEBTEMP) payload["Program Language"] = "JS";
       const uploadStatus = await axiosInstance(connectionParams, PUT, payload);
-      if (uploadStatus !== 200)
-        return vscode.window.showErrorMessage(ERR_NO_UPDATE);
-      return vscode.window.showInformationMessage(
-        `Successfully updated ${
-          isWebTemp ? "web template" : "script"
-        } in Siebel!`
-      );
+      return uploadStatus !== 200
+        ? vscode.window.showErrorMessage(ERR_NO_UPDATE)
+        : vscode.window.showInformationMessage(
+            `Successfully updated ${
+              isWebTemp ? "web template" : "script"
+            } in Siebel!`
+          );
     }
   }
 };

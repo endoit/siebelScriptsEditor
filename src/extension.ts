@@ -17,10 +17,7 @@ import {
   DEFAULT_CONNECTION_NAME,
   IS_NEW_CONNECTION,
   REST_WORKSPACES,
-  ERR_NO_BASE_WS_IOB,
   TYPE,
-  INF_GET_REST_WORKSPACES,
-  INF_CONN_WORKING,
 } from "./constants";
 import {
   checkBaseWorkspaceIOB,
@@ -46,7 +43,7 @@ export async function activate(context: vscode.ExtensionContext) {
   await createIndexdtsAndJSConfigjson(context);
   await moveDeprecatedSettings();
 
-  const newOrEditConnection =
+  const configCallback =
     (isNewConnection = false) =>
     () => {
       const columnToShowIn = vscode.window.activeTextEditor
@@ -115,17 +112,9 @@ export async function activate(context: vscode.ExtensionContext) {
               await setSetting(CONNECTIONS, connections);
               return (configWebview!.webview.html = configHTML(connectionName));
             case REST_WORKSPACES:
-              return await checkBaseWorkspaceIOB({
-                url,
-                username,
-                password,
-              });
+              return await checkBaseWorkspaceIOB(url, username, password);
             case TEST_CONNECTION:
-              return await testConnection({
-                url,
-                username,
-                password,
-              });
+              return await testConnection(url, username, password);
             case NEW_OR_EDIT_CONNECTION:
               if (!(connectionName && url && username && password))
                 return vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
@@ -134,22 +123,21 @@ export async function activate(context: vscode.ExtensionContext) {
                 connection.username = username;
                 connection.password = password;
                 connection.restWorkspaces = restWorkspaces;
+                await setSetting(CONNECTIONS, connections);
                 if (defaultConnection)
                   await setSetting(DEFAULT_CONNECTION_NAME, connectionName);
-              } else {
-                connections.unshift({
-                  name: connectionName,
-                  url,
-                  username,
-                  password,
-                  restWorkspaces,
-                  workspaces: [],
-                  defaultWorkspace: "",
-                });
+                return configWebview?.dispose();
               }
+              connections.unshift({
+                name: connectionName,
+                url,
+                username,
+                password,
+                restWorkspaces,
+                workspaces: [],
+                defaultWorkspace: "",
+              });
               await setSetting(CONNECTIONS, connections);
-              if (!isNewConnection) return configWebview?.dispose();
-              isNewConnection = false;
               return (configWebview!.webview.html = configHTML(connectionName));
             case DELETE_CONNECTION:
               const answer = await vscode.window.showInformationMessage(
@@ -216,14 +204,14 @@ export async function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "siebelscriptandwebtempeditor.newConnection",
-      newOrEditConnection(IS_NEW_CONNECTION)
+      configCallback(IS_NEW_CONNECTION)
     )
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "siebelscriptandwebtempeditor.editConnection",
-      newOrEditConnection()
+      configCallback()
     )
   );
 

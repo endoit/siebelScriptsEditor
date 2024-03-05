@@ -85,8 +85,8 @@
 				"title": "New Connection",
 				"when": "workspaceFolderCount > 0",
 				"icon": {
-					"light": "./media/add_light.png",
-					"dark": "./media/add_dark.png"
+					"light": "./media/new_light.png",
+					"dark": "./media/new_dark.png"
 				}
 			},
 			{
@@ -143,7 +143,7 @@
 			"properties": {
 				"siebelScriptAndWebTempEditor.connections": {
 					"type": "array",
-					"markdownDescription": "Do not modify manually, change through the Create/Edit Connection panel!",
+					"markdownDescription": "Do not modify manually, change through the New/Edit Connection panel!",
 					"additionalProperties": {
 						"type": "object"
 					},

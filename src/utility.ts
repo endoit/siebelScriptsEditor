@@ -50,9 +50,10 @@ export const setSetting: ISetSetting = async (
   settingName:
     | typeof CONNECTIONS
     | typeof DEFAULT_CONNECTION_NAME
-    | string[]
-    | boolean
-    | string,
+    | "REST EndpointConfigurations"
+    | "workspaces"
+    | "defaultConnection"
+    | "getWorkspacesFromREST",
   settingValue: Config[] | string | undefined
 ) =>
   await vscode.workspace

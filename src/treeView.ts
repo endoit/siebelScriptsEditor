@@ -29,6 +29,11 @@ import { existsSync, readdirSync } from "fs";
 import { getConnection, getSetting, joinUrl, writeFile } from "./utility";
 import axios from "axios";
 
+const checkmarkIconPath = {
+  light: join(__filename, "..", "..", "media", "checkmark.png"),
+  dark: join(__filename, "..", "..", "media", "checkmark.png"),
+} as const;
+
 const getDataFromSiebel: IGetDataFromSiebel = async (
   url: string,
   fields: QueryParams["fields"],
@@ -51,11 +56,6 @@ const getDataFromSiebel: IGetDataFromSiebel = async (
     return [];
   }
 };
-
-const checkmarkIconPath = {
-  light: join(__filename, "..", "..", "media", "checkmark.png"),
-  dark: join(__filename, "..", "..", "media", "checkmark.png"),
-} as const;
 
 export class TreeViews {
   private readonly workspaceFolder =
@@ -150,7 +150,7 @@ export class TreeViews {
       restWorkspaces,
     } = getConnection(this.connection);
     this.workspaces = restWorkspaces
-      ? await getWorkspaces({ url, username, password })
+      ? await getWorkspaces(url, username, password)
       : workspaces;
     this.workspace = this.workspaces.includes(this.workspace)
       ? this.workspace
@@ -260,7 +260,7 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
       if (!existsSync(join(this.folder, Name))) continue;
       const fileNames = readdirSync(join(this.folder, Name));
       for (const file of fileNames) {
-        if (!file.endsWith("json"))
+        if (file.endsWith(".js") || file.endsWith(".ts"))
           this.dataObject[Name][basename(file, extname(file))] = true;
       }
     }
