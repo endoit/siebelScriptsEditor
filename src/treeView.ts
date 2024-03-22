@@ -16,7 +16,6 @@ import {
   SERVICE,
   APPLET,
   APPLICATION,
-  siebelObjects,
   GET,
   baseQueryParams,
   CONNECTIONS,
@@ -60,18 +59,13 @@ const getDataFromSiebel: IGetDataFromSiebel = async (
 export class TreeViews {
   private readonly workspaceFolder =
     vscode.workspace.workspaceFolders?.[0].uri.fsPath!;
-  private readonly service = new TreeDataProviderObject(SERVICE);
-  private readonly buscomp = new TreeDataProviderObject(BUSCOMP);
-  private readonly applet = new TreeDataProviderObject(APPLET);
-  private readonly application = new TreeDataProviderObject(APPLICATION);
-  private readonly webtemp = new TreeDataProviderWebTemp();
-  private readonly treeDataProviders = [
-    this.service,
-    this.buscomp,
-    this.applet,
-    this.application,
-    this.webtemp,
-  ];
+  private readonly treeDataProviders = {
+    [SERVICE]: new TreeDataProviderObject(SERVICE),
+    [BUSCOMP]: new TreeDataProviderObject(BUSCOMP),
+    [APPLET]: new TreeDataProviderObject(APPLET),
+    [APPLICATION]: new TreeDataProviderObject(APPLICATION),
+    [WEBTEMP]: new TreeDataProviderWebTemp(),
+  } as const;
   private _workspace = "";
   private workspaces: string[] = [];
   private interceptor = 0;
@@ -79,18 +73,19 @@ export class TreeViews {
   type: SiebelObject = SERVICE;
 
   constructor() {
-    for (const type of siebelObjects) {
-      this.createTreeView(type);
+    for (const [type, treeDataProvider] of Object.entries(
+      this.treeDataProviders
+    )) {
+      vscode.window
+        .createTreeView(type, {
+          treeDataProvider,
+          showCollapseAll: type !== WEBTEMP,
+        })
+        .onDidChangeSelection(async (e) =>
+          treeDataProvider.selectionChange(e as any)
+        );
     }
   }
-
-  private createTreeView = (type: SiebelObject) =>
-    vscode.window
-      .createTreeView(type, {
-        treeDataProvider: this[type],
-        showCollapseAll: type !== WEBTEMP,
-      })
-      .onDidChangeSelection(async (e) => this[type].selectionChange(e as any));
 
   get connections() {
     return getSetting(CONNECTIONS).map(({ name }) => name);
@@ -114,7 +109,7 @@ export class TreeViews {
         },
       };
     });
-    for (const treeDataProvider of this.treeDataProviders) {
+    for (const treeDataProvider of Object.values(this.treeDataProviders)) {
       treeDataProvider.folder = this.folder;
       treeDataProvider.clear();
     }
@@ -164,11 +159,12 @@ export class TreeViews {
       selectedConnection: this.connection,
       workspaces: this.workspaces,
       selectedWorkspace: this.workspace,
+      type: this.type,
     };
   };
 
   search = async (searchString: string) =>
-    await this[this.type].debouncedSearch(searchString);
+    await this.treeDataProviders[this.type].debouncedSearch(searchString);
 }
 
 class TreeDataProviderBase {
@@ -176,7 +172,7 @@ class TreeDataProviderBase {
   readonly objectUrl: string;
   private timeoutId: NodeJS.Timeout | number | null = null;
   private _folder = "";
-  _onDidChangeTreeData = new vscode.EventEmitter();
+  private _onDidChangeTreeData = new vscode.EventEmitter();
   onDidChangeTreeData = this._onDidChangeTreeData.event;
   data: (TreeItemObject | TreeItemWebTemp)[] = [];
   dataObject: ScriptObject | WebTempObject = {};
@@ -202,16 +198,13 @@ class TreeDataProviderBase {
 
   createTreeViewData = async (searchSpec: string) => {};
 
-  debounce = async (callback: () => void) => {
+  debouncedSearch = async (searchSpec: string) => {
     if (this.timeoutId) clearTimeout(this.timeoutId);
     this.timeoutId = setTimeout(() => {
-      callback();
+      this.createTreeViewData(searchSpec);
       this.timeoutId = null;
     }, 300);
   };
-
-  debouncedSearch = async (searchSpec: string) =>
-    await this.debounce(() => this.createTreeViewData(searchSpec));
 
   refresh = () => {
     this.data = this.createTreeItems();

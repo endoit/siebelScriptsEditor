@@ -196,12 +196,12 @@ export const dataSourceHTML = `<!doctype><html>
 				document.getElementById("search-bar").readOnly = connections.length === 0 || workspaces.length === 0;
 			};
 		populate();
-    window.addEventListener("message", ({ data: { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "" } }) => {
+    window.addEventListener("message", ({ data: { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "", type = "service" } }) => {
 			currentState.connections = connections;
 			currentState.selectedConnection = selectedConnection;
 			currentState.workspaces = workspaces;
 			currentState.selectedWorkspace = selectedWorkspace; 
-			currentState.type = document.getElementById("type").value;
+			currentState.type = type;
 			currentState.searchString = "";
 			vscode.setState(currentState);
 			populate();
