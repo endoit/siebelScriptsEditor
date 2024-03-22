@@ -22,14 +22,15 @@ import {
   ERR_NO_BASE_WS_IOB,
   INF_GET_REST_WORKSPACES,
   ERR_NO_EDITABLE_WS,
+  ERR_CONN_MISSING_PARAMS,
 } from "./constants";
 import { getConnection, getParentFolder, joinUrl } from "./utility";
 import { writeFile } from "./utility";
 
 const axiosInstance: IAxiosInstance = async (
-  { url, username, password }: Connection,
-  method: RestMethod,
-  paramsOrPayload: QueryParams | Payload
+  { url, username, password },
+  method,
+  paramsOrPayload
 ) => {
   const instance = axios.create({
     withCredentials: true,
@@ -70,6 +71,8 @@ export const testConnection = async (
   username: string,
   password: string
 ) => {
+  if (!(url && username && password))
+    return vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
   const data = await axiosInstance(
     { url: joinUrl(url, PATH_APPLICATION), username, password },
     GET,
@@ -83,7 +86,8 @@ export const checkBaseWorkspaceIOB = async (
   username: string,
   password: string
 ) => {
-  if (!url) return false;
+  if (!(url && username && password))
+    return vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
   const params = {
       ...workspaceQueryParams,
       searchSpec: `Name='Base Workspace'`,

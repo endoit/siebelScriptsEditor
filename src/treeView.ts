@@ -30,15 +30,15 @@ import { getConnection, getSetting, joinUrl, writeFile } from "./utility";
 import axios from "axios";
 
 const checkmarkIconPath = {
-  light: join(__filename, "..", "..", "media", "checkmark.png"),
-  dark: join(__filename, "..", "..", "media", "checkmark.png"),
+  light: join(__filename, "..", "..", "media", "checkmark_light.png"),
+  dark: join(__filename, "..", "..", "media", "checkmark_dark.png"),
 } as const;
 
 const getDataFromSiebel: IGetDataFromSiebel = async (
-  url: string,
-  fields: QueryParams["fields"],
+  url,
+  fields,
   searchSpec?: string
-): Promise<ScriptResponse[] | WebTempResponse[]> => {
+) => {
   try {
     const params: QueryParams = { fields };
     params.PageSize = getSetting(MAX_PAGE_SIZE);
@@ -65,20 +65,22 @@ export class TreeViews {
   private readonly applet = new TreeDataProviderObject(APPLET);
   private readonly application = new TreeDataProviderObject(APPLICATION);
   private readonly webtemp = new TreeDataProviderWebTemp();
-  private readonly treeDataProviders: (
-    | TreeDataProviderObject
-    | TreeDataProviderWebTemp
-  )[] = [];
-  private interceptor = 0;
+  private readonly treeDataProviders = [
+    this.service,
+    this.buscomp,
+    this.applet,
+    this.application,
+    this.webtemp,
+  ];
   private _workspace = "";
   private workspaces: string[] = [];
+  private interceptor = 0;
   connection = "";
   type: SiebelObject = SERVICE;
 
   constructor() {
     for (const type of siebelObjects) {
       this.createTreeView(type);
-      this.treeDataProviders.push(this[type]);
     }
   }
 
@@ -130,7 +132,7 @@ export class TreeViews {
     );
   }
 
-  setAndGet = async () => {
+  adjust = async () => {
     if (this.connections.length === 0) {
       vscode.window.showErrorMessage(ERR_NO_CONN_SETTING);
       return {};
@@ -328,18 +330,16 @@ export class TreeDataProviderObject extends TreeDataProviderBase {
         return;
       return await this.getAllServerScripts(label, methodsOnly);
     }
-    if (selectedItem instanceof TreeItemScript) {
-      const { parent } = selectedItem,
-        answer = singleFileAutoDownload
-          ? "Yes"
-          : await vscode.window.showInformationMessage(
-              `Do you want to get the ${label} ${this.objectUrl} method from Siebel?`,
-              "Yes",
-              "No"
-            );
-      if (answer !== "Yes") return;
-      return await this.getServerScript(label, parent);
-    }
+    const { parent } = selectedItem,
+      answer = singleFileAutoDownload
+        ? "Yes"
+        : await vscode.window.showInformationMessage(
+            `Do you want to get the ${label} ${this.objectUrl} method from Siebel?`,
+            "Yes",
+            "No"
+          );
+    if (answer !== "Yes") return;
+    return await this.getServerScript(label, parent);
   };
 }
 

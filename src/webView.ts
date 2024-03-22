@@ -220,27 +220,36 @@ export const configHTML = (connectionName: string, isNewConnection = false) => {
       defaultWorkspace = "",
     } = isNewConnection ? {} : getConnection(connectionName),
     defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME);
+
   return `<!doctype><html>
 	${head}
 	<body>
 		<h1>${isNewConnection ? "New Connection" : "Edit Connection"}</h1>
 		<div class="config">
 			<div class="grid-item grid-1">
-				<label for="connection-name">Connection Name</label></div><div class="grid-item grid-24">
+				<label for="connection-name">Connection Name</label>
+			</div>
+			<div class="grid-item grid-24">
 				<input type="text" class="input" name="connection-name" id="connection-name" value=${
           isNewConnection ? "" : `"${connectionName}" readonly`
         }> 
 			</div>
 			<div class="grid-item grid-1">
-				<label for="url">Siebel REST API Base URI</label></div><div class="grid-item grid-24">
+				<label for="url">Siebel REST API Base URI</label>
+			</div>
+			<div class="grid-item grid-24">
 				<input type="text" class="input" name="url" id="url" value="${url}" placeholder="https://Server Name:Port/siebel/v1.0">
 			</div>
 			<div class="grid-item grid-1">
-				<label for="username">Username</label></div><div class="grid-item grid-24"> 
+				<label for="username">Username</label>
+			</div>
+			<div class="grid-item grid-24"> 
 				<input type="text" class="input" name="username" id="username" value="${username}">
 			</div>
 			<div class="grid-item grid-1">
-				<label for="password">Password</label></div><div class="grid-item grid-24">
+				<label for="password">Password</label>
+			</div>
+			<div class="grid-item grid-24">
 				<input type="password" class="input" name="username" id="password" value="${password}">
 			</div>
 	${
@@ -304,49 +313,47 @@ export const configHTML = (connectionName: string, isNewConnection = false) => {
       }
 		</div>
 		<script>
-			const vscode = acquireVsCodeApi(),
-				addWorkspace = document.getElementById("add-workspace");
-				${
-          isNewConnection
-            ? 'document.getElementById("connection-name").focus()'
-            : "addWorkspace.focus()"
-        };
-			if (addWorkspace){
+			${
+        isNewConnection
+          ? `document.getElementById("connection-name").focus();`
+          : `const addWorkspace = document.getElementById("add-workspace");					
+				addWorkspace.focus();
 				addWorkspace.addEventListener("keypress", (e) => {
 					if (e.key === "Enter") {
 						e.preventDefault();
 						document.getElementById("add-workspace-button").click();
 					}
-				});
-			}
-			const getBaseParameters = () => ({ url: document.getElementById("url").value, username:  document.getElementById("username").value, password: document.getElementById("password").value }),
-			editWorkspaces = () => {
-				const connectionName = document.getElementById("connection-name").value, 
-					action = event.target.name,
-					workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;
-				if (!workspace) return;
-				vscode.postMessage({command: "workspace", connectionName, action, workspace});
-			},
-		 	restWorkspaces = () => {
-				const { url, username, password } = getBaseParameters(),
-					restWorkspaces = document.getElementById("rest-workspaces").checked;
-				if (restWorkspaces) vscode.postMessage({command: "restWorkspaces", url, username, password});
-			},
-			testConnection = () => {
-				const { url, username, password } = getBaseParameters();
-				vscode.postMessage({command: "testConnection", url, username, password});
-			},
-			newOrEditConnection = () => {
-				const connectionName = document.getElementById("connection-name").value,
-					{ url, username, password } = getBaseParameters(),
-					restWorkspaces = !!document.getElementById("rest-workspaces")?.checked,
-					defaultConnection = !!document.getElementById("default-connection")?.checked;
-				vscode.postMessage({command: "newOrEditConnection", connectionName, url, username, password, restWorkspaces, defaultConnection});
-			},
-			deleteConnection = () => {
-				const connectionName = document.getElementById("connection-name").value;
-				vscode.postMessage({command: "deleteConnection", connectionName});
-			};
+				});`
+      }
+			const vscode = acquireVsCodeApi(),
+				getBaseParameters = () => ({ url: document.getElementById("url").value, username:  document.getElementById("username").value, password: document.getElementById("password").value }),
+				editWorkspaces = () => {
+					const connectionName = document.getElementById("connection-name").value, 
+						action = event.target.name,
+						workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;
+					if (!workspace) return;
+					vscode.postMessage({command: "workspace", connectionName, action, workspace});
+				},
+				restWorkspaces = () => {
+					const { url, username, password } = getBaseParameters(),
+						restWorkspaces = document.getElementById("rest-workspaces").checked;
+					if (restWorkspaces) vscode.postMessage({command: "restWorkspaces", url, username, password});
+				},
+				testConnection = () => {
+					const { url, username, password } = getBaseParameters();
+					vscode.postMessage({command: "testConnection", url, username, password});
+				},
+				newOrEditConnection = () => {
+					const connectionName = document.getElementById("connection-name").value,
+						{ url, username, password } = getBaseParameters(),
+						restWorkspaces = !!document.getElementById("rest-workspaces")?.checked,
+						defaultConnection = !!document.getElementById("default-connection")?.checked;
+					vscode.postMessage({command: "newOrEditConnection", connectionName, url, username, password, restWorkspaces, defaultConnection});
+				},
+				deleteConnection = () => {
+					const connectionName = document.getElementById("connection-name").value;
+					vscode.postMessage({command: "deleteConnection", connectionName});
+				};
 			</script>
 		</body>
 	</html>`;

@@ -46,16 +46,7 @@ export const getSetting: IGetSetting = <T extends keyof Settings>(
     settingName
   ] as unknown as Settings[T];
 
-export const setSetting: ISetSetting = async (
-  settingName:
-    | typeof CONNECTIONS
-    | typeof DEFAULT_CONNECTION_NAME
-    | "REST EndpointConfigurations"
-    | "workspaces"
-    | "defaultConnection"
-    | "getWorkspacesFromREST",
-  settingValue: Config[] | string | undefined
-) =>
+export const setSetting: ISetSetting = async (settingName, settingValue) =>
   await vscode.workspace
     .getConfiguration()
     .update(
@@ -92,6 +83,7 @@ export const createIndexdtsAndJSConfigjson = async (
       2
     );
     await writeFile(jsconfigFilePath, jsConfig);
+
     vscode.window.showInformationMessage(
       `File jsconfig.json was created in ${workspaceFolder} folder!`
     );
@@ -101,22 +93,22 @@ export const createIndexdtsAndJSConfigjson = async (
 };
 
 export const moveDeprecatedSettings = async () => {
-  const {
-      "REST EndpointConfigurations": connectionConfigs,
-      workspaces,
-      defaultConnection,
-      connections,
-    } = vscode.workspace.getConfiguration(
-      "siebelScriptAndWebTempEditor"
-    ) as unknown as Settings & {
-      "REST EndpointConfigurations": string[];
-      workspaces: string[];
-      defaultConnection: string;
-    },
-    newConnections: Settings["connections"] = [],
-    workspaceObject: Record<string, string[]> = {};
-  let isDefault = false;
   try {
+    const {
+        "REST EndpointConfigurations": connectionConfigs,
+        workspaces,
+        defaultConnection,
+        connections,
+      } = vscode.workspace.getConfiguration(
+        "siebelScriptAndWebTempEditor"
+      ) as unknown as Settings & {
+        "REST EndpointConfigurations": string[];
+        workspaces: string[];
+        defaultConnection: string;
+      },
+      newConnections: Settings["connections"] = [],
+      workspaceObject: Record<string, string[]> = {};
+    let isDefault = false;
     if (!connectionConfigs || connections.length !== 0) return;
     const [defaultConnectionName = "", defaultWorkspace = ""] =
       defaultConnection?.split(":") || [];

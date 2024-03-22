@@ -68,14 +68,14 @@ type WebTempResponse = {
 type Payload = {
   Name: string;
   Script?: string;
-  Definition?: string;
   "Program Language"?: "JS";
+  Definition?: string;
 };
 
 //message sent from the datasource webview
 type DataSourceMessage = {
   command: "connection" | "workspace" | "type" | "search";
-  data: string | SiebelObject;
+  data: string;
 };
 
 //message sent from the configuration webview
@@ -86,8 +86,8 @@ type ConfigMessage = {
     | "workspace"
     | "restWorkspaces"
     | "deleteConnection";
-  connectionName: string;
   action: "add" | "default" | "delete";
+  connectionName: string;
   workspace: string;
   defaultConnection: boolean;
   url: string;

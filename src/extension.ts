@@ -37,8 +37,8 @@ import { dataSourceHTML, configHTML } from "./webView";
 export async function activate(context: vscode.ExtensionContext) {
   if (!vscode.workspace.workspaceFolders?.[0].uri.fsPath)
     return vscode.window.showErrorMessage(ERR_NO_WS_OPEN);
-  let configWebview: vscode.WebviewPanel | undefined = undefined;
   const treeViews = new TreeViews();
+  let configWebview: vscode.WebviewPanel | undefined = undefined;
 
   await createIndexdtsAndJSConfigjson(context);
   await moveDeprecatedSettings();
@@ -118,7 +118,7 @@ export async function activate(context: vscode.ExtensionContext) {
             case NEW_OR_EDIT_CONNECTION:
               if (!(connectionName && url && username && password))
                 return vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
-              if (connections.some(({ name }) => name === connectionName)) {
+              if (connection.name) {
                 connection.url = url;
                 connection.username = username;
                 connection.password = password;
@@ -162,7 +162,7 @@ export async function activate(context: vscode.ExtensionContext) {
     resolveWebviewView: async ({ webview }) => {
       vscode.workspace.onDidChangeConfiguration(async (e) => {
         if (e.affectsConfiguration("siebelScriptAndWebTempEditor.connections"))
-          return webview.postMessage(await treeViews.setAndGet());
+          return webview.postMessage(await treeViews.adjust());
       });
       webview.options = { enableScripts: true };
       webview.onDidReceiveMessage(
@@ -170,7 +170,7 @@ export async function activate(context: vscode.ExtensionContext) {
           switch (command) {
             case CONNECTION:
               treeViews.connection = data;
-              return webview.postMessage(await treeViews.setAndGet());
+              return webview.postMessage(await treeViews.adjust());
             case WORKSPACE:
               return (treeViews.workspace = data);
             case TYPE:
@@ -183,7 +183,7 @@ export async function activate(context: vscode.ExtensionContext) {
         context.subscriptions
       );
       webview.html = dataSourceHTML;
-      webview.postMessage(await treeViews.setAndGet());
+      webview.postMessage(await treeViews.adjust());
     },
   });
 

@@ -34,7 +34,7 @@ export const SERVICE = "service",
     fields: "Name",
     workspace: "MAIN",
   } as const,
-  //webview commands for the connection configuration
+  //webview commands
   DELETE_CONNECTION = "deleteConnection",
   ADD = "add",
   DEFAULT = "default",
