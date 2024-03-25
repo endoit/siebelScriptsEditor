@@ -45,10 +45,6 @@ export const SERVICE = "service",
   //button actions
   PUSH = "push",
   PULL = "pull",
-  //constant file/folder names
-  FILE_NAME_TYPE_DEF = "index.d.ts",
-  FILE_NAME_JSCONFIG = "jsconfig.json",
-  FILE_NAME_SIEBEL_TYPES = "siebelTypes.txt",
   //setting names
   CONNECTIONS = "connections",
   DEFAULT_CONNECTION_NAME = "defaultConnectionName",
@@ -68,7 +64,11 @@ export const SERVICE = "service",
   //booleans
   IS_NEW_CONNECTION = true,
   OPEN_FILE = true,
-  //Constant information and error messages messages
+  //constant file names
+  FILE_NAME_TYPE_DEF = "index.d.ts",
+  FILE_NAME_JSCONFIG = "jsconfig.json",
+  FILE_NAME_SIEBEL_TYPES = "siebelTypes.txt",
+  //constant information and error messages messages
   INF_CONN_WORKING = "Connection is working!",
   INF_GET_REST_WORKSPACES =
     "Getting workspaces from the Siebel REST API was successful!",

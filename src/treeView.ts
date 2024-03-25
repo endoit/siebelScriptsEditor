@@ -66,6 +66,7 @@ export class TreeViews {
     [APPLICATION]: new TreeDataProviderObject(APPLICATION),
     [WEBTEMP]: new TreeDataProviderWebTemp(),
   } as const;
+  private connections: string[] = [];
   private _workspace = "";
   private workspaces: string[] = [];
   private interceptor = 0;
@@ -85,10 +86,6 @@ export class TreeViews {
           treeDataProvider.selectionChange(e as any)
         );
     }
-  }
-
-  get connections() {
-    return getSetting(CONNECTIONS).map(({ name }) => name);
   }
 
   set workspace(newWorkspace: string) {
@@ -128,6 +125,7 @@ export class TreeViews {
   }
 
   adjust = async () => {
+    this.connections = getSetting(CONNECTIONS).map(({ name }) => name);
     if (this.connections.length === 0) {
       vscode.window.showErrorMessage(ERR_NO_CONN_SETTING);
       return {};

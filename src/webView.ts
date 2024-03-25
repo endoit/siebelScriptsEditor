@@ -1,4 +1,4 @@
-import { DEFAULT_CONNECTION_NAME } from "./constants";
+import { APPLET, APPLICATION, BUSCOMP, DEFAULT_CONNECTION_NAME, SERVICE, WEBTEMP } from "./constants";
 import { getConnection, getSetting } from "./utility";
 
 const head = `<head>
@@ -154,11 +154,11 @@ export const dataSourceHTML = `<!doctype><html>
     const vscode = acquireVsCodeApi(),
 			currentState = vscode.getState() || {},
       objectNames = {
-        service: "Business Service",
-        buscomp: "Business Component",
-        applet: "Applet",
-        application: "Application",
-        webtemp: "Web Template"
+        ${SERVICE}: "Business Service",
+        ${BUSCOMP}: "Business Component",
+        ${APPLET}: "Applet",
+        ${APPLICATION}: "Application",
+        ${WEBTEMP}: "Web Template"
       },
 			createOptions = (items = [], selected, isObject = false) =>
         items.map((item) => \`<option class="option" value="\${item}" \${item === selected ? "selected" : ""}>
@@ -188,15 +188,15 @@ export const dataSourceHTML = `<!doctype><html>
         if (searchString !== "") vscode.postMessage({ command: "search", data: searchString });
       },
 			populate = () => {
-				const { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "", type = "service", searchString = "" } = currentState;
+				const { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "", type = "${SERVICE}", searchString = "" } = currentState;
 				document.getElementById("connection").innerHTML = createOptions(connections, selectedConnection);
 				document.getElementById("workspace").innerHTML = createOptions(workspaces, selectedWorkspace);
-				document.getElementById("type").innerHTML = createOptions(["service", "buscomp", "applet", "application", "webtemp"], type, true);
+				document.getElementById("type").innerHTML = createOptions(["${SERVICE}", "${BUSCOMP}", "${APPLET}", "${APPLICATION}", "${WEBTEMP}"], type, true);
 				document.getElementById("search-bar").value = searchString;
 				document.getElementById("search-bar").readOnly = connections.length === 0 || workspaces.length === 0;
 			};
 		populate();
-    window.addEventListener("message", ({ data: { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "", type = "service" } }) => {
+    window.addEventListener("message", ({ data: { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "", type = "${SERVICE}" } }) => {
 			currentState.connections = connections;
 			currentState.selectedConnection = selectedConnection;
 			currentState.workspaces = workspaces;
