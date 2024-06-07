@@ -1,4 +1,11 @@
-import { APPLET, APPLICATION, BUSCOMP, DEFAULT_CONNECTION_NAME, SERVICE, WEBTEMP } from "./constants";
+import {
+  APPLET,
+  APPLICATION,
+  BUSCOMP,
+  DEFAULT_CONNECTION_NAME,
+  SERVICE,
+  WEBTEMP,
+} from "./constants";
 import { getConnection, getSetting } from "./utility";
 
 const head = `<head>
@@ -284,7 +291,7 @@ export const configHTML = (connectionName: string, isNewConnection = false) => {
 			<div class="grid-item grid-1 checkbox-container"> 
 				<input type="checkbox" class="checkbox" name="rest-workspaces" id="rest-workspaces" ${
           restWorkspaces ? "checked" : ""
-        } onchange="restWorkspaces()">			
+        } onchange="testRestWorkspaces()">			
 			</div>
 			<div class="grid-item grid-2"> 
 				<label for="rest-workspaces">Get Workspaces From The Siebel REST API</label>
@@ -334,10 +341,10 @@ export const configHTML = (connectionName: string, isNewConnection = false) => {
 					if (!workspace) return;
 					vscode.postMessage({command: "workspace", connectionName, action, workspace});
 				},
-				restWorkspaces = () => {
+				testRestWorkspaces = () => {
 					const { url, username, password } = getBaseParameters(),
 						restWorkspaces = document.getElementById("rest-workspaces").checked;
-					if (restWorkspaces) vscode.postMessage({command: "restWorkspaces", url, username, password});
+					if (restWorkspaces) vscode.postMessage({command: "testRestWorkspaces", url, username, password});
 				},
 				testConnection = () => {
 					const { url, username, password } = getBaseParameters();

@@ -34,9 +34,6 @@ type Config = {
   restWorkspaces: boolean;
 };
 
-//Connection parameters
-type Connection = Pick<Config, "url" | "username" | "password">;
-
 //Data objects in the tree views
 type ScriptObject = Record<string, Scripts>;
 type Scripts = Record<string, boolean>;
@@ -72,19 +69,28 @@ type Payload = {
   Definition?: string;
 };
 
-//message sent from the datasource webview
+//message sent to the datasource webview
+type TreeViewsState = {
+  connections?: string[];
+  selectedConnection?: string;
+  workspaces?: string[];
+  selectedWorkspace?: string;
+  type?: SiebelObject;
+};
+
+//message received from the datasource webview
 type DataSourceMessage = {
   command: "connection" | "workspace" | "type" | "search";
   data: string;
 };
 
-//message sent from the configuration webview
+//message received from the configuration webview
 type ConfigMessage = {
   command:
     | "newOrEditConnection"
     | "testConnection"
     | "workspace"
-    | "restWorkspaces"
+    | "testRestWorkspaces"
     | "deleteConnection";
   action: "add" | "default" | "delete";
   connectionName: string;
@@ -103,16 +109,42 @@ type RestMethod = "get" | "put";
 type ButtonAction = "push" | "pull";
 
 //overloaded function interfaces
-interface IAxiosInstance {
+interface ICallSiebelREST {
   (
-    { url, username, password }: Connection,
-    method: "get",
-    paramsOrPayload: QueryParams
+    action: "testConnection",
+    url: string,
+    username: string,
+    password: string
+  ): Promise<void>;
+
+  (
+    action: "testRestWorkspaces",
+    url: string,
+    username: string,
+    password: string
+  ): Promise<void>;
+
+  (
+    action: "restWorkspaces",
+    url: string,
+    username: string,
+    password: string
+  ): Promise<string[]>;
+
+  (
+    action: "pull",
+    url: string,
+    username: string,
+    password: string,
+    fieldOrPayload: "Script" | "Definition"
   ): Promise<any[]>;
+
   (
-    { url, username, password }: Connection,
-    method: "put",
-    paramsOrPayload: Payload
+    action: "push",
+    url: string,
+    username: string,
+    password: string,
+    fieldOrPayload: Payload
   ): Promise<number>;
 }
 

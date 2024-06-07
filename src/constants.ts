@@ -18,21 +18,17 @@ export const SERVICE = "service",
     },
     [WEBTEMP]: { parent: "Web Template" },
   } as const,
-  //query params
-  baseQueryParams = {
-    uniformresponse: "y",
-    childlinks: "None",
-  } as const,
-  workspaceQueryParams = {
-    fields: "Name",
-    workspace: "MAIN",
-  } as const,
+  //query parameters
+  UNIFORM_RESPONSE = "y",
+  CHILD_LINKS = "None",
+  MAIN = "MAIN",
   //webview commands
   TEST_CONNECTION = "testConnection",
   NEW_OR_EDIT_CONNECTION = "newOrEditConnection",
   ADD = "add",
   DEFAULT = "default",
   DELETE = "delete",
+  TEST_REST_WORKSPACES = "testRestWorkspaces",
   REST_WORKSPACES = "restWorkspaces",
   DELETE_CONNECTION = "deleteConnection",
   CONNECTION = "connection",
@@ -53,8 +49,7 @@ export const SERVICE = "service",
   LOCAL_FILE_EXTENSION = "localFileExtension",
   MAX_PAGE_SIZE = "maxPageSize",
   //constant URLs
-  PATH_APPLICATION = "workspace/MAIN/Application",
-  PATH_MAIN_INTEG_OBJ = "workspace/MAIN/Integration Object",
+  PATH_MAIN_IOB = "workspace/MAIN/Integration Object",
   PATH_WORKSPACE_IOB = "data/Workspace/Repository Workspace",
   //json fields
   NAME = "Name",
