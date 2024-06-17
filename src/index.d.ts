@@ -9,7 +9,7 @@ type SiebelObject =
 type NotWebTemp = Exclude<SiebelObject, "webtemp">;
 
 //Settings
-type Settings = {
+type ExtensionSettings = {
   connections: Config[];
   defaultConnectionName: string;
   singleFileAutoDownload: boolean;
@@ -34,10 +34,15 @@ type Config = {
   restWorkspaces: boolean;
 };
 
+type ConnectionObject = {
+  username: string;
+  password: string;
+  url: string;
+}
+
 //Data objects in the tree views
-type ScriptObject = Record<string, Scripts>;
-type Scripts = Record<string, boolean>;
-type WebTempObject = Record<string, boolean>;
+type ScriptObject = Record<string, OnDiskObject>;
+type OnDiskObject = Record<string, boolean>;
 
 //Query parameters
 type QueryParams = {
@@ -70,7 +75,7 @@ type Payload = {
 };
 
 //message sent to the datasource webview
-type TreeViewsState = {
+type ExtensionStateMessage = {
   connections?: string[];
   selectedConnection?: string;
   workspaces?: string[];
@@ -102,86 +107,28 @@ type ConfigMessage = {
   restWorkspaces: boolean;
 };
 
-//REST methods
-type RestMethod = "get" | "put";
+//REST method
+type RESTMethod = "get" | "put";
 
 //Button actions
 type ButtonAction = "push" | "pull";
 
-//overloaded function interfaces
-interface ICallSiebelREST {
-  (
-    action: "testConnection",
-    url: string,
-    username: string,
-    password: string
-  ): Promise<void>;
+//Siebel rest api actions
+type RESTAction =
+  | "restWorkspaces"
+  | ButtonAction
+  | Exclude<
+      ConfigMessage["command"],
+      "newOrEditConnection" | "workspace" | "deleteConnection"
+    >;
 
-  (
-    action: "testRestWorkspaces",
-    url: string,
-    username: string,
-    password: string
-  ): Promise<void>;
+//Union of all settings
+type AllSettings = ExtensionSettings & DeprecatedSettings;
 
-  (
-    action: "restWorkspaces",
-    url: string,
-    username: string,
-    password: string
-  ): Promise<string[]>;
-
-  (
-    action: "pull",
-    url: string,
-    username: string,
-    password: string,
-    fieldOrPayload: "Script" | "Definition"
-  ): Promise<any[]>;
-
-  (
-    action: "push",
-    url: string,
-    username: string,
-    password: string,
-    fieldOrPayload: Payload
-  ): Promise<number>;
-}
-
-interface IGetDataFromSiebel {
-  (url: string, fields: "Name", searchSpec: string): Promise<
-    ScriptResponse[] | WebTempResponse[]
-  >;
-  (url: string, fields: "Name" | "Name,Script" | "Script"): Promise<
-    ScriptResponse[]
-  >;
-  (url: string, fields: "Definition"): Promise<WebTempResponse[]>;
-}
-
-interface IGetSetting {
-  (settingName: "connections"): Settings["connections"];
-  (settingName: "defaultConnectionName"): Settings["defaultConnectionName"];
-  (settingName: "singleFileAutoDownload"): Settings["singleFileAutoDownload"];
-  (settingName: "localFileExtension"): Settings["localFileExtension"];
-  (settingName: "defaultScriptFetching"): Settings["defaultScriptFetching"];
-  (settingName: "maxPageSize"): Settings["maxPageSize"];
-}
-
-interface ISetSetting {
-  (
-    settingName: "connections",
-    settingValue: Settings["connections"]
-  ): Promise<void>;
-  (
-    settingName: "defaultConnectionName",
-    settingValue: Settings["defaultConnectionName"]
-  ): Promise<void>;
-  (
-    settingName:
-      | "REST EndpointConfigurations"
-      | "workspaces"
-      | "defaultConnection"
-      | "getWorkspacesFromREST",
-    settingValue: undefined
-  ): Promise<void>;
-}
+//Deprecated settings
+type DeprecatedSettings = {
+  "REST EndpointConfigurations"?: string[];
+  workspaces?: string[];
+  defaultConnection?: string;
+  getWorkspacesFromREST?: boolean;
+};

@@ -1,5 +1,6 @@
 //Siebel object names
-export const SERVICE = "service",
+export const  SECTION = "siebelScriptAndWebTempEditor",
+  SERVICE = "service",
   BUSCOMP = "buscomp",
   APPLET = "applet",
   APPLICATION = "application",
@@ -18,9 +19,15 @@ export const SERVICE = "service",
     },
     [WEBTEMP]: { parent: "Web Template" },
   } as const,
-  //query parameters
-  UNIFORM_RESPONSE = "y",
-  CHILD_LINKS = "None",
+  //request headers
+  CONTENT_TYPE = "Content-Type",
+  APPLICATION_JSON = "application/json",
+  headers = {
+    [CONTENT_TYPE]: APPLICATION_JSON,
+  } as const,
+  //request query parameters
+  uniformresponse = "y",
+  childlinks = "None",
   MAIN = "MAIN",
   //webview commands
   TEST_CONNECTION = "testConnection",
@@ -48,6 +55,11 @@ export const SERVICE = "service",
   SINGLE_FILE_AUTODOWNLOAD = "singleFileAutoDownload",
   LOCAL_FILE_EXTENSION = "localFileExtension",
   MAX_PAGE_SIZE = "maxPageSize",
+  //Deprecated setting names
+  DEP_REST_ENDPOINT_CONFIGURATIONS = "REST EndpointConfigurations",
+  DEP_WORKSPACES = "workspaces",
+  DEP_DEFAULT_CONNECTION = "defaultConnection",
+  DEP_GET_WORKSPACES_FROM_REST = "getWorkspacesFromREST",
   //constant URLs
   PATH_MAIN_IOB = "workspace/MAIN/Integration Object",
   PATH_WORKSPACE_IOB = "data/Workspace/Repository Workspace",
@@ -63,6 +75,9 @@ export const SERVICE = "service",
   FILE_NAME_TYPE_DEF = "index.d.ts",
   FILE_NAME_JSCONFIG = "jsconfig.json",
   FILE_NAME_SIEBEL_TYPES = "siebelTypes.txt",
+  FILE_CHECKMARK_LIGHT = "checkmark_light.png",
+  FILE_CHECKMARK_DARK = "checkmark_dark.png",
+  MEDIA = "media",
   //constant information and error messages messages
   INF_CONN_WORKING = "Connection is working!",
   INF_GET_REST_WORKSPACES =

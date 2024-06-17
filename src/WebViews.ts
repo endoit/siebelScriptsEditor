@@ -1,14 +1,8 @@
-import {
-  APPLET,
-  APPLICATION,
-  BUSCOMP,
-  DEFAULT_CONNECTION_NAME,
-  SERVICE,
-  WEBTEMP,
-} from "./constants";
-import { getConnection, getSetting } from "./utility";
+import { APPLET, APPLICATION, BUSCOMP, SERVICE, WEBTEMP } from "./constants";
+import { Settings } from "./Settings";
 
-const head = `<head>
+export class WebViews {
+  private static readonly head = `<head>
 	<style>
 		h1 {
 			text-align:center;
@@ -131,8 +125,8 @@ const head = `<head>
 	</style>
 </head>`;
 
-export const dataSourceHTML = `<!doctype><html>
-  ${head}
+  static dataSourceHTML = `<!doctype><html>
+  ${this.head}
 <body>
   <div class="datasource">
     <div class="grid-item grid-1">
@@ -217,19 +211,19 @@ export const dataSourceHTML = `<!doctype><html>
 </body>
 </html>`;
 
-export const configHTML = (connectionName: string, isNewConnection = false) => {
-  const {
-      url = "",
-      username = "",
-      password = "",
-      workspaces = [],
-      restWorkspaces = false,
-      defaultWorkspace = "",
-    } = isNewConnection ? {} : getConnection(connectionName),
-    defaultConnectionName = getSetting(DEFAULT_CONNECTION_NAME);
+  static configHTML(connectionName: string, isNewConnection = false) {
+    const {
+        url = "",
+        username = "",
+        password = "",
+        workspaces = [],
+        restWorkspaces = false,
+        defaultWorkspace = "",
+      } = isNewConnection ? {} : Settings.getConnection(connectionName),
+      defaultConnectionName = Settings.defaultConnectionName;
 
-  return `<!doctype><html>
-	${head}
+    return `<!doctype><html>
+	${this.head}
 	<body>
 		<h1>${isNewConnection ? "New Connection" : "Edit Connection"}</h1>
 		<div class="config">
@@ -364,4 +358,5 @@ export const configHTML = (connectionName: string, isNewConnection = false) => {
 			</script>
 		</body>
 	</html>`;
-};
+  }
+}

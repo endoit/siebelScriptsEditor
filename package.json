@@ -122,21 +122,22 @@
 				}
 			],
 			"view/title": [
-        {
-          "command": "siebelscriptandwebtempeditor.newConnection",
-          "when": "view == extensionView",
-          "group": "navigation"
-        },
 				{
-          "command": "siebelscriptandwebtempeditor.editConnection",
-          "when": "view == extensionView",
-          "group": "navigation@1"
-        },
+					"command": "siebelscriptandwebtempeditor.newConnection",
+					"when": "view == extensionView",
+					"group": "navigation"
+				},
 				{
-          "command": "siebelscriptandwebtempeditor.openSettings",
-          "when": "view == extensionView",
-          "group": "navigation@2"
-        }]
+					"command": "siebelscriptandwebtempeditor.editConnection",
+					"when": "view == extensionView",
+					"group": "navigation@1"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.openSettings",
+					"when": "view == extensionView",
+					"group": "navigation@2"
+				}
+			]
 		},
 		"configuration": {
 			"title": "Siebel Script And Web Template Editor",
@@ -228,7 +229,7 @@
 		"mocha": "^10.1.0",
 		"process": "^0.11.10",
 		"ts-loader": "^9.4.1",
-		"typescript": "^4.9.3",
+		"typescript": "^5.4.5",
 		"webpack": "^5.75.0",
 		"webpack-cli": "^5.1.4"
 	}
