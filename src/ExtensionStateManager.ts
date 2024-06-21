@@ -25,20 +25,18 @@ import {
   IS_NEW_CONNECTION,
   PULL,
   PUSH,
-  SECTION,
-  CONTENT_TYPE,
-  APPLICATION_JSON,
+  withCredentials,
 } from "./constants";
 import { Utils } from "./Utils";
 import { Settings } from "./Settings";
 import axios from "axios";
 import { WebViews } from "./WebViews";
-import { TreeData, TreeDataScript, TreeDataWebTemp } from "./TreeData";
+import { TreeDataScript, TreeDataWebTemp } from "./TreeData";
 
 export class ExtensionStateManager {
   private static _instance: ExtensionStateManager;
-  private readonly workspaceFolder = vscode.workspace.workspaceFolders![0].uri;
-  private readonly treeDataProviders = {
+  private readonly workspaceUri = vscode.workspace.workspaceFolders![0].uri;
+  private readonly treeData = {
     [SERVICE]: new TreeDataScript(SERVICE),
     [BUSCOMP]: new TreeDataScript(BUSCOMP),
     [APPLET]: new TreeDataScript(APPLET),
@@ -56,79 +54,49 @@ export class ExtensionStateManager {
   constructor(context: vscode.ExtensionContext) {
     if (ExtensionStateManager._instance) return ExtensionStateManager._instance;
     ExtensionStateManager._instance = this;
-    TreeData.setCheckmarkIconPath(context.extensionUri);
+    axios.defaults.method = GET;
+    axios.defaults.withCredentials = withCredentials;
+    axios.defaults.params = { uniformresponse, childlinks };
+
+    const commands = {
+      pullScript: Utils.pushOrPull(PULL),
+      pushScript: Utils.pushOrPull(PUSH),
+      newConnection: this.configWebview(context, IS_NEW_CONNECTION),
+      editConnection: this.configWebview(context),
+      openSettings: Settings.openSettings(),
+    };
 
     vscode.window.registerWebviewViewProvider("extensionView", {
       resolveWebviewView: this.dataSourceWebview(context),
     });
 
-    context.subscriptions.push(
+    for (const [command, callback] of Object.entries(commands)) {
       vscode.commands.registerCommand(
-        "siebelscriptandwebtempeditor.pullScript",
-        Utils.pushOrPull(PULL)
-      )
-    );
-
-    context.subscriptions.push(
-      vscode.commands.registerCommand(
-        "siebelscriptandwebtempeditor.pushScript",
-        Utils.pushOrPull(PUSH)
-      )
-    );
-
-    context.subscriptions.push(
-      vscode.commands.registerCommand(
-        "siebelscriptandwebtempeditor.newConnection",
-        this.configWebview(context, IS_NEW_CONNECTION)
-      )
-    );
-
-    context.subscriptions.push(
-      vscode.commands.registerCommand(
-        "siebelscriptandwebtempeditor.editConnection",
-        this.configWebview(context)
-      )
-    );
-
-    context.subscriptions.push(
-      vscode.commands.registerCommand(
-        "siebelscriptandwebtempeditor.openSettings",
-        () =>
-          vscode.commands.executeCommand(
-            "workbench.action.openSettings",
-            SECTION
-          )
-      )
-    );
+        `siebelscriptandwebtempeditor.${command}`,
+        callback
+      );
+    }
   }
 
   private set workspace(newWorkspace: string) {
     this._workspace = newWorkspace;
     const { url, username, password } = Settings.getConnection(this.connection);
     axios.interceptors.request.eject(this.interceptor);
-    this.interceptor = axios.interceptors.request.use((config) => {
-      config.headers.set(CONTENT_TYPE, APPLICATION_JSON);
-      return {
-        ...config,
-        baseURL: Utils.joinUrl(url, WORKSPACE, this.workspace),
-        method: GET,
-        withCredentials: true,
-        auth: { username, password },
-        params: {
-          uniformresponse,
-          childlinks,
-          PageSize: Settings.maxPageSize,
-          ...config.params,
-        },
-      };
-    });
-    for (const treeDataProvider of Object.values(this.treeDataProviders)) {
+    this.interceptor = axios.interceptors.request.use((config) => ({
+      ...config,
+      baseURL: Utils.joinUrl(url, WORKSPACE, this.workspace),
+      auth: { username, password },
+      params: {
+        PageSize: Settings.maxPageSize,
+        ...config.params,
+      },
+    }));
+    for (const treeDataProvider of Object.values(this.treeData)) {
       treeDataProvider.folder = Utils.joinUri(
-        this.workspaceFolder,
+        this.workspaceUri,
         this.connection,
         this.workspace
       );
-      treeDataProvider.clear();
     }
   }
 
@@ -164,7 +132,7 @@ export class ExtensionStateManager {
       restWorkspaces,
     } = Settings.getConnection(this.connection);
     this.workspaces = restWorkspaces
-      ? await Utils.callSiebelREST(REST_WORKSPACES, url, username, password)
+      ? await Utils.callRestApi(REST_WORKSPACES, url, username, password)
       : workspaces;
     this.workspace = this.workspaces.includes(this.workspace)
       ? this.workspace
@@ -173,14 +141,14 @@ export class ExtensionStateManager {
       : defaultWorkspace;
     return {
       connections: this.connections,
-      selectedConnection: this.connection,
+      connection: this.connection,
       workspaces: this.workspaces,
-      selectedWorkspace: this.workspace,
+      workspace: this.workspace,
       type: this.type,
     };
   }
 
-  dataSourceWebview(context: vscode.ExtensionContext) {
+  private dataSourceWebview(context: vscode.ExtensionContext) {
     return async ({ webview }: { webview: vscode.Webview }) => {
       vscode.workspace.onDidChangeConfiguration(async (e) => {
         const adjust = Settings.configChange(e);
@@ -197,9 +165,7 @@ export class ExtensionStateManager {
             case TYPE:
               return (this.type = data as SiebelObject);
             case SEARCH:
-              return await this.treeDataProviders[this.type].debouncedSearch(
-                data
-              );
+              return await this.treeData[this.type].debouncedSearch(data);
           }
         },
         undefined,
@@ -210,7 +176,10 @@ export class ExtensionStateManager {
     };
   }
 
-  configWebview(context: vscode.ExtensionContext, isNewConnection = false) {
+  private configWebview(
+    context: vscode.ExtensionContext,
+    isNewConnection = false
+  ) {
     return async () => {
       const columnToShowIn = vscode.window.activeTextEditor
         ? vscode.window.activeTextEditor.viewColumn
@@ -277,12 +246,7 @@ export class ExtensionStateManager {
                 WebViews.configHTML(connectionName));
             case TEST_REST_WORKSPACES:
             case TEST_CONNECTION:
-              return await Utils.callSiebelREST(
-                command,
-                url,
-                username,
-                password
-              );
+              return await Utils.callRestApi(command, url, username, password);
             case NEW_OR_EDIT_CONNECTION:
               if (!(connectionName && url && username && password))
                 return vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);

@@ -65,47 +65,32 @@
 			{
 				"command": "siebelscriptandwebtempeditor.pullScript",
 				"title": "Get script/web template from Siebel",
-				"icon": {
-					"light": "./media/arrowdown_light.png",
-					"dark": "./media/arrowdown_dark.png"
-				},
+				"icon": "$(arrow-down)",
 				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.pushScript",
 				"title": "Push script/web template to Siebel",
-				"icon": {
-					"light": "./media/arrowup_light.png",
-					"dark": "./media/arrowup_dark.png"
-				},
+				"icon": "$(arrow-up)",
 				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.newConnection",
 				"title": "New Connection",
 				"when": "workspaceFolderCount > 0",
-				"icon": {
-					"light": "./media/new_light.png",
-					"dark": "./media/new_dark.png"
-				}
+				"icon": "$(add)"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.editConnection",
 				"title": "Edit Connection",
 				"when": "workspaceFolderCount > 0",
-				"icon": {
-					"light": "./media/edit_light.png",
-					"dark": "./media/edit_dark.png"
-				}
+				"icon": "$(edit)"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.openSettings",
 				"title": "Open Settings",
 				"when": "workspaceFolderCount > 0",
-				"icon": {
-					"light": "./media/settings_light.png",
-					"dark": "./media/settings_dark.png"
-				}
+				"icon": "$(settings-gear)"
 			}
 		],
 		"menus": {

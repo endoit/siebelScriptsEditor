@@ -41,7 +41,7 @@ export class Settings {
     settingName?: keyof ExtensionSettings
   ) {
     return e.affectsConfiguration(
-      `${SECTION}${settingName ? `"."${settingName}` : ""}`
+      `${SECTION}${settingName ? `.${settingName}` : ""}`
     );
   }
 
@@ -83,6 +83,11 @@ export class Settings {
         return true;
     }
     return false;
+  }
+
+  static openSettings() {
+    return () =>
+      vscode.commands.executeCommand("workbench.action.openSettings", SECTION);
   }
 
   static async moveDeprecatedSettings() {

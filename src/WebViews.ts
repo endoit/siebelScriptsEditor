@@ -166,13 +166,13 @@ export class WebViews {
         \${isObject ? objectNames[item] : item}</option>\`).join(""),
       selectConnection = () => {
         const connection = document.getElementById("connection").value;
-				currentState.selectedConnection = connection;
+				currentState.connection = connection;
 				vscode.setState(currentState);
         vscode.postMessage({ command: "connection", data: connection });
       },
       selectWorkspace = () => {
         const workspace = document.getElementById("workspace").value;
-				currentState.selectedWorkspace = workspace;
+				currentState.workspace = workspace;
 				vscode.setState(currentState);
         vscode.postMessage({ command: "workspace", data: workspace });
       },
@@ -189,19 +189,19 @@ export class WebViews {
         if (searchString !== "") vscode.postMessage({ command: "search", data: searchString });
       },
 			populate = () => {
-				const { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "", type = "${SERVICE}", searchString = "" } = currentState;
-				document.getElementById("connection").innerHTML = createOptions(connections, selectedConnection);
-				document.getElementById("workspace").innerHTML = createOptions(workspaces, selectedWorkspace);
+				const { connections = [], connection = "", workspaces = [], workspace = "", type = "${SERVICE}", searchString = "" } = currentState;
+				document.getElementById("connection").innerHTML = createOptions(connections, connection);
+				document.getElementById("workspace").innerHTML = createOptions(workspaces, workspace);
 				document.getElementById("type").innerHTML = createOptions(["${SERVICE}", "${BUSCOMP}", "${APPLET}", "${APPLICATION}", "${WEBTEMP}"], type, true);
 				document.getElementById("search-bar").value = searchString;
 				document.getElementById("search-bar").readOnly = connections.length === 0 || workspaces.length === 0;
 			};
 		populate();
-    window.addEventListener("message", ({ data: { connections = [], selectedConnection = "", workspaces = [], selectedWorkspace = "", type = "${SERVICE}" } }) => {
+    window.addEventListener("message", ({ data: { connections = [], connection = "", workspaces = [], workspace = "", type = "${SERVICE}" } }) => {
 			currentState.connections = connections;
-			currentState.selectedConnection = selectedConnection;
+			currentState.connection = connection;
 			currentState.workspaces = workspaces;
-			currentState.selectedWorkspace = selectedWorkspace; 
+			currentState.workspace = workspace; 
 			currentState.type = type;
 			currentState.searchString = "";
 			vscode.setState(currentState);

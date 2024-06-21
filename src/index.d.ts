@@ -34,21 +34,18 @@ type Config = {
   restWorkspaces: boolean;
 };
 
-type ConnectionObject = {
-  username: string;
-  password: string;
-  url: string;
-}
-
 //Data objects in the tree views
 type ScriptObject = Record<string, OnDiskObject>;
 type OnDiskObject = Record<string, boolean>;
+
+//fields
+type Fields = "Script" | "Definition";
 
 //Query parameters
 type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
-  fields?: "Name" | "Script" | "Definition" | "Name,Script";
+  fields?: Fields | "Name" | "Name,Script";
   childlinks?: "None";
   uniformresponse?: "y";
   PageSize?: number;
@@ -77,9 +74,9 @@ type Payload = {
 //message sent to the datasource webview
 type ExtensionStateMessage = {
   connections?: string[];
-  selectedConnection?: string;
+  connection?: string;
   workspaces?: string[];
-  selectedWorkspace?: string;
+  workspace?: string;
   type?: SiebelObject;
 };
 
@@ -108,19 +105,28 @@ type ConfigMessage = {
 };
 
 //REST method
-type RESTMethod = "get" | "put";
+type RestMethod = "get" | "put";
 
 //Button actions
 type ButtonAction = "push" | "pull";
 
 //Siebel rest api actions
-type RESTAction =
+type RestAction =
+  | "testConnection"
+  | "testRestWorkspaces"
   | "restWorkspaces"
-  | ButtonAction
-  | Exclude<
-      ConfigMessage["command"],
-      "newOrEditConnection" | "workspace" | "deleteConnection"
-    >;
+  | ButtonAction;
+
+type RequestConfig = {
+  method: RestMethod;
+  url: Config["url"];
+  auth: {
+    username: Config["username"];
+    password: Config["password"];
+  };
+  params?: QueryParams;
+  data?: Payload;
+};
 
 //Union of all settings
 type AllSettings = ExtensionSettings & DeprecatedSettings;

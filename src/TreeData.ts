@@ -1,24 +1,18 @@
 import * as vscode from "vscode";
 import {
-  repositoryObjects,
+  siebelObjects,
   NAME,
   NAMESCRIPT,
   DEFINITION,
   WEBTEMP,
   OPEN_FILE,
-  FILE_CHECKMARK_LIGHT,
-  FILE_CHECKMARK_DARK,
-  MEDIA,
 } from "./constants";
 import { Utils } from "./Utils";
 import { Settings } from "./Settings";
 import axios from "axios";
 
 export class TreeData {
-  static checkmarkIconPath: {
-    light: vscode.Uri;
-    dark: vscode.Uri;
-  };
+  static readonly checkmarkIcon = new vscode.ThemeIcon("check");
   static timeoutId: NodeJS.Timeout | number | null = null;
   readonly type: SiebelObject;
   readonly objectUrl: string;
@@ -27,13 +21,6 @@ export class TreeData {
   onDidChangeTreeData = this._onDidChangeTreeData.event;
   data: (TreeItemObject | TreeItemWebTemp)[] = [];
   dataObject: ScriptObject | OnDiskObject = {};
-
-  static setCheckmarkIconPath(contextUri: vscode.Uri) {
-    this.checkmarkIconPath = {
-      light: Utils.joinUri(contextUri, MEDIA, FILE_CHECKMARK_LIGHT),
-      dark: Utils.joinUri(contextUri, MEDIA, FILE_CHECKMARK_DARK),
-    };
-  }
 
   static async getDataFromSiebel(
     url: string,
@@ -74,7 +61,7 @@ export class TreeData {
 
   static async getFilesOnDisk(directoryUri: vscode.Uri) {
     const fileNames: OnDiskObject = {};
-    if (!Utils.resourceExists(directoryUri)) return fileNames;
+    if (!(await Utils.resourceExists(directoryUri))) return fileNames;
     const content = await vscode.workspace.fs.readDirectory(directoryUri);
     for (const [name, type] of content) {
       if (type !== 1) continue;
@@ -86,17 +73,20 @@ export class TreeData {
 
   constructor(type: SiebelObject) {
     this.type = type;
-    this.objectUrl = repositoryObjects[type].parent;
+    this.objectUrl = siebelObjects[type].parent;
     vscode.window
       .createTreeView(type, {
         treeDataProvider: this,
         showCollapseAll: type !== WEBTEMP,
       })
-      .onDidChangeSelection(async (e) => this.selectionChange(e as any));
+      .onDidChangeSelection(async (e) => await this.selectionChange(e as any));
   }
 
-  set folder(siebelWorkspaceFolder: vscode.Uri) {
-    this._folder = Utils.joinUri(siebelWorkspaceFolder, this.type);
+  set folder(workspaceUri: vscode.Uri) {
+    this._folder = Utils.joinUri(workspaceUri, this.type);
+    this.dataObject = {};
+    this.data = [];
+    this._onDidChangeTreeData.fire(null);
   }
 
   get folder() {
@@ -137,12 +127,6 @@ export class TreeData {
     this.data = this.createTreeItems();
     this._onDidChangeTreeData.fire(null);
   }
-
-  clear() {
-    this.dataObject = {};
-    this.data = [];
-    this._onDidChangeTreeData.fire(null);
-  }
 }
 
 export class TreeDataScript extends TreeData {
@@ -152,7 +136,7 @@ export class TreeDataScript extends TreeData {
 
   constructor(type: NotWebTemp) {
     super(type);
-    this.scriptUrl = repositoryObjects[type].child;
+    this.scriptUrl = siebelObjects[type].child;
   }
 
   getChildren(element: TreeItemObject | TreeItemScript) {
@@ -235,10 +219,8 @@ export class TreeDataScript extends TreeData {
       if (!this.dataObject[parent][Name])
         this.dataObject[parent][Name] = !methodsOnly;
       if (methodsOnly || !Script) continue;
-      const fileUri = Utils.joinUri(
-        folderUri,
-        `${Name}${Settings.localFileExtension}`
-      );
+      const fileName = `${Name}${Settings.localFileExtension}`,
+        fileUri = Utils.joinUri(folderUri, fileName);
       await Utils.writeFile(fileUri, Script, OPEN_FILE);
     }
     this.refresh();
@@ -297,7 +279,8 @@ export class TreeDataWebTemp extends TreeData {
       webtemp = data[0]?.Definition;
     if (webtemp === undefined) return;
     this.dataObject[label] = true;
-    const filePath = Utils.joinUri(this.folder, `${label}.html`);
+    const fileName = `${label}.html`,
+      filePath = Utils.joinUri(this.folder, fileName);
     await Utils.writeFile(filePath, webtemp, OPEN_FILE);
     this.refresh();
   }
@@ -312,7 +295,7 @@ class TreeItemObject extends vscode.TreeItem {
     this.scripts = scripts;
     for (const value of Object.values(scripts)) {
       if (!value) continue;
-      this.iconPath = TreeData.checkmarkIconPath;
+      this.iconPath = TreeData.checkmarkIcon;
       break;
     }
   }
@@ -325,7 +308,7 @@ class TreeItemScript extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.label = label;
     this.parent = parent;
-    if (onDisk) this.iconPath = TreeData.checkmarkIconPath;
+    if (onDisk) this.iconPath = TreeData.checkmarkIcon;
   }
 }
 
@@ -334,6 +317,6 @@ class TreeItemWebTemp extends vscode.TreeItem {
   constructor(label: string, onDisk: boolean) {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.label = label;
-    if (onDisk) this.iconPath = TreeData.checkmarkIconPath;
+    if (onDisk) this.iconPath = TreeData.checkmarkIcon;
   }
 }
