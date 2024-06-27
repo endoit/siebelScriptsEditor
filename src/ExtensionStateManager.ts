@@ -7,7 +7,6 @@ import {
   APPLET,
   APPLICATION,
   GET,
-  ERR_NO_CONN_SETTING,
   CONNECTION,
   SEARCH,
   TYPE,
@@ -16,7 +15,6 @@ import {
   DEFAULT,
   DELETE,
   DELETE_CONNECTION,
-  ERR_CONN_MISSING_PARAMS,
   REST_WORKSPACES,
   TEST_CONNECTION,
   TEST_REST_WORKSPACES,
@@ -26,22 +24,25 @@ import {
   PULL,
   PUSH,
   withCredentials,
+  queryParams,
+  constantPaths,
+  error,
 } from "./constants";
 import { Utils } from "./Utils";
 import { Settings } from "./Settings";
 import axios from "axios";
 import { WebViews } from "./WebViews";
-import { TreeDataScript, TreeDataWebTemp } from "./TreeData";
+import { TreeData } from "./TreeData";
 
 export class ExtensionStateManager {
   private static _instance: ExtensionStateManager;
   private readonly workspaceUri = vscode.workspace.workspaceFolders![0].uri;
   private readonly treeData = {
-    [SERVICE]: new TreeDataScript(SERVICE),
-    [BUSCOMP]: new TreeDataScript(BUSCOMP),
-    [APPLET]: new TreeDataScript(APPLET),
-    [APPLICATION]: new TreeDataScript(APPLICATION),
-    [WEBTEMP]: new TreeDataWebTemp(),
+    [SERVICE]: new TreeData(SERVICE),
+    [BUSCOMP]: new TreeData(BUSCOMP),
+    [APPLET]: new TreeData(APPLET),
+    [APPLICATION]: new TreeData(APPLICATION),
+    [WEBTEMP]: new TreeData(WEBTEMP),
   } as const;
   private configWebviewPanel: vscode.WebviewPanel | undefined;
   private connection = "";
@@ -112,7 +113,7 @@ export class ExtensionStateManager {
       this.connections.push(name);
     }
     if (this.connections.length === 0) {
-      vscode.window.showErrorMessage(ERR_NO_CONN_SETTING);
+      vscode.window.showErrorMessage(error.noConnection);
       return {};
     }
     const defaultConnectionName = Settings.defaultConnectionName;
@@ -131,13 +132,20 @@ export class ExtensionStateManager {
       defaultWorkspace,
       restWorkspaces,
     } = Settings.getConnection(this.connection);
-    this.workspaces = restWorkspaces
-      ? await Utils.callRestApi(REST_WORKSPACES, url, username, password)
-      : workspaces;
-    this.workspace = this.workspaces.includes(this.workspace)
+    this.workspaces = workspaces;
+    if (restWorkspaces) {
+      const request: RequestConfig = {
+        method: GET,
+        url: Utils.joinUrl(url, constantPaths[REST_WORKSPACES]),
+        auth: { username, password },
+        params: queryParams[REST_WORKSPACES],
+      };
+      this.workspaces = await Utils.callRestApi(REST_WORKSPACES, request);
+    }
+    this.workspace = this.workspaces?.includes(this.workspace)
       ? this.workspace
       : restWorkspaces || !workspaces.includes(defaultWorkspace)
-      ? this.workspaces[0] || ""
+      ? this.workspaces?.[0] || ""
       : defaultWorkspace;
     return {
       connections: this.connections,
@@ -165,7 +173,7 @@ export class ExtensionStateManager {
             case TYPE:
               return (this.type = data as SiebelObject);
             case SEARCH:
-              return await this.treeData[this.type].debouncedSearch(data);
+              return await this.treeData[this.type].search(data);
           }
         },
         undefined,
@@ -246,10 +254,18 @@ export class ExtensionStateManager {
                 WebViews.configHTML(connectionName));
             case TEST_REST_WORKSPACES:
             case TEST_CONNECTION:
-              return await Utils.callRestApi(command, url, username, password);
+              if (!(url && username && password))
+                return vscode.window.showErrorMessage(error.missingParameters);
+              const request: RequestConfig = {
+                method: GET,
+                url: Utils.joinUrl(url, constantPaths[command]),
+                auth: { username, password },
+                params: queryParams[command],
+              };
+              return await Utils.callRestApi(command, request);
             case NEW_OR_EDIT_CONNECTION:
               if (!(connectionName && url && username && password))
-                return vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
+                return vscode.window.showErrorMessage(error.missingParameters);
               if (connection.name) {
                 connection.url = url;
                 connection.username = username;

@@ -1,5 +1,3 @@
-import { workspace } from "vscode";
-
 //Siebel object names
 export const SECTION = "siebelScriptAndWebTempEditor",
   SERVICE = "service",
@@ -8,7 +6,7 @@ export const SECTION = "siebelScriptAndWebTempEditor",
   APPLICATION = "application",
   WEBTEMP = "webtemp",
   //Repository object urls
-  siebelObjects = {
+  entity = {
     [SERVICE]: {
       parent: "Business Service",
       child: "Business Service Server Script",
@@ -19,13 +17,12 @@ export const SECTION = "siebelScriptAndWebTempEditor",
       parent: "Application",
       child: "Application Server Script",
     },
-    [WEBTEMP]: { parent: "Web Template" },
+    [WEBTEMP]: { parent: "Web Template", child: "" },
   } as const,
   //constant request parameters
   withCredentials = true,
   uniformresponse = "y",
   childlinks = "None",
-  MAIN = "MAIN",
   //webview commands
   TEST_CONNECTION = "testConnection",
   NEW_OR_EDIT_CONNECTION = "newOrEditConnection",
@@ -62,30 +59,32 @@ export const SECTION = "siebelScriptAndWebTempEditor",
   SCRIPT = "Script",
   DEFINITION = "Definition",
   NAMESCRIPT = "Name,Script",
+  NAMEDEFINITION = "Name,Definition",
   //booleans
+  NAMES_ONLY = true,
   IS_NEW_CONNECTION = true,
   OPEN_FILE = true,
   //constant query params
-  constQueryParams = {
+  queryParams = {
     [TEST_CONNECTION]: {
+      fields: NAME,
+      workspace: "MAIN",
       uniformresponse,
       childlinks,
-      fields: NAME,
-      workspace: MAIN,
     },
     [TEST_REST_WORKSPACES]: {
+      fields: NAME,
+      workspace: "MAIN",
+      searchspec: "Name='Base Workspace'",
       uniformresponse,
       childlinks,
-      fields: NAME,
-      workspace: MAIN,
-      searchspec: "Name='Base Workspace'",
     },
     [REST_WORKSPACES]: {
+      fields: NAME,
+      workspace: "MAIN",
+      searchspec: "Status='Checkpointed' OR Status='Edit-In-Progress'",
       uniformresponse,
       childlinks,
-      fields: NAME,
-      workspace: MAIN,
-      searchspec: "Status='Checkpointed' OR Status='Edit-In-Progress'",
     },
     [PULL]: {
       [SCRIPT]: { uniformresponse, childlinks, fields: SCRIPT },
@@ -93,34 +92,38 @@ export const SECTION = "siebelScriptAndWebTempEditor",
     },
   } as const,
   //constant urls
-  PATH_MAIN_IOB = "workspace/MAIN/Integration Object",
-  PATH_WORKSPACE_IOB = "data/Workspace/Repository Workspace",
-  constUrl = {
-    [TEST_CONNECTION]: PATH_MAIN_IOB,
-    [TEST_REST_WORKSPACES]: PATH_MAIN_IOB,
-    [REST_WORKSPACES]: PATH_WORKSPACE_IOB,
+  constantPaths = {
+    [TEST_CONNECTION]: "workspace/MAIN/Integration Object",
+    [TEST_REST_WORKSPACES]: "workspace/MAIN/Integration Object",
+    [REST_WORKSPACES]: "data/Workspace/Repository Workspace",
   } as const,
-  //constant file/folder names
-  FILE_NAME_TYPE_DEF = "index.d.ts",
-  FILE_NAME_JSCONFIG = "jsconfig.json",
-  FILE_NAME_SIEBEL_TYPES = "siebelTypes.txt",
-  //jsconfig content
-  JS_CONFIG =
-    '{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}',
-  //constant information and error messages messages
-  INF_CONN_WORKING = "Connection is working!",
-  INF_GET_REST_WORKSPACES =
-    "Getting workspaces from the Siebel REST API was successful!",
-  INF_SUCCESSFUL_UPDATE = `Successfully updated object in Siebel!`,
-  ERR_NO_WS_OPEN =
-    "Please open a Visual Studio Code workspace folder to use the extension!",
-  ERR_NO_CONN_SETTING =
-    "Please add create least one connection with the New Connection button!",
-  ERR_CONN_MISSING_PARAMS =
-    "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
-  ERR_NO_BASE_WS_IOB =
-    "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
-  ERR_NO_EDITABLE_WS =
-    "No workspace with status Checkpointed or Edit-In-Progress was found!",
-  ERR_NAME_DIFF =
-    "Unable to create new method, name of the file and the function is not the same!";
+  //constant success and error messages messages
+  success = {
+    [PULL]: "",
+    [PUSH]: "Successfully pushed object to Siebel!",
+    [TEST_CONNECTION]: "Connection is working!",
+    [TEST_REST_WORKSPACES]:
+      "Getting workspaces from the Siebel REST API was successful!",
+    [REST_WORKSPACES]: "",
+  } as const,
+  error = {
+    [PULL]: "Error when pulling from Siebel:",
+    [PUSH]: "Error when pushing to Siebel:",
+    [TEST_CONNECTION]: "Error in the connection:",
+    [TEST_REST_WORKSPACES]:
+      "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
+    [REST_WORKSPACES]:
+      "No workspace with status Checkpointed or Edit-In-Progress was found!",
+    noWorkspaceFolder:
+      "Please open a Visual Studio Code workspace folder to use the extension!",
+    noConnection:
+      "Please create at least one connection with the New Connection button!",
+    missingParameters:
+      "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
+    noBaseWorkspaceIOB:
+      "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
+    noEditableWorkspace:
+      "No workspace with status Checkpointed or Edit-In-Progress was found!",
+    nameDifferent:
+      "Unable to create new method, name of the file and the function is not the same!",
+  } as const;

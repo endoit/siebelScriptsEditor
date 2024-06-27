@@ -1,11 +1,14 @@
 import * as vscode from "vscode";
 import {
-  siebelObjects,
+  entity,
   NAME,
   NAMESCRIPT,
   DEFINITION,
   WEBTEMP,
   OPEN_FILE,
+  NAMEDEFINITION,
+  SCRIPT,
+  NAMES_ONLY,
 } from "./constants";
 import { Utils } from "./Utils";
 import { Settings } from "./Settings";
@@ -13,38 +16,74 @@ import axios from "axios";
 
 export class TreeData {
   static readonly checkmarkIcon = new vscode.ThemeIcon("check");
-  static timeoutId: NodeJS.Timeout | number | null = null;
-  readonly type: SiebelObject;
-  readonly objectUrl: string;
+  private readonly type: SiebelObject;
+  private readonly objectUrl: string;
+  private readonly scriptUrl: string;
+  private readonly field: DataField;
+  private readonly fields: NameDataFields;
+  private readonly isScript: boolean;
+  private readonly TreeItem: typeof TreeItemObject | typeof TreeItemWebTemp;
+  private readonly _onDidChangeTreeData = new vscode.EventEmitter();
+  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  private timeoutId: NodeJS.Timeout | number | null = null;
   private _folder!: vscode.Uri;
-  private _onDidChangeTreeData = new vscode.EventEmitter();
-  onDidChangeTreeData = this._onDidChangeTreeData.event;
-  data: (TreeItemObject | TreeItemWebTemp)[] = [];
-  dataObject: ScriptObject | OnDiskObject = {};
+  private dataObject: ScriptObject | OnDiskObject = {};
+  private treeItems: (TreeItemObject | TreeItemWebTemp)[] = [];
 
-  static async getDataFromSiebel(
-    url: string,
-    fields: typeof NAME,
-    searchSpec: string
-  ): Promise<ScriptResponse[] | WebTempResponse[]>;
-  static async getDataFromSiebel(
-    url: string,
-    fields: typeof NAME | typeof NAMESCRIPT
-  ): Promise<ScriptResponse[]>;
-  static async getDataFromSiebel(
-    url: string,
-    fields: typeof DEFINITION
-  ): Promise<WebTempResponse[]>;
-  static async getDataFromSiebel(
-    url: string,
-    fields: typeof NAME | typeof NAMESCRIPT | typeof DEFINITION,
-    searchSpec?: string
-  ) {
+  constructor(type: SiebelObject) {
+    this.type = type;
+    this.objectUrl = entity[type].parent;
+    this.scriptUrl = entity[type].child;
+    this.isScript = type !== WEBTEMP;
+    this.TreeItem = this.isScript ? TreeItemObject : TreeItemWebTemp;
+    this.field = this.isScript ? SCRIPT : DEFINITION;
+    this.fields = this.isScript ? NAMESCRIPT : NAMEDEFINITION;
+    vscode.window
+      .createTreeView(type, {
+        treeDataProvider: this,
+        showCollapseAll: this.isScript,
+      })
+      .onDidChangeSelection(async (e) => await this.selectionChange(e as any));
+  }
+
+  set folder(workspaceUri: vscode.Uri) {
+    this._folder = Utils.joinUri(workspaceUri, this.type);
+    this.dataObject = {};
+    this.treeItems = [];
+    this._onDidChangeTreeData.fire(null);
+  }
+
+  get folder() {
+    return this._folder;
+  }
+
+  getChildren(treeItem: TreeItemObject | TreeItemScript) {
+    if (!(treeItem instanceof TreeItemObject)) return this.treeItems;
+    const children = [];
+    for (const [name, onDisk] of Object.entries(treeItem.scripts)) {
+      children.push(new TreeItemScript(name, treeItem.label, onDisk));
+    }
+    return children;
+  }
+
+  getTreeItem(treeItem: TreeItemObject | TreeItemScript | TreeItemWebTemp) {
+    return treeItem;
+  }
+
+  async search(searchSpec: string) {
+    if (this.timeoutId) clearTimeout(this.timeoutId);
+    this.timeoutId = setTimeout(() => {
+      this.setDataObject(searchSpec);
+      this.timeoutId = null;
+    }, 300);
+  }
+
+  private async getData(url: string, namesOnly: boolean, searchSpec?: string) {
     try {
       const params: QueryParams = {
-        fields,
+        fields: namesOnly ? NAME : this.fields,
+        searchspec: searchSpec ? `Name LIKE '${searchSpec}*'` : undefined,
       };
-      if (searchSpec) params.searchspec = `Name LIKE '${searchSpec}*'`;
       const response = await axios({ url, params });
       return response.data?.items;
     } catch (err: any) {
@@ -59,9 +98,12 @@ export class TreeData {
     }
   }
 
-  static async getFilesOnDisk(directoryUri: vscode.Uri) {
-    const fileNames: OnDiskObject = {};
-    if (!(await Utils.resourceExists(directoryUri))) return fileNames;
+  private async getFilesOnDisk(parent?: string) {
+    const fileNames: OnDiskObject = {},
+      directoryUri = this.isScript
+        ? Utils.joinUri(this.folder, parent!)
+        : this.folder;
+    if (!(await Utils.exists(directoryUri))) return fileNames;
     const content = await vscode.workspace.fs.readDirectory(directoryUri);
     for (const [name, type] of content) {
       if (type !== 1) continue;
@@ -71,232 +113,117 @@ export class TreeData {
     return fileNames;
   }
 
-  constructor(type: SiebelObject) {
-    this.type = type;
-    this.objectUrl = siebelObjects[type].parent;
-    vscode.window
-      .createTreeView(type, {
-        treeDataProvider: this,
-        showCollapseAll: type !== WEBTEMP,
-      })
-      .onDidChangeSelection(async (e) => await this.selectionChange(e as any));
-  }
-
-  set folder(workspaceUri: vscode.Uri) {
-    this._folder = Utils.joinUri(workspaceUri, this.type);
-    this.dataObject = {};
-    this.data = [];
+  private createTreeItems() {
+    this.treeItems = [];
+    for (const [name, value] of Object.entries(this.dataObject)) {
+      this.treeItems.push(new this.TreeItem(name, value));
+    }
     this._onDidChangeTreeData.fire(null);
   }
 
-  get folder() {
-    return this._folder;
-  }
-
-  getChildren(
-    element: TreeItemObject | TreeItemScript | TreeItemWebTemp
-  ): (TreeItemObject | TreeItemWebTemp)[] {
-    return [];
-  }
-
-  getTreeItem(element: TreeItemObject | TreeItemScript | TreeItemWebTemp) {
-    return element;
-  }
-
-  createTreeItems(): (TreeItemObject | TreeItemWebTemp)[] {
-    return [];
-  }
-
-  async createTreeViewData(searchSpec: string) {}
-
-  async selectionChange(
-    e: vscode.TreeViewSelectionChangeEvent<
-      TreeItemObject | TreeItemScript | TreeItemWebTemp
-    >
-  ) {}
-
-  async debouncedSearch(searchSpec: string) {
-    if (TreeData.timeoutId) clearTimeout(TreeData.timeoutId);
-    TreeData.timeoutId = setTimeout(() => {
-      this.createTreeViewData(searchSpec);
-      TreeData.timeoutId = null;
-    }, 300);
-  }
-
-  refresh() {
-    this.data = this.createTreeItems();
-    this._onDidChangeTreeData.fire(null);
-  }
-}
-
-export class TreeDataScript extends TreeData {
-  readonly scriptUrl: string;
-  data: TreeItemObject[] = [];
-  dataObject: ScriptObject = {};
-
-  constructor(type: NotWebTemp) {
-    super(type);
-    this.scriptUrl = siebelObjects[type].child;
-  }
-
-  getChildren(element: TreeItemObject | TreeItemScript) {
-    if (!(element instanceof TreeItemObject)) return this.data;
-    const children = [];
-    for (const [scriptName, onDisk] of Object.entries(element.scripts)) {
-      children.push(new TreeItemScript(scriptName, element.label, onDisk));
-    }
-    return children;
-  }
-
-  createTreeItems() {
-    const treeItems = [];
-    for (const [name, scripts] of Object.entries(this.dataObject)) {
-      treeItems.push(new TreeItemObject(name, scripts));
-    }
-    return treeItems;
-  }
-
-  async createTreeViewData(searchSpec: string) {
-    const data = await TreeData.getDataFromSiebel(
-      this.objectUrl,
-      NAME,
-      searchSpec
-    );
+  private async setDataObject(searchSpec: string) {
+    const data = await this.getData(this.objectUrl, NAMES_ONLY, searchSpec),
+      onDiskObject = this.isScript ? {} : await this.getFilesOnDisk();
     this.dataObject = {};
     for (const { Name } of data) {
-      const resourceUri = Utils.joinUri(this.folder, Name);
-      this.dataObject[Name] = await TreeData.getFilesOnDisk(resourceUri);
+      this.dataObject[Name] = this.isScript
+        ? await this.getFilesOnDisk(Name)
+        : !!onDiskObject[Name];
     }
-    this.refresh();
+    this.createTreeItems();
   }
 
-  async selectionChange({
-    selection: [selectedItem],
-  }: vscode.TreeViewSelectionChangeEvent<TreeItemObject | TreeItemScript>) {
-    if (!selectedItem) return;
-    const { label } = selectedItem;
-    let answer,
-      parent = "",
-      methodsOnly = false,
-      objectUrlPath = "";
+  private async getAnswerAndUrl(
+    treeItem: TreeItemObject | TreeItemScript | TreeItemWebTemp
+  ) {
+    let question = `Do you want to get the ${treeItem.label} ${this.objectUrl}`;
     switch (true) {
-      case selectedItem instanceof TreeItemObject:
-        parent = label;
-        objectUrlPath = Utils.joinUrl(this.objectUrl, label, this.scriptUrl);
-        answer =
-          Settings.defaultScriptFetching !== "None - always ask"
-            ? Settings.defaultScriptFetching
-            : await vscode.window.showInformationMessage(
-                `Do you want to get the ${label} ${this.objectUrl} from Siebel?`,
-                "Yes",
-                "Only method names",
-                "No"
-              );
-        methodsOnly = answer === "Only method names";
-        break;
-      case selectedItem instanceof TreeItemScript:
-        ({ parent } = selectedItem);
-        objectUrlPath = Utils.joinUrl(
-          this.objectUrl,
-          parent,
-          this.scriptUrl,
-          label
-        );
-        answer = Settings.singleFileAutoDownload
-          ? "Yes"
-          : await vscode.window.showInformationMessage(
-              `Do you want to get the ${label} ${this.objectUrl} method from Siebel?`,
-              "Yes",
-              "No"
-            );
-        break;
+      case treeItem instanceof TreeItemObject:
+        question = `${question} from Siebel?`;
+        return {
+          answer:
+            Settings.defaultScriptFetching !== "None - always ask"
+              ? Settings.defaultScriptFetching
+              : await vscode.window.showInformationMessage(
+                  question,
+                  "Yes",
+                  "Only method names",
+                  "No"
+                ),
+          url: Utils.joinUrl(this.objectUrl, treeItem.label, this.scriptUrl),
+        };
+      case treeItem instanceof TreeItemScript:
+        question = `${question} script from Siebel?`;
+        return {
+          answer: Settings.singleFileAutoDownload
+            ? "Yes"
+            : await vscode.window.showInformationMessage(question, "Yes", "No"),
+          url: Utils.joinUrl(
+            this.objectUrl,
+            treeItem.parent,
+            this.scriptUrl,
+            treeItem.label
+          ),
+        };
+      case treeItem instanceof TreeItemWebTemp:
+        question = `${question} definition from Siebel?`;
+        return {
+          answer: Settings.singleFileAutoDownload
+            ? "Yes"
+            : await vscode.window.showInformationMessage(question, "Yes", "No"),
+          url: Utils.joinUrl(this.objectUrl, treeItem.label),
+        };
+      default:
+        return { answer: "No", url: "" };
     }
-    if (!(answer === "Yes" || answer === "All scripts" || methodsOnly)) return;
-    const folderUri = Utils.joinUri(this.folder, parent),
-      fields = methodsOnly ? NAME : NAMESCRIPT,
-      data = await TreeData.getDataFromSiebel(objectUrlPath, fields);
-    for (const { Name, Script = "" } of data) {
-      if (!this.dataObject[parent][Name])
-        this.dataObject[parent][Name] = !methodsOnly;
-      if (methodsOnly || !Script) continue;
-      const fileName = `${Name}${Settings.localFileExtension}`,
-        fileUri = Utils.joinUri(folderUri, fileName);
-      await Utils.writeFile(fileUri, Script, OPEN_FILE);
+  }
+
+  private async selectionChange({
+    selection: [treeItem],
+  }: vscode.TreeViewSelectionChangeEvent<
+    TreeItemObject | TreeItemScript | TreeItemWebTemp
+  >) {
+    if (!treeItem) return;
+    const { label, parent } = treeItem,
+      { answer, url } = await this.getAnswerAndUrl(treeItem),
+      namesOnly = answer === "Only method names";
+    if (!(answer === "Yes" || answer === "All scripts" || namesOnly)) return;
+    const data = await this.getData(url, namesOnly);
+    for (const { Name, [this.field]: text } of data) {
+      if (this.isScript) {
+        this.dataObject = this.dataObject as ScriptObject;
+        if (!this.dataObject[parent][Name])
+          this.dataObject[parent][Name] = !namesOnly;
+        if (namesOnly || !text) continue;
+        const fileName = `${Name}${Settings.localFileExtension}`,
+          fileUri = Utils.joinUri(this.folder, parent, fileName);
+        await Utils.writeFile(fileUri, text, OPEN_FILE);
+        continue;
+      }
+      if (text === undefined) return;
+      this.dataObject[label] = true;
+      const fileName = `${label}.html`,
+        fileUri = Utils.joinUri(this.folder, fileName);
+      await Utils.writeFile(fileUri, text, OPEN_FILE);
+      break;
     }
-    this.refresh();
-  }
-}
-
-export class TreeDataWebTemp extends TreeData {
-  data: TreeItemWebTemp[] = [];
-  dataObject: OnDiskObject = {};
-
-  constructor() {
-    super(WEBTEMP);
-  }
-
-  getChildren(element: TreeItemWebTemp) {
-    return this.data;
-  }
-
-  createTreeItems() {
-    const treeItems = [];
-    for (const [name, onDisk] of Object.entries(this.dataObject)) {
-      treeItems.push(new TreeItemWebTemp(name, onDisk));
-    }
-    return treeItems;
-  }
-
-  async createTreeViewData(searchSpec: string) {
-    const data: WebTempResponse[] = await TreeData.getDataFromSiebel(
-      this.objectUrl,
-      NAME,
-      searchSpec
-    );
-    this.dataObject = await TreeData.getFilesOnDisk(this.folder);
-    for (const { Name } of data) {
-      if (this.dataObject[Name]) continue;
-      this.dataObject[Name] = false;
-    }
-    this.refresh();
-  }
-
-  async selectionChange({
-    selection: [selectedItem],
-  }: vscode.TreeViewSelectionChangeEvent<TreeItemWebTemp>) {
-    if (!selectedItem) return;
-    const { label } = selectedItem,
-      answer = Settings.singleFileAutoDownload
-        ? "Yes"
-        : await vscode.window.showInformationMessage(
-            `Do you want to get the ${label} ${this.objectUrl} definition from Siebel?`,
-            "Yes",
-            "No"
-          );
-    if (answer !== "Yes") return;
-    const objectUrlPath = Utils.joinUrl(this.objectUrl, label),
-      data = await TreeData.getDataFromSiebel(objectUrlPath, DEFINITION),
-      webtemp = data[0]?.Definition;
-    if (webtemp === undefined) return;
-    this.dataObject[label] = true;
-    const fileName = `${label}.html`,
-      filePath = Utils.joinUri(this.folder, fileName);
-    await Utils.writeFile(filePath, webtemp, OPEN_FILE);
-    this.refresh();
+    this.createTreeItems();
   }
 }
 
 class TreeItemObject extends vscode.TreeItem {
   label: string;
+  parent: string;
   scripts: OnDiskObject;
   constructor(label: string, scripts: OnDiskObject) {
     super(label, vscode.TreeItemCollapsibleState.Collapsed);
     this.label = label;
+    this.parent = label;
     this.scripts = scripts;
     for (const value of Object.values(scripts)) {
       if (!value) continue;
       this.iconPath = TreeData.checkmarkIcon;
-      break;
+      return;
     }
   }
 }
@@ -314,6 +241,7 @@ class TreeItemScript extends vscode.TreeItem {
 
 class TreeItemWebTemp extends vscode.TreeItem {
   label: string;
+  parent = "";
   constructor(label: string, onDisk: boolean) {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.label = label;

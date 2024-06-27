@@ -81,8 +81,9 @@ export class Settings {
       case this.affectsConfig(e, MAX_PAGE_SIZE):
         this.maxPageSize = this.getSetting(MAX_PAGE_SIZE);
         return true;
+      default:
+        return false;
     }
-    return false;
   }
 
   static openSettings() {

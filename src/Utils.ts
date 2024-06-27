@@ -1,36 +1,26 @@
 import * as vscode from "vscode";
 import {
   DEFINITION,
-  ERR_CONN_MISSING_PARAMS,
-  ERR_NAME_DIFF,
-  ERR_NO_BASE_WS_IOB,
-  ERR_NO_EDITABLE_WS,
-  FILE_NAME_JSCONFIG,
-  FILE_NAME_SIEBEL_TYPES,
-  FILE_NAME_TYPE_DEF,
   GET,
-  INF_CONN_WORKING,
-  INF_GET_REST_WORKSPACES,
   PULL,
   PUSH,
   PUT,
   REST_WORKSPACES,
   SCRIPT,
-  TEST_CONNECTION,
-  TEST_REST_WORKSPACES,
   WORKSPACE,
-  siebelObjects,
+  entity,
   withCredentials,
-  INF_SUCCESSFUL_UPDATE,
-  JS_CONFIG,
-  constQueryParams,
-  constUrl,
+  queryParams,
+  error,
+  success,
 } from "./constants";
 import { Settings } from "./Settings";
 import axios from "axios";
 
 export class Utils {
-  private static readonly restApi = axios.create({ withCredentials });
+  private static readonly restApi = axios.create({
+    withCredentials,
+  });
 
   static joinUrl(...args: string[]) {
     return args.join("/");
@@ -40,7 +30,7 @@ export class Utils {
     return vscode.Uri.joinPath(base, ...args);
   }
 
-  static async resourceExists(resourceUri: vscode.Uri) {
+  static async exists(resourceUri: vscode.Uri) {
     try {
       await vscode.workspace.fs.stat(resourceUri);
       return true;
@@ -64,97 +54,27 @@ export class Utils {
     }
   }
 
-  static async callRestApi(
-    action: typeof TEST_CONNECTION | typeof TEST_REST_WORKSPACES,
-    url: string,
-    username: string,
-    password: string
-  ): Promise<void>;
-  static async callRestApi(
-    action: typeof REST_WORKSPACES,
-    url: string,
-    username: string,
-    password: string
-  ): Promise<string[]>;
-  static async callRestApi(
-    action: typeof PULL,
-    url: string,
-    username: string,
-    password: string,
-    fieldOrPayload: Fields
-  ): Promise<string>;
-  static async callRestApi(
-    action: typeof PUSH,
-    url: string,
-    username: string,
-    password: string,
-    fieldOrPayload: Payload
-  ): Promise<void>;
-  static async callRestApi(
-    action: RestAction,
-    url: string,
-    username: string,
-    password: string,
-    fieldOrPayload?: Fields | Payload
-  ) {
+  static async callRestApi(action: RestAction, request: RequestConfig) {
     try {
-      if (!(url && username && password))
-        return vscode.window.showErrorMessage(ERR_CONN_MISSING_PARAMS);
-      const request: RequestConfig = {
-        method: GET,
-        url,
-        auth: { username, password },
-      };
-
-      switch (action) {
-        case PULL:
-          request.params = constQueryParams[action][fieldOrPayload as Fields];
-          break;
-        case PUSH:
-          request.method = PUT;
-          request.data = fieldOrPayload as Payload;
-          break;
-        default:
-          request.url = this.joinUrl(url, constUrl[action]);
-          request.params = constQueryParams[action];
-      }
-      
       const response = await this.restApi(request);
-
+      if (success[action])
+        vscode.window.showInformationMessage(success[action]);
       switch (action) {
         case PULL:
-          return response?.data?.items?.[0]?.[fieldOrPayload as Fields];
-        case PUSH:
-          return vscode.window.showInformationMessage(INF_SUCCESSFUL_UPDATE);
-        case TEST_CONNECTION:
-          return vscode.window.showInformationMessage(INF_CONN_WORKING);
-        case TEST_REST_WORKSPACES:
-          return vscode.window.showInformationMessage(INF_GET_REST_WORKSPACES);
+          return response.data?.items?.[0];
         case REST_WORKSPACES:
           const workspaces = [];
-          for (const { Name } of response?.data?.items || []) {
+          for (const { Name } of response.data?.items?.[0] || []) {
             workspaces.push(Name);
           }
           return workspaces;
+        default:
+          return;
       }
     } catch (err: any) {
-      let errorMessage = `Error using the Siebel REST API: ${
-        err.response?.data?.ERROR ||
-        err.message ||
-        "check the state of the Siebel server!"
-      }`;
-      if (err.response?.status === 404) {
-        switch (action) {
-          case TEST_REST_WORKSPACES:
-            errorMessage = ERR_NO_BASE_WS_IOB;
-            break;
-          case REST_WORKSPACES:
-            errorMessage = ERR_NO_EDITABLE_WS;
-            break;
-        }
-      }
-      vscode.window.showErrorMessage(errorMessage);
-      return [];
+      vscode.window.showErrorMessage(
+        `${error[action]} ${err.response?.data?.ERROR || err.message}.`
+      );
     }
   }
 
@@ -181,7 +101,7 @@ export class Utils {
         `Do you want to ${action} the ${fileName} ${
           isWebTemp
             ? `web template definition`
-            : `script of the ${parentName} ${siebelObjects[type].parent}`
+            : `script of the ${parentName} ${entity[type].parent}`
         } ${
           action === PULL ? "from" : "to"
         } the ${workspace} workspace of the ${connectionName} connection?`,
@@ -190,67 +110,61 @@ export class Utils {
       );
       if (answer !== "Pull" && answer !== "Push") return;
       const { url, username, password } = connection,
-        resourceUrl = this.joinUrl(
-          url,
-          WORKSPACE,
-          workspace,
-          siebelObjects[type].parent,
-          isWebTemp
-            ? fileName
-            : this.joinUrl(
-                parentName,
-                siebelObjects[type as NotWebTemp].child,
-                fileName
-              )
-        );
+        request: RequestConfig = {
+          method: GET,
+          url: this.joinUrl(
+            url,
+            WORKSPACE,
+            workspace,
+            entity[type].parent,
+            isWebTemp
+              ? fileName
+              : this.joinUrl(parentName, entity[type].child, fileName)
+          ),
+          auth: { username, password },
+        };
       switch (action) {
         case PULL:
-          const content = await this.callRestApi(
-            PULL,
-            resourceUrl,
-            username,
-            password,
-            field
-          );
-          if (!content || content.length === 0) return;
+          request.params = queryParams[PULL][field];
+          const response = await this.callRestApi(PULL, request),
+            content = response?.[field];
+          if (!content) return;
           return await this.writeFile(fileUri, content);
         case PUSH:
           await document.save();
-          const text = document.getText(),
-            payload: Payload = { Name: fileName, [field]: text };
+          const text = document.getText();
+          request.method = PUT;
+          request.data = { Name: fileName, [field]: text };
           if (!isWebTemp) {
             const sameName = new RegExp(`function\\s+${fileName}\\s*\\(`).test(
               text
             );
             if (!sameName && fileName !== "(declarations)")
-              return vscode.window.showErrorMessage(ERR_NAME_DIFF);
-            payload["Program Language"] = "JS";
+              return vscode.window.showErrorMessage(error.nameDifferent);
+            request.data["Program Language"] = "JS";
           }
-          return await this.callRestApi(
-            PUSH,
-            resourceUrl,
-            username,
-            password,
-            payload
-          );
+          return await this.callRestApi(PUSH, request);
       }
     };
   }
 
-  static async createIndexdtsAndJSConfigjson(contextUri: vscode.Uri) {
+  static async setupWorkspaceFolder(contextUri: vscode.Uri) {
     try {
       const workspaceUri = vscode.workspace.workspaceFolders![0].uri,
-        typeDefUri = this.joinUri(workspaceUri, FILE_NAME_TYPE_DEF),
-        jsconfigUri = this.joinUri(workspaceUri, FILE_NAME_JSCONFIG);
-      if (!(await this.resourceExists(typeDefUri))) {
-        const siebelTypesUri = this.joinUri(contextUri, FILE_NAME_SIEBEL_TYPES);
+        typeDefUri = this.joinUri(workspaceUri, "index.d.ts"),
+        jsconfigUri = this.joinUri(workspaceUri, "jsconfig.json");
+      if (!(await this.exists(typeDefUri))) {
+        const siebelTypesUri = this.joinUri(contextUri, "siebelTypes.txt");
         await vscode.workspace.fs.copy(siebelTypesUri, typeDefUri);
         vscode.window.showInformationMessage(
           `File index.d.ts was created in ${workspaceUri} folder!`
         );
       }
-      if (await this.resourceExists(jsconfigUri)) return;
-      await this.writeFile(jsconfigUri, JS_CONFIG);
+      if (await this.exists(jsconfigUri)) return;
+      await this.writeFile(
+        jsconfigUri,
+        '{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}'
+      );
       vscode.window.showInformationMessage(
         `File jsconfig.json was created in ${workspaceUri} folder!`
       );
