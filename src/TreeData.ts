@@ -14,8 +14,9 @@ import { Utils } from "./Utils";
 import { Settings } from "./Settings";
 import axios from "axios";
 
+const checkmarkIcon = new vscode.ThemeIcon("check");
+
 export class TreeData {
-  static readonly checkmarkIcon = new vscode.ThemeIcon("check");
   private readonly type: SiebelObject;
   private readonly objectUrl: string;
   private readonly scriptUrl: string;
@@ -35,9 +36,15 @@ export class TreeData {
     this.objectUrl = entity[type].parent;
     this.scriptUrl = entity[type].child;
     this.isScript = type !== WEBTEMP;
-    this.TreeItem = this.isScript ? TreeItemObject : TreeItemWebTemp;
-    this.field = this.isScript ? SCRIPT : DEFINITION;
-    this.fields = this.isScript ? NAMESCRIPT : NAMEDEFINITION;
+    if (this.isScript) {
+      this.TreeItem = TreeItemObject;
+      this.field = SCRIPT;
+      this.fields = NAMESCRIPT;
+    } else {
+      this.TreeItem = TreeItemWebTemp;
+      this.field = DEFINITION;
+      this.fields = NAMEDEFINITION;
+    }
     vscode.window
       .createTreeView(type, {
         treeDataProvider: this,
@@ -98,19 +105,17 @@ export class TreeData {
     }
   }
 
-  private async getFilesOnDisk(parent?: string) {
-    const fileNames: OnDiskObject = {},
-      directoryUri = this.isScript
-        ? Utils.joinUri(this.folder, parent!)
-        : this.folder;
-    if (!(await Utils.exists(directoryUri))) return fileNames;
+  private async getFilesOnDisk(parent = "") {
+    const files: OnDiskObject = {},
+      directoryUri = Utils.joinUri(this.folder, parent);
+    if (!(await Utils.exists(directoryUri))) return files;
     const content = await vscode.workspace.fs.readDirectory(directoryUri);
-    for (const [name, type] of content) {
+    for (const [fullName, type] of content) {
       if (type !== 1) continue;
-      const [fileName, fileExt] = name.split(".");
-      if (["js", "ts", "html"].includes(fileExt)) fileNames[fileName] = true;
+      const [name, ext] = fullName.split(".");
+      if (ext === "js" || ext === "ts" || ext === "html") files[name] = true;
     }
-    return fileNames;
+    return files;
   }
 
   private createTreeItems() {
@@ -122,13 +127,17 @@ export class TreeData {
   }
 
   private async setDataObject(searchSpec: string) {
-    const data = await this.getData(this.objectUrl, NAMES_ONLY, searchSpec),
-      onDiskObject = this.isScript ? {} : await this.getFilesOnDisk();
+    const data = await this.getData(this.objectUrl, NAMES_ONLY, searchSpec);
     this.dataObject = {};
-    for (const { Name } of data) {
-      this.dataObject[Name] = this.isScript
-        ? await this.getFilesOnDisk(Name)
-        : !!onDiskObject[Name];
+    if (this.isScript) {
+      for (const { Name } of data) {
+        this.dataObject[Name] = await this.getFilesOnDisk(Name);
+      }
+    } else {
+      const onDiskObject = await this.getFilesOnDisk();
+      for (const { Name } of data) {
+        this.dataObject[Name] = !!onDiskObject[Name];
+      }
     }
     this.createTreeItems();
   }
@@ -189,8 +198,8 @@ export class TreeData {
       namesOnly = answer === "Only method names";
     if (!(answer === "Yes" || answer === "All scripts" || namesOnly)) return;
     const data = await this.getData(url, namesOnly);
-    for (const { Name, [this.field]: text } of data) {
-      if (this.isScript) {
+    if (this.isScript) {
+      for (const { Name, [this.field]: text } of data) {
         this.dataObject = this.dataObject as ScriptObject;
         if (!this.dataObject[parent][Name])
           this.dataObject[parent][Name] = !namesOnly;
@@ -198,14 +207,14 @@ export class TreeData {
         const fileName = `${Name}${Settings.localFileExtension}`,
           fileUri = Utils.joinUri(this.folder, parent, fileName);
         await Utils.writeFile(fileUri, text, OPEN_FILE);
-        continue;
       }
+    } else {
+      const text = data?.[0]?.[this.field];
       if (text === undefined) return;
       this.dataObject[label] = true;
       const fileName = `${label}.html`,
         fileUri = Utils.joinUri(this.folder, fileName);
       await Utils.writeFile(fileUri, text, OPEN_FILE);
-      break;
     }
     this.createTreeItems();
   }
@@ -222,7 +231,7 @@ class TreeItemObject extends vscode.TreeItem {
     this.scripts = scripts;
     for (const value of Object.values(scripts)) {
       if (!value) continue;
-      this.iconPath = TreeData.checkmarkIcon;
+      this.iconPath = checkmarkIcon;
       return;
     }
   }
@@ -235,7 +244,7 @@ class TreeItemScript extends vscode.TreeItem {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.label = label;
     this.parent = parent;
-    if (onDisk) this.iconPath = TreeData.checkmarkIcon;
+    if (onDisk) this.iconPath = checkmarkIcon;
   }
 }
 
@@ -245,6 +254,6 @@ class TreeItemWebTemp extends vscode.TreeItem {
   constructor(label: string, onDisk: boolean) {
     super(label, vscode.TreeItemCollapsibleState.None);
     this.label = label;
-    if (onDisk) this.iconPath = TreeData.checkmarkIcon;
+    if (onDisk) this.iconPath = checkmarkIcon;
   }
 }

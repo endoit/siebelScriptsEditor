@@ -252,8 +252,8 @@ export class ExtensionStateManager {
               await Settings.setConnections(connections);
               return (this.configWebviewPanel!.webview.html =
                 WebViews.configHTML(connectionName));
-            case TEST_REST_WORKSPACES:
             case TEST_CONNECTION:
+            case TEST_REST_WORKSPACES:
               if (!(url && username && password))
                 return vscode.window.showErrorMessage(error.missingParameters);
               const request: RequestConfig = {

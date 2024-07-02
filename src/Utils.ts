@@ -85,9 +85,9 @@ export class Utils {
         fileUriParts = fileUri.path.split("/"),
         fileNameExt = fileUriParts.at(-1)!,
         [fileName, ext] = fileNameExt.split("."),
-        isWebTemp = ext === "html",
-        field = isWebTemp ? DEFINITION : SCRIPT,
-        offset = isWebTemp ? 1 : 0,
+        isScript = ext !== "html",
+        field = isScript ? SCRIPT : DEFINITION,
+        offset = isScript ? 0 : 1,
         parentName = fileUriParts.at(offset - 2)!,
         type = fileUriParts.at(offset - 3) as SiebelObject,
         workspace = fileUriParts.at(offset - 4)!,
@@ -99,9 +99,9 @@ export class Utils {
         );
       const answer = await vscode.window.showInformationMessage(
         `Do you want to ${action} the ${fileName} ${
-          isWebTemp
-            ? `web template definition`
-            : `script of the ${parentName} ${entity[type].parent}`
+          isScript
+            ? `script of the ${parentName} ${entity[type].parent}`
+            : `web template definition`
         } ${
           action === PULL ? "from" : "to"
         } the ${workspace} workspace of the ${connectionName} connection?`,
@@ -117,9 +117,9 @@ export class Utils {
             WORKSPACE,
             workspace,
             entity[type].parent,
-            isWebTemp
-              ? fileName
-              : this.joinUrl(parentName, entity[type].child, fileName)
+            isScript
+              ? this.joinUrl(parentName, entity[type].child, fileName)
+              : fileName
           ),
           auth: { username, password },
         };
@@ -135,7 +135,7 @@ export class Utils {
           const text = document.getText();
           request.method = PUT;
           request.data = { Name: fileName, [field]: text };
-          if (!isWebTemp) {
+          if (isScript) {
             const sameName = new RegExp(`function\\s+${fileName}\\s*\\(`).test(
               text
             );
