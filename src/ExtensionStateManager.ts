@@ -64,7 +64,7 @@ export class ExtensionStateManager {
       pushScript: Utils.pushOrPull(PUSH),
       newConnection: this.configWebview(context, IS_NEW_CONNECTION),
       editConnection: this.configWebview(context),
-      openSettings: Settings.openSettings(),
+      openSettings: Settings.openSettings,
     };
 
     vscode.window.registerWebviewViewProvider("extensionView", {
@@ -105,7 +105,26 @@ export class ExtensionStateManager {
     return this._workspace;
   }
 
-  private async adjustConnection(
+  private async getWorkspacesFromRest(
+    url: string,
+    username: string,
+    password: string
+  ) {
+    const request: RequestConfig = {
+        method: GET,
+        url: Utils.joinUrl(url, constantPaths[REST_WORKSPACES]),
+        auth: { username, password },
+        params: queryParams[REST_WORKSPACES],
+      },
+      data = await Utils.callRestApi(REST_WORKSPACES, request),
+      workspaces = [];
+    for (const { Name } of data) {
+      workspaces.push(Name);
+    }
+    return workspaces;
+  }
+
+  private async setConnection(
     newConnection?: string
   ): Promise<ExtensionStateMessage> {
     this.connections = [];
@@ -132,16 +151,9 @@ export class ExtensionStateManager {
       defaultWorkspace,
       restWorkspaces,
     } = Settings.getConnection(this.connection);
-    this.workspaces = workspaces;
-    if (restWorkspaces) {
-      const request: RequestConfig = {
-        method: GET,
-        url: Utils.joinUrl(url, constantPaths[REST_WORKSPACES]),
-        auth: { username, password },
-        params: queryParams[REST_WORKSPACES],
-      };
-      this.workspaces = await Utils.callRestApi(REST_WORKSPACES, request);
-    }
+    this.workspaces = restWorkspaces
+      ? await this.getWorkspacesFromRest(url, username, password)
+      : workspaces;
     this.workspace = this.workspaces?.includes(this.workspace)
       ? this.workspace
       : restWorkspaces || !workspaces.includes(defaultWorkspace)
@@ -160,14 +172,14 @@ export class ExtensionStateManager {
     return async ({ webview }: { webview: vscode.Webview }) => {
       vscode.workspace.onDidChangeConfiguration(async (e) => {
         const adjust = Settings.configChange(e);
-        if (adjust) return webview.postMessage(await this.adjustConnection());
+        if (adjust) return webview.postMessage(await this.setConnection());
       });
       webview.options = { enableScripts: true };
       webview.onDidReceiveMessage(
         async ({ command, data }: DataSourceMessage) => {
           switch (command) {
             case CONNECTION:
-              return webview.postMessage(await this.adjustConnection(data));
+              return webview.postMessage(await this.setConnection(data));
             case WORKSPACE:
               return (this.workspace = data);
             case TYPE:
@@ -180,7 +192,7 @@ export class ExtensionStateManager {
         context.subscriptions
       );
       webview.html = WebViews.dataSourceHTML;
-      webview.postMessage(await this.adjustConnection());
+      webview.postMessage(await this.setConnection());
     };
   }
 

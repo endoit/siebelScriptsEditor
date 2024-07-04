@@ -87,8 +87,7 @@ export class Settings {
   }
 
   static openSettings() {
-    return () =>
-      vscode.commands.executeCommand("workbench.action.openSettings", SECTION);
+    vscode.commands.executeCommand("workbench.action.openSettings", SECTION);
   }
 
   static async moveDeprecatedSettings() {

@@ -47,8 +47,8 @@ export class Utils {
     try {
       const contents = Buffer.from(fileContent, "utf8");
       await vscode.workspace.fs.writeFile(fileUri, contents);
-      if (openFile)
-        await vscode.window.showTextDocument(fileUri, { preview: false });
+      if (!openFile) return;
+      await vscode.window.showTextDocument(fileUri, { preview: false });
     } catch (err: any) {
       vscode.window.showErrorMessage(err.message);
     }
@@ -59,92 +59,74 @@ export class Utils {
       const response = await this.restApi(request);
       if (success[action])
         vscode.window.showInformationMessage(success[action]);
-      switch (action) {
-        case PULL:
-          return response.data?.items?.[0];
-        case REST_WORKSPACES:
-          const workspaces = [];
-          for (const { Name } of response.data?.items?.[0] || []) {
-            workspaces.push(Name);
-          }
-          return workspaces;
-        default:
-          return;
-      }
+      return response?.data?.items || [];
     } catch (err: any) {
       vscode.window.showErrorMessage(
         `${error[action]} ${err.response?.data?.ERROR || err.message}.`
       );
+      return [];
     }
   }
 
   static pushOrPull(action: ButtonAction) {
+    const isPull = action === PULL;
     return async () => {
       const document = vscode.window.activeTextEditor!.document,
         fileUri = document.uri,
-        fileUriParts = fileUri.path.split("/"),
-        fileNameExt = fileUriParts.at(-1)!,
-        [fileName, ext] = fileNameExt.split("."),
+        parts = fileUri.path.split("/"),
+        [name, ext] = parts.at(-1)!.split("."),
         isScript = ext !== "html",
-        field = isScript ? SCRIPT : DEFINITION,
-        offset = isScript ? 0 : 1,
-        parentName = fileUriParts.at(offset - 2)!,
-        type = fileUriParts.at(offset - 3) as SiebelObject,
-        workspace = fileUriParts.at(offset - 4)!,
-        connectionName = fileUriParts.at(offset - 5)!,
+        [field, offset] = isScript ? [SCRIPT, 0] : [DEFINITION, 1],
+        parentName = parts.at(offset - 2)!,
+        type = parts.at(offset - 3) as SiebelObject,
+        workspace = parts.at(offset - 4)!,
+        connectionName = parts.at(offset - 5)!,
         connection = Settings.getConnection(connectionName);
       if (!connection.name)
         return vscode.window.showErrorMessage(
           `Connection "${connectionName}" was not found in the Connections settings!`
         );
       const answer = await vscode.window.showInformationMessage(
-        `Do you want to ${action} the ${fileName} ${
+        `Do you want to ${action} the ${name} ${
           isScript
             ? `script of the ${parentName} ${entity[type].parent}`
             : `web template definition`
         } ${
-          action === PULL ? "from" : "to"
+          isPull ? "from" : "to"
         } the ${workspace} workspace of the ${connectionName} connection?`,
-        action === PULL ? "Pull" : "Push",
+        isPull ? "Pull" : "Push",
         "No"
       );
       if (answer !== "Pull" && answer !== "Push") return;
       const { url, username, password } = connection,
         request: RequestConfig = {
-          method: GET,
+          method: isPull ? GET : PUT,
           url: this.joinUrl(
             url,
             WORKSPACE,
             workspace,
             entity[type].parent,
-            isScript
-              ? this.joinUrl(parentName, entity[type].child, fileName)
-              : fileName
+            isScript ? this.joinUrl(parentName, entity[type].child, name) : name
           ),
           auth: { username, password },
         };
-      switch (action) {
-        case PULL:
-          request.params = queryParams[PULL][field];
-          const response = await this.callRestApi(PULL, request),
-            content = response?.[field];
-          if (!content) return;
-          return await this.writeFile(fileUri, content);
-        case PUSH:
-          await document.save();
-          const text = document.getText();
-          request.method = PUT;
-          request.data = { Name: fileName, [field]: text };
-          if (isScript) {
-            const sameName = new RegExp(`function\\s+${fileName}\\s*\\(`).test(
-              text
-            );
-            if (!sameName && fileName !== "(declarations)")
-              return vscode.window.showErrorMessage(error.nameDifferent);
-            request.data["Program Language"] = "JS";
-          }
-          return await this.callRestApi(PUSH, request);
+      if (isPull) {
+        request.params = queryParams[PULL][field as DataField];
+        const response = await this.callRestApi(PULL, request),
+          content = response[0]?.[field];
+        if (!content) return;
+        return await this.writeFile(fileUri, content);
       }
+      await document.save();
+      const text = document.getText();
+      request.data = { Name: name, [field]: text };
+      if (isScript) {
+        const sameName = new RegExp(`function\\s+${name}\\s*\\(`).test(text);
+        if (!sameName && name !== "(declarations)")
+          return vscode.window.showErrorMessage(error.nameDifferent);
+        request.data["Program Language"] = "JS";
+      }
+      return await this.callRestApi(PUSH, request);
     };
   }
 

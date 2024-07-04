@@ -36,15 +36,9 @@ export class TreeData {
     this.objectUrl = entity[type].parent;
     this.scriptUrl = entity[type].child;
     this.isScript = type !== WEBTEMP;
-    if (this.isScript) {
-      this.TreeItem = TreeItemObject;
-      this.field = SCRIPT;
-      this.fields = NAMESCRIPT;
-    } else {
-      this.TreeItem = TreeItemWebTemp;
-      this.field = DEFINITION;
-      this.fields = NAMEDEFINITION;
-    }
+    [this.TreeItem, this.field, this.fields] = this.isScript
+      ? [TreeItemObject, SCRIPT, NAMESCRIPT]
+      : [TreeItemWebTemp, DEFINITION, NAMEDEFINITION];
     vscode.window
       .createTreeView(type, {
         treeDataProvider: this,
@@ -88,10 +82,10 @@ export class TreeData {
   private async getData(url: string, namesOnly: boolean, searchSpec?: string) {
     try {
       const params: QueryParams = {
-        fields: namesOnly ? NAME : this.fields,
-        searchspec: searchSpec ? `Name LIKE '${searchSpec}*'` : undefined,
-      };
-      const response = await axios({ url, params });
+          fields: namesOnly ? NAME : this.fields,
+          searchspec: searchSpec ? `Name LIKE '${searchSpec}*'` : undefined,
+        },
+        response = await axios({ url, params });
       return response.data?.items;
     } catch (err: any) {
       if (err.response?.status !== 404) {
@@ -110,9 +104,9 @@ export class TreeData {
       directoryUri = Utils.joinUri(this.folder, parent);
     if (!(await Utils.exists(directoryUri))) return files;
     const content = await vscode.workspace.fs.readDirectory(directoryUri);
-    for (const [fullName, type] of content) {
+    for (const [nameExt, type] of content) {
       if (type !== 1) continue;
-      const [name, ext] = fullName.split(".");
+      const [name, ext] = nameExt.split(".");
       if (ext === "js" || ext === "ts" || ext === "html") files[name] = true;
     }
     return files;
@@ -133,13 +127,13 @@ export class TreeData {
       for (const { Name } of data) {
         this.dataObject[Name] = await this.getFilesOnDisk(Name);
       }
-    } else {
-      const onDiskObject = await this.getFilesOnDisk();
-      for (const { Name } of data) {
-        this.dataObject[Name] = !!onDiskObject[Name];
-      }
+      return this.createTreeItems();
     }
-    this.createTreeItems();
+    const onDiskObject = await this.getFilesOnDisk();
+    for (const { Name } of data) {
+      this.dataObject[Name] = onDiskObject.hasOwnProperty(Name);
+    }
+    return this.createTreeItems();
   }
 
   private async getAnswerAndUrl(
@@ -208,15 +202,15 @@ export class TreeData {
           fileUri = Utils.joinUri(this.folder, parent, fileName);
         await Utils.writeFile(fileUri, text, OPEN_FILE);
       }
-    } else {
-      const text = data?.[0]?.[this.field];
-      if (text === undefined) return;
-      this.dataObject[label] = true;
-      const fileName = `${label}.html`,
-        fileUri = Utils.joinUri(this.folder, fileName);
-      await Utils.writeFile(fileUri, text, OPEN_FILE);
+      return this.createTreeItems();
     }
-    this.createTreeItems();
+    const text = data[0]?.[this.field];
+    if (text === undefined) return;
+    this.dataObject[label] = true;
+    const fileName = `${label}.html`,
+      fileUri = Utils.joinUri(this.folder, fileName);
+    await Utils.writeFile(fileUri, text, OPEN_FILE);
+    return this.createTreeItems();
   }
 }
 
@@ -232,7 +226,7 @@ class TreeItemObject extends vscode.TreeItem {
     for (const value of Object.values(scripts)) {
       if (!value) continue;
       this.iconPath = checkmarkIcon;
-      return;
+      break;
     }
   }
 }
