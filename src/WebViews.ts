@@ -1,4 +1,3 @@
-import { APPLET, APPLICATION, BUSCOMP, SERVICE, WEBTEMP } from "./constants";
 import { Settings } from "./Settings";
 
 export class WebViews {
@@ -155,11 +154,11 @@ export class WebViews {
     const vscode = acquireVsCodeApi(),
 			currentState = vscode.getState() || {},
       objectNames = {
-        ${SERVICE}: "Business Service",
-        ${BUSCOMP}: "Business Component",
-        ${APPLET}: "Applet",
-        ${APPLICATION}: "Application",
-        ${WEBTEMP}: "Web Template"
+        service: "Business Service",
+        buscomp: "Business Component",
+        applet: "Applet",
+        application: "Application",
+        webtemp: "Web Template"
       },
 			createOptions = (items = [], selected, isObject = false) =>
         items.map((item) => \`<option class="option" value="\${item}" \${item === selected ? "selected" : ""}>
@@ -189,15 +188,15 @@ export class WebViews {
         if (searchString !== "") vscode.postMessage({ command: "search", data: searchString });
       },
 			populate = () => {
-				const { connections = [], connection = "", workspaces = [], workspace = "", type = "${SERVICE}", searchString = "" } = currentState;
+				const { connections = [], connection = "", workspaces = [], workspace = "", type = "service", searchString = "" } = currentState;
 				document.getElementById("connection").innerHTML = createOptions(connections, connection);
 				document.getElementById("workspace").innerHTML = createOptions(workspaces, workspace);
-				document.getElementById("type").innerHTML = createOptions(["${SERVICE}", "${BUSCOMP}", "${APPLET}", "${APPLICATION}", "${WEBTEMP}"], type, true);
+				document.getElementById("type").innerHTML = createOptions(["service", "buscomp", "applet", "application", "webtemp"], type, true);
 				document.getElementById("search-bar").value = searchString;
 				document.getElementById("search-bar").readOnly = connections.length === 0 || workspaces.length === 0;
 			};
 		populate();
-    window.addEventListener("message", ({ data: { connections = [], connection = "", workspaces = [], workspace = "", type = "${SERVICE}" } }) => {
+    window.addEventListener("message", ({ data: { connections = [], connection = "", workspaces = [], workspace = "", type = "service" } }) => {
 			currentState.connections = connections;
 			currentState.connection = connection;
 			currentState.workspaces = workspaces;
@@ -221,7 +220,6 @@ export class WebViews {
         defaultWorkspace = "",
       } = isNewConnection ? {} : Settings.getConnection(connectionName),
       defaultConnectionName = Settings.defaultConnectionName;
-
     return `<!doctype><html>
 	${this.head}
 	<body>

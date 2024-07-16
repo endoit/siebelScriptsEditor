@@ -1,15 +1,5 @@
 import * as vscode from "vscode";
-import {
-  entity,
-  NAME,
-  NAMESCRIPT,
-  DEFINITION,
-  WEBTEMP,
-  OPEN_FILE,
-  NAMEDEFINITION,
-  SCRIPT,
-  NAMES_ONLY,
-} from "./constants";
+import { entity } from "./constants";
 import { Utils } from "./Utils";
 import { Settings } from "./Settings";
 import axios from "axios";
@@ -20,7 +10,6 @@ export class TreeData {
   private readonly type: SiebelObject;
   private readonly objectUrl: string;
   private readonly scriptUrl: string;
-  private readonly field: DataField;
   private readonly fields: NameDataFields;
   private readonly isScript: boolean;
   private readonly TreeItem: typeof TreeItemObject | typeof TreeItemWebTemp;
@@ -35,10 +24,10 @@ export class TreeData {
     this.type = type;
     this.objectUrl = entity[type].parent;
     this.scriptUrl = entity[type].child;
-    this.isScript = type !== WEBTEMP;
-    [this.TreeItem, this.field, this.fields] = this.isScript
-      ? [TreeItemObject, SCRIPT, NAMESCRIPT]
-      : [TreeItemWebTemp, DEFINITION, NAMEDEFINITION];
+    this.isScript = type !== "webtemp";
+    [this.TreeItem, this.fields] = this.isScript
+      ? [TreeItemObject, "Name,Script"]
+      : [TreeItemWebTemp, "Name,Definition"];
     vscode.window
       .createTreeView(type, {
         treeDataProvider: this,
@@ -79,14 +68,23 @@ export class TreeData {
     }, 300);
   }
 
-  private async getData(url: string, namesOnly: boolean, searchSpec?: string) {
+  private async getData(
+    resource: string,
+    namesOnly = true,
+    search = true
+  ): Promise<RestResponse[]> {
     try {
-      const params: QueryParams = {
-          fields: namesOnly ? NAME : this.fields,
-          searchspec: searchSpec ? `Name LIKE '${searchSpec}*'` : undefined,
+      const request = {
+          params: {
+            fields: namesOnly ? "Name" : this.fields,
+            searchspec: search ? `Name LIKE '${resource}*'` : undefined,
+          },
+          url: search
+            ? this.objectUrl
+            : Utils.joinUrl(this.objectUrl, resource),
         },
-        response = await axios({ url, params });
-      return response.data?.items;
+        response = await axios(request);
+      return response?.data?.items || [];
     } catch (err: any) {
       if (err.response?.status !== 404) {
         vscode.window.showErrorMessage(
@@ -121,7 +119,7 @@ export class TreeData {
   }
 
   private async setDataObject(searchSpec: string) {
-    const data = await this.getData(this.objectUrl, NAMES_ONLY, searchSpec);
+    const data = await this.getData(searchSpec);
     this.dataObject = {};
     if (this.isScript) {
       for (const { Name } of data) {
@@ -136,7 +134,7 @@ export class TreeData {
     return this.createTreeItems();
   }
 
-  private async getAnswerAndUrl(
+  private async getAnswerAndPath(
     treeItem: TreeItemObject | TreeItemScript | TreeItemWebTemp
   ) {
     let question = `Do you want to get the ${treeItem.label} ${this.objectUrl}`;
@@ -147,37 +145,24 @@ export class TreeData {
           answer:
             Settings.defaultScriptFetching !== "None - always ask"
               ? Settings.defaultScriptFetching
-              : await vscode.window.showInformationMessage(
-                  question,
-                  "Yes",
-                  "Only method names",
-                  "No"
-                ),
-          url: Utils.joinUrl(this.objectUrl, treeItem.label, this.scriptUrl),
+              : await Utils.info(question, "Yes", "Only method names", "No"),
+          path: Utils.joinUrl(treeItem.label, this.scriptUrl),
         };
       case treeItem instanceof TreeItemScript:
-        question = `${question} script from Siebel?`;
-        return {
-          answer: Settings.singleFileAutoDownload
-            ? "Yes"
-            : await vscode.window.showInformationMessage(question, "Yes", "No"),
-          url: Utils.joinUrl(
-            this.objectUrl,
-            treeItem.parent,
-            this.scriptUrl,
-            treeItem.label
-          ),
-        };
       case treeItem instanceof TreeItemWebTemp:
-        question = `${question} definition from Siebel?`;
+        question = `${question} ${
+          treeItem.parent ? "script" : "definition"
+        } from Siebel?`;
         return {
           answer: Settings.singleFileAutoDownload
             ? "Yes"
-            : await vscode.window.showInformationMessage(question, "Yes", "No"),
-          url: Utils.joinUrl(this.objectUrl, treeItem.label),
+            : await Utils.info(question, "Yes", "No"),
+          path: treeItem.parent
+            ? Utils.joinUrl(treeItem.parent, this.scriptUrl, treeItem.label)
+            : treeItem.label,
         };
       default:
-        return { answer: "No", url: "" };
+        return { answer: "No", path: "" };
     }
   }
 
@@ -188,28 +173,28 @@ export class TreeData {
   >) {
     if (!treeItem) return;
     const { label, parent } = treeItem,
-      { answer, url } = await this.getAnswerAndUrl(treeItem),
+      { answer, path } = await this.getAnswerAndPath(treeItem),
       namesOnly = answer === "Only method names";
     if (!(answer === "Yes" || answer === "All scripts" || namesOnly)) return;
-    const data = await this.getData(url, namesOnly);
+    const data = await this.getData(path, namesOnly, false);
     if (this.isScript) {
-      for (const { Name, [this.field]: text } of data) {
+      for (const { Name, Script } of data) {
         this.dataObject = this.dataObject as ScriptObject;
         if (!this.dataObject[parent][Name])
           this.dataObject[parent][Name] = !namesOnly;
-        if (namesOnly || !text) continue;
+        if (namesOnly || !Script) continue;
         const fileName = `${Name}${Settings.localFileExtension}`,
           fileUri = Utils.joinUri(this.folder, parent, fileName);
-        await Utils.writeFile(fileUri, text, OPEN_FILE);
+        await Utils.writeFile(fileUri, Script, true);
       }
       return this.createTreeItems();
     }
-    const text = data[0]?.[this.field];
-    if (text === undefined) return;
+    const definition = data[0]?.Definition;
+    if (definition === undefined) return;
     this.dataObject[label] = true;
     const fileName = `${label}.html`,
       fileUri = Utils.joinUri(this.folder, fileName);
-    await Utils.writeFile(fileUri, text, OPEN_FILE);
+    await Utils.writeFile(fileUri, definition, true);
     return this.createTreeItems();
   }
 }

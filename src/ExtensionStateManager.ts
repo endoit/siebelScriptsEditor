@@ -1,33 +1,5 @@
 import * as vscode from "vscode";
-import {
-  WORKSPACE,
-  WEBTEMP,
-  BUSCOMP,
-  SERVICE,
-  APPLET,
-  APPLICATION,
-  GET,
-  CONNECTION,
-  SEARCH,
-  TYPE,
-  NEW_OR_EDIT_CONNECTION,
-  ADD,
-  DEFAULT,
-  DELETE,
-  DELETE_CONNECTION,
-  REST_WORKSPACES,
-  TEST_CONNECTION,
-  TEST_REST_WORKSPACES,
-  childlinks,
-  uniformresponse,
-  IS_NEW_CONNECTION,
-  PULL,
-  PUSH,
-  withCredentials,
-  queryParams,
-  constantPaths,
-  error,
-} from "./constants";
+import { query, paths, error } from "./constants";
 import { Utils } from "./Utils";
 import { Settings } from "./Settings";
 import axios from "axios";
@@ -38,11 +10,11 @@ export class ExtensionStateManager {
   private static _instance: ExtensionStateManager;
   private readonly workspaceUri = vscode.workspace.workspaceFolders![0].uri;
   private readonly treeData = {
-    [SERVICE]: new TreeData(SERVICE),
-    [BUSCOMP]: new TreeData(BUSCOMP),
-    [APPLET]: new TreeData(APPLET),
-    [APPLICATION]: new TreeData(APPLICATION),
-    [WEBTEMP]: new TreeData(WEBTEMP),
+    service: new TreeData("service"),
+    buscomp: new TreeData("buscomp"),
+    applet: new TreeData("applet"),
+    application: new TreeData("application"),
+    webtemp: new TreeData("webtemp"),
   } as const;
   private configWebviewPanel: vscode.WebviewPanel | undefined;
   private connection = "";
@@ -50,19 +22,19 @@ export class ExtensionStateManager {
   private _workspace = "";
   private workspaces: string[] = [];
   private interceptor = 0;
-  private type: SiebelObject = SERVICE;
+  private type: SiebelObject = "service";
 
   constructor(context: vscode.ExtensionContext) {
     if (ExtensionStateManager._instance) return ExtensionStateManager._instance;
     ExtensionStateManager._instance = this;
-    axios.defaults.method = GET;
-    axios.defaults.withCredentials = withCredentials;
-    axios.defaults.params = { uniformresponse, childlinks };
+    axios.defaults.method = "get";
+    axios.defaults.withCredentials = true;
+    axios.defaults.params = { uniformresponse: "y", childlinks: "None" };
 
     const commands = {
-      pullScript: Utils.pushOrPull(PULL),
-      pushScript: Utils.pushOrPull(PUSH),
-      newConnection: this.configWebview(context, IS_NEW_CONNECTION),
+      pullScript: Utils.pushOrPull("pull"),
+      pushScript: Utils.pushOrPull("push"),
+      newConnection: this.configWebview(context, true),
       editConnection: this.configWebview(context),
       openSettings: Settings.openSettings,
     };
@@ -85,7 +57,7 @@ export class ExtensionStateManager {
     axios.interceptors.request.eject(this.interceptor);
     this.interceptor = axios.interceptors.request.use((config) => ({
       ...config,
-      baseURL: Utils.joinUrl(url, WORKSPACE, this.workspace),
+      baseURL: Utils.joinUrl(url, "workspace", this.workspace),
       auth: { username, password },
       params: {
         PageSize: Settings.maxPageSize,
@@ -111,12 +83,12 @@ export class ExtensionStateManager {
     password: string
   ) {
     const request: RequestConfig = {
-        method: GET,
-        url: Utils.joinUrl(url, constantPaths[REST_WORKSPACES]),
+        method: "get",
+        url: Utils.joinUrl(url, paths.restWorkspaces),
         auth: { username, password },
-        params: queryParams[REST_WORKSPACES],
+        params: query.restWorkspaces,
       },
-      data = await Utils.callRestApi(REST_WORKSPACES, request),
+      data = await Utils.callRestApi("restWorkspaces", request),
       workspaces = [];
     for (const { Name } of data) {
       workspaces.push(Name);
@@ -178,13 +150,13 @@ export class ExtensionStateManager {
       webview.onDidReceiveMessage(
         async ({ command, data }: DataSourceMessage) => {
           switch (command) {
-            case CONNECTION:
+            case "connection":
               return webview.postMessage(await this.setConnection(data));
-            case WORKSPACE:
+            case "workspace":
               return (this.workspace = data);
-            case TYPE:
+            case "type":
               return (this.type = data as SiebelObject);
-            case SEARCH:
+            case "search":
               return await this.treeData[this.type].search(data);
           }
         },
@@ -243,19 +215,17 @@ export class ExtensionStateManager {
           const connections = Settings.connections,
             connection = Settings.getConnection(connectionName);
           switch (command) {
-            case WORKSPACE:
+            case "workspace":
               const { workspaces } = connection;
               switch (action) {
-                case ADD:
+                case "add":
                   if (workspaces.includes(workspace)) return;
                   workspaces.unshift(workspace);
-                  if (workspaces.length === 1)
-                    connection.defaultWorkspace = workspace;
-                  break;
-                case DEFAULT:
+                  if (workspaces.length !== 1) break;
+                case "default":
                   connection.defaultWorkspace = workspace;
                   break;
-                case DELETE:
+                case "delete":
                   workspaces.splice(workspaces.indexOf(workspace), 1);
                   if (connection.defaultWorkspace === workspace)
                     connection.defaultWorkspace = workspaces[0] ?? "";
@@ -264,18 +234,18 @@ export class ExtensionStateManager {
               await Settings.setConnections(connections);
               return (this.configWebviewPanel!.webview.html =
                 WebViews.configHTML(connectionName));
-            case TEST_CONNECTION:
-            case TEST_REST_WORKSPACES:
+            case "testConnection":
+            case "testRestWorkspaces":
               if (!(url && username && password))
                 return vscode.window.showErrorMessage(error.missingParameters);
               const request: RequestConfig = {
-                method: GET,
-                url: Utils.joinUrl(url, constantPaths[command]),
+                method: "get",
+                url: Utils.joinUrl(url, paths[command]),
                 auth: { username, password },
-                params: queryParams[command],
+                params: query[command],
               };
               return await Utils.callRestApi(command, request);
-            case NEW_OR_EDIT_CONNECTION:
+            case "newOrEditConnection":
               if (!(connectionName && url && username && password))
                 return vscode.window.showErrorMessage(error.missingParameters);
               if (connection.name) {
@@ -300,9 +270,9 @@ export class ExtensionStateManager {
               await Settings.setConnections(connections);
               return (this.configWebviewPanel!.webview.html =
                 WebViews.configHTML(connectionName));
-            case DELETE_CONNECTION:
-              const answer = await vscode.window.showInformationMessage(
-                `Do you want to delete connection ${connectionName}?`,
+            case "deleteConnection":
+              const answer = await Utils.info(
+                `Do you want to delete the ${connectionName} connection?`,
                 "Yes",
                 "No"
               );

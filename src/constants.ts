@@ -1,118 +1,70 @@
-//Siebel object names
-export const SECTION = "siebelScriptAndWebTempEditor",
-  SERVICE = "service",
-  BUSCOMP = "buscomp",
-  APPLET = "applet",
-  APPLICATION = "application",
-  WEBTEMP = "webtemp",
-  //Repository object urls
-  entity = {
-    [SERVICE]: {
+//Repository object urls and names
+export const entity = {
+    service: {
       parent: "Business Service",
       child: "Business Service Server Script",
     },
-    [BUSCOMP]: { parent: "Business Component", child: "BusComp Server Script" },
-    [APPLET]: { parent: "Applet", child: "Applet Server Script" },
-    [APPLICATION]: {
+    buscomp: { parent: "Business Component", child: "BusComp Server Script" },
+    applet: { parent: "Applet", child: "Applet Server Script" },
+    application: {
       parent: "Application",
       child: "Application Server Script",
     },
-    [WEBTEMP]: { parent: "Web Template", child: "" },
+    webtemp: { parent: "Web Template", child: "" },
   } as const,
-  //constant request parameters
-  withCredentials = true,
-  uniformresponse = "y",
-  childlinks = "None",
-  //webview commands
-  TEST_CONNECTION = "testConnection",
-  NEW_OR_EDIT_CONNECTION = "newOrEditConnection",
-  ADD = "add",
-  DEFAULT = "default",
-  DELETE = "delete",
-  TEST_REST_WORKSPACES = "testRestWorkspaces",
-  REST_WORKSPACES = "restWorkspaces",
-  DELETE_CONNECTION = "deleteConnection",
-  CONNECTION = "connection",
-  WORKSPACE = "workspace",
-  TYPE = "type",
-  SEARCH = "search",
-  //REST methods
-  GET = "get",
-  PUT = "put",
-  //button actions
-  PUSH = "push",
-  PULL = "pull",
-  //setting names
-  CONNECTIONS = "connections",
-  DEFAULT_CONNECTION_NAME = "defaultConnectionName",
-  DEFAULT_SCRIPT_FETCHING = "defaultScriptFetching",
-  SINGLE_FILE_AUTODOWNLOAD = "singleFileAutoDownload",
-  LOCAL_FILE_EXTENSION = "localFileExtension",
-  MAX_PAGE_SIZE = "maxPageSize",
-  //Deprecated setting names
-  DEP_REST_ENDPOINT_CONFIGURATIONS = "REST EndpointConfigurations",
-  DEP_WORKSPACES = "workspaces",
-  DEP_DEFAULT_CONNECTION = "defaultConnection",
-  DEP_GET_WORKSPACES_FROM_REST = "getWorkspacesFromREST",
-  //json fields
-  NAME = "Name",
-  SCRIPT = "Script",
-  DEFINITION = "Definition",
-  NAMESCRIPT = "Name,Script",
-  NAMEDEFINITION = "Name,Definition",
-  //booleans
-  NAMES_ONLY = true,
-  IS_NEW_CONNECTION = true,
-  OPEN_FILE = true,
   //constant query params
-  queryParams = {
-    [TEST_CONNECTION]: {
-      fields: NAME,
+  query = {
+    testConnection: {
+      fields: "Name",
       workspace: "MAIN",
-      uniformresponse,
-      childlinks,
+      uniformresponse: "y",
+      childlinks: "None",
     },
-    [TEST_REST_WORKSPACES]: {
-      fields: NAME,
+    testRestWorkspaces: {
+      fields: "Name",
       workspace: "MAIN",
       searchspec: "Name='Base Workspace'",
-      uniformresponse,
-      childlinks,
+      uniformresponse: "y",
+      childlinks: "None",
     },
-    [REST_WORKSPACES]: {
-      fields: NAME,
+    restWorkspaces: {
+      fields: "Name",
       workspace: "MAIN",
       searchspec: "Status='Checkpointed' OR Status='Edit-In-Progress'",
-      uniformresponse,
-      childlinks,
+      uniformresponse: "y",
+      childlinks: "None",
     },
-    [PULL]: {
-      [SCRIPT]: { uniformresponse, childlinks, fields: SCRIPT },
-      [DEFINITION]: { uniformresponse, childlinks, fields: DEFINITION },
+    pull: {
+      Script: { uniformresponse: "y", childlinks: "None", fields: "Script" },
+      Definition: {
+        uniformresponse: "y",
+        childlinks: "None",
+        fields: "Definition",
+      },
     },
   } as const,
-  //constant urls
-  constantPaths = {
-    [TEST_CONNECTION]: "workspace/MAIN/Integration Object",
-    [TEST_REST_WORKSPACES]: "workspace/MAIN/Integration Object",
-    [REST_WORKSPACES]: "data/Workspace/Repository Workspace",
+  //constant paths
+  paths = {
+    testConnection: "workspace/MAIN/Integration Object",
+    testRestWorkspaces: "workspace/MAIN/Integration Object",
+    restWorkspaces: "data/Workspace/Repository Workspace",
   } as const,
   //constant success and error messages messages
   success = {
-    [PULL]: "",
-    [PUSH]: "Successfully pushed object to Siebel!",
-    [TEST_CONNECTION]: "Connection is working!",
-    [TEST_REST_WORKSPACES]:
+    pull: "",
+    push: "Successfully pushed object to Siebel!",
+    testConnection: "Connection is working!",
+    testRestWorkspaces:
       "Getting workspaces from the Siebel REST API was successful!",
-    [REST_WORKSPACES]: "",
+    restWorkspaces: "",
   } as const,
   error = {
-    [PULL]: "Error when pulling from Siebel:",
-    [PUSH]: "Error when pushing to Siebel:",
-    [TEST_CONNECTION]: "Error in the connection:",
-    [TEST_REST_WORKSPACES]:
+    pull: "Error when pulling from Siebel:",
+    push: "Error when pushing to Siebel:",
+    testConnection: "Error in the connection:",
+    testRestWorkspaces:
       "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
-    [REST_WORKSPACES]:
+    restWorkspaces:
       "No workspace with status Checkpointed or Edit-In-Progress was found!",
     noWorkspaceFolder:
       "Please open a Visual Studio Code workspace folder to use the extension!",

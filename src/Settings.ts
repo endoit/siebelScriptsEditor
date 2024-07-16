@@ -1,29 +1,16 @@
-import {
-  CONNECTIONS,
-  DEFAULT_CONNECTION_NAME,
-  SINGLE_FILE_AUTODOWNLOAD,
-  LOCAL_FILE_EXTENSION,
-  DEFAULT_SCRIPT_FETCHING,
-  MAX_PAGE_SIZE,
-  DEP_REST_ENDPOINT_CONFIGURATIONS,
-  DEP_WORKSPACES,
-  DEP_DEFAULT_CONNECTION,
-  DEP_GET_WORKSPACES_FROM_REST,
-  SECTION,
-} from "./constants";
 import * as vscode from "vscode";
 
 export class Settings {
-  static connections = this.getSetting(CONNECTIONS);
-  static defaultConnectionName = this.getSetting(DEFAULT_CONNECTION_NAME);
-  static singleFileAutoDownload = this.getSetting(SINGLE_FILE_AUTODOWNLOAD);
-  static localFileExtension = this.getSetting(LOCAL_FILE_EXTENSION);
-  static defaultScriptFetching = this.getSetting(DEFAULT_SCRIPT_FETCHING);
-  static maxPageSize = this.getSetting(MAX_PAGE_SIZE);
+  static connections = this.getSetting("connections");
+  static defaultConnectionName = this.getSetting("defaultConnectionName");
+  static singleFileAutoDownload = this.getSetting("singleFileAutoDownload");
+  static localFileExtension = this.getSetting("localFileExtension");
+  static defaultScriptFetching = this.getSetting("defaultScriptFetching");
+  static maxPageSize = this.getSetting("maxPageSize");
 
   private static getSetting<T extends keyof AllSettings>(settingName: T) {
     return vscode.workspace
-      .getConfiguration(SECTION)
+      .getConfiguration("siebelScriptAndWebTempEditor")
       .get(settingName) as AllSettings[T];
   }
 
@@ -32,7 +19,7 @@ export class Settings {
     settingValue: AllSettings[T]
   ) {
     return await vscode.workspace
-      .getConfiguration(SECTION)
+      .getConfiguration("siebelScriptAndWebTempEditor")
       .update(settingName, settingValue, vscode.ConfigurationTarget.Global);
   }
 
@@ -41,7 +28,7 @@ export class Settings {
     settingName?: keyof ExtensionSettings
   ) {
     return e.affectsConfiguration(
-      `${SECTION}${settingName ? `.${settingName}` : ""}`
+      `siebelScriptAndWebTempEditor${settingName ? `.${settingName}` : ""}`
     );
   }
 
@@ -53,33 +40,33 @@ export class Settings {
   }
 
   static async setConnections(newConnections: Config[]) {
-    await this.setSetting(CONNECTIONS, newConnections);
+    await this.setSetting("connections", newConnections);
   }
 
   static async setDefaultConnectionName(newDefaultConnectionName: string) {
-    await this.setSetting(DEFAULT_CONNECTION_NAME, newDefaultConnectionName);
+    await this.setSetting("defaultConnectionName", newDefaultConnectionName);
   }
 
   static configChange(e: vscode.ConfigurationChangeEvent) {
     if (!this.affectsConfig(e)) return false;
     switch (true) {
-      case this.affectsConfig(e, CONNECTIONS):
-        this.connections = this.getSetting(CONNECTIONS);
+      case this.affectsConfig(e, "connections"):
+        this.connections = this.getSetting("connections");
         return true;
-      case this.affectsConfig(e, DEFAULT_CONNECTION_NAME):
-        this.defaultConnectionName = this.getSetting(DEFAULT_CONNECTION_NAME);
+      case this.affectsConfig(e, "defaultConnectionName"):
+        this.defaultConnectionName = this.getSetting("defaultConnectionName");
         return false;
-      case this.affectsConfig(e, DEFAULT_SCRIPT_FETCHING):
-        this.defaultScriptFetching = this.getSetting(DEFAULT_SCRIPT_FETCHING);
+      case this.affectsConfig(e, "defaultScriptFetching"):
+        this.defaultScriptFetching = this.getSetting("defaultScriptFetching");
         return false;
-      case this.affectsConfig(e, SINGLE_FILE_AUTODOWNLOAD):
-        this.singleFileAutoDownload = this.getSetting(SINGLE_FILE_AUTODOWNLOAD);
+      case this.affectsConfig(e, "singleFileAutoDownload"):
+        this.singleFileAutoDownload = this.getSetting("singleFileAutoDownload");
         return false;
-      case this.affectsConfig(e, LOCAL_FILE_EXTENSION):
-        this.localFileExtension = this.getSetting(LOCAL_FILE_EXTENSION);
+      case this.affectsConfig(e, "localFileExtension"):
+        this.localFileExtension = this.getSetting("localFileExtension");
         return false;
-      case this.affectsConfig(e, MAX_PAGE_SIZE):
-        this.maxPageSize = this.getSetting(MAX_PAGE_SIZE);
+      case this.affectsConfig(e, "maxPageSize"):
+        this.maxPageSize = this.getSetting("maxPageSize");
         return true;
       default:
         return false;
@@ -87,17 +74,20 @@ export class Settings {
   }
 
   static openSettings() {
-    vscode.commands.executeCommand("workbench.action.openSettings", SECTION);
+    vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      "siebelScriptAndWebTempEditor"
+    );
   }
 
   static async moveDeprecatedSettings() {
     try {
-      const oldConnections = this.getSetting(DEP_REST_ENDPOINT_CONFIGURATIONS);
+      const oldConnections = this.getSetting("REST EndpointConfigurations");
       if (!oldConnections) return;
       const connections = this.connections;
       if (connections.length !== 0) return;
-      const workspaces = this.getSetting(DEP_WORKSPACES) || [],
-        defaultConnection = this.getSetting(DEP_DEFAULT_CONNECTION),
+      const workspaces = this.getSetting("workspaces") || [],
+        defaultConnection = this.getSetting("defaultConnection"),
         newConnections: Config[] = [],
         workspaceObject: Record<string, string[]> = {};
       let isDefault = false;
@@ -134,10 +124,10 @@ export class Settings {
       await this.setDefaultConnectionName(
         isDefault ? defaultConnectionName : newConnections[0].name
       );
-      await this.setSetting(DEP_REST_ENDPOINT_CONFIGURATIONS, undefined);
-      await this.setSetting(DEP_WORKSPACES, undefined);
-      await this.setSetting(DEP_DEFAULT_CONNECTION, undefined);
-      await this.setSetting(DEP_GET_WORKSPACES_FROM_REST, undefined);
+      await this.setSetting("REST EndpointConfigurations", undefined);
+      await this.setSetting("workspaces", undefined);
+      await this.setSetting("defaultConnection", undefined);
+      await this.setSetting("getWorkspacesFromREST", undefined);
     } catch (err: any) {
       vscode.window.showErrorMessage(
         `An error occured when moving the deprecated parameters to the new settings: ${err.message}, please create connections manually!`

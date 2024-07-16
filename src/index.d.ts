@@ -9,17 +9,14 @@ type SiebelObject =
 //Settings
 type ExtensionSettings = {
   connections: Config[];
-  defaultConnectionName: string;
+  defaultConnectionName: Config["name"];
   singleFileAutoDownload: boolean;
   localFileExtension: ".js" | ".ts";
   defaultScriptFetching:
-    | "Yes"
-    | "No"
     | "Only method names"
     | "All scripts"
-    | "None - always ask"
-    | undefined;
-  maxPageSize: number;
+    | "None - always ask";
+  maxPageSize: 10 | 20 | 50 | 100 | 200 | 500;
 };
 
 type Config = {
@@ -38,7 +35,6 @@ type OnDiskObject = Record<string, boolean>;
 
 //Fields
 type DataField = "Script" | "Definition";
-
 type NameDataFields = "Name,Script" | "Name,Definition";
 
 //Query parameters
@@ -46,19 +42,7 @@ type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
   fields?: "Name" | DataField | NameDataFields;
-  PageSize?: number;
-};
-
-//Response scripts from Siebel
-type ScriptResponse = {
-  Name: string;
-  Script?: string;
-};
-
-//Response web templates from Siebel
-type WebTempResponse = {
-  Name: string;
-  Definition?: string;
+  PageSize?: ExtensionSettings["maxPageSize"];
 };
 
 //body when upserting script/web template into Siebel
@@ -69,11 +53,30 @@ type Payload = {
   Definition?: string;
 };
 
+//Request config object
+type RequestConfig = {
+  method: "get" | "put";
+  url: Config["url"];
+  auth: {
+    username: Config["username"];
+    password: Config["password"];
+  };
+  params?: QueryParams;
+  data?: Payload;
+};
+
+//Siebel REST response
+type RestResponse = {
+  Name: string;
+  Script?: string;
+  Definition?: string;
+};
+
 //message sent to the datasource webview
 type ExtensionStateMessage = {
-  connections?: string[];
-  connection?: string;
-  workspaces?: string[];
+  connections?: Config["name"][];
+  connection?: Config["name"];
+  workspaces?: Config["workspaces"];
   workspace?: string;
   type?: SiebelObject;
 };
@@ -93,17 +96,14 @@ type ConfigMessage = {
     | "testRestWorkspaces"
     | "deleteConnection";
   action: "add" | "default" | "delete";
-  connectionName: string;
+  connectionName: Config["name"];
   workspace: string;
   defaultConnection: boolean;
-  url: string;
-  username: string;
-  password: string;
-  restWorkspaces: boolean;
+  url: Config["url"];
+  username: Config["username"];
+  password: Config["password"];
+  restWorkspaces: Config["restWorkspaces"];
 };
-
-//REST method
-type RestMethod = "get" | "put";
 
 //Button actions
 type ButtonAction = "push" | "pull";
@@ -115,20 +115,6 @@ type RestAction =
   | "restWorkspaces"
   | ButtonAction;
 
-type RequestConfig = {
-  method: RestMethod;
-  url: Config["url"];
-  auth: {
-    username: Config["username"];
-    password: Config["password"];
-  };
-  params?: QueryParams;
-  data?: Payload;
-};
-
-//Union of all settings
-type AllSettings = ExtensionSettings & DeprecatedSettings;
-
 //Deprecated settings
 type DeprecatedSettings = {
   "REST EndpointConfigurations"?: string[];
@@ -136,3 +122,6 @@ type DeprecatedSettings = {
   defaultConnection?: string;
   getWorkspacesFromREST?: boolean;
 };
+
+//Union of all settings
+type AllSettings = ExtensionSettings & DeprecatedSettings;
