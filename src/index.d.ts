@@ -34,14 +34,14 @@ type ScriptObject = Record<string, OnDiskObject>;
 type OnDiskObject = Record<string, boolean>;
 
 //Fields
-type DataField = "Script" | "Definition";
-type NameDataFields = "Name,Script" | "Name,Definition";
+type Field = "Script" | "Definition";
+type NameField = "Name,Script" | "Name,Definition";
 
 //Query parameters
 type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
-  fields?: "Name" | DataField | NameDataFields;
+  fields?: "Name" | Field | NameField;
   PageSize?: ExtensionSettings["maxPageSize"];
 };
 
@@ -114,6 +114,18 @@ type RestAction =
   | "testRestWorkspaces"
   | "restWorkspaces"
   | ButtonAction;
+
+//TreeItemProperties
+type TreeItemProperties = {
+  label: string;
+  parent: string;
+  message: string;
+  path: string;
+  condition: boolean;
+  value: ExtensionSettings["defaultScriptFetching"] | "Yes";
+  options: ("Yes" | "No" | "Only method names")[];
+  ext: ".html" | ExtensionSettings["localFileExtension"];
+};
 
 //Deprecated settings
 type DeprecatedSettings = {

@@ -57,7 +57,7 @@ export class ExtensionStateManager {
     axios.interceptors.request.eject(this.interceptor);
     this.interceptor = axios.interceptors.request.use((config) => ({
       ...config,
-      baseURL: Utils.joinUrl(url, "workspace", this.workspace),
+      baseURL: [url, "workspace", this.workspace].join("/"),
       auth: { username, password },
       params: {
         PageSize: Settings.maxPageSize,
@@ -65,7 +65,7 @@ export class ExtensionStateManager {
       },
     }));
     for (const treeDataProvider of Object.values(this.treeData)) {
-      treeDataProvider.folder = Utils.joinUri(
+      treeDataProvider.folder = vscode.Uri.joinPath(
         this.workspaceUri,
         this.connection,
         this.workspace
@@ -84,7 +84,7 @@ export class ExtensionStateManager {
   ) {
     const request: RequestConfig = {
         method: "get",
-        url: Utils.joinUrl(url, paths.restWorkspaces),
+        url: [url, paths.restWorkspaces].join("/"),
         auth: { username, password },
         params: query.restWorkspaces,
       },
@@ -155,7 +155,7 @@ export class ExtensionStateManager {
             case "workspace":
               return (this.workspace = data);
             case "type":
-              return (this.type = data as SiebelObject);
+              return (this.type = <SiebelObject>data);
             case "search":
               return await this.treeData[this.type].search(data);
           }
@@ -240,7 +240,7 @@ export class ExtensionStateManager {
                 return vscode.window.showErrorMessage(error.missingParameters);
               const request: RequestConfig = {
                 method: "get",
-                url: Utils.joinUrl(url, paths[command]),
+                url: [url, paths[command]].join("/"),
                 auth: { username, password },
                 params: query[command],
               };
@@ -271,7 +271,7 @@ export class ExtensionStateManager {
               return (this.configWebviewPanel!.webview.html =
                 WebViews.configHTML(connectionName));
             case "deleteConnection":
-              const answer = await Utils.info(
+              const answer = await vscode.window.showInformationMessage(
                 `Do you want to delete the ${connectionName} connection?`,
                 "Yes",
                 "No"

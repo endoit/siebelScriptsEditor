@@ -9,9 +9,11 @@ export class Settings {
   static maxPageSize = this.getSetting("maxPageSize");
 
   private static getSetting<T extends keyof AllSettings>(settingName: T) {
-    return vscode.workspace
-      .getConfiguration("siebelScriptAndWebTempEditor")
-      .get(settingName) as AllSettings[T];
+    return <AllSettings[T]>(
+      vscode.workspace
+        .getConfiguration("siebelScriptAndWebTempEditor")
+        .get(settingName)
+    );
   }
 
   private static async setSetting<T extends keyof AllSettings>(
@@ -21,15 +23,6 @@ export class Settings {
     return await vscode.workspace
       .getConfiguration("siebelScriptAndWebTempEditor")
       .update(settingName, settingValue, vscode.ConfigurationTarget.Global);
-  }
-
-  private static affectsConfig(
-    e: vscode.ConfigurationChangeEvent,
-    settingName?: keyof ExtensionSettings
-  ) {
-    return e.affectsConfiguration(
-      `siebelScriptAndWebTempEditor${settingName ? `.${settingName}` : ""}`
-    );
   }
 
   static getConnection(connectionName: string) {
@@ -48,28 +41,15 @@ export class Settings {
   }
 
   static configChange(e: vscode.ConfigurationChangeEvent) {
-    if (!this.affectsConfig(e)) return false;
-    switch (true) {
-      case this.affectsConfig(e, "connections"):
-        this.connections = this.getSetting("connections");
-        return true;
-      case this.affectsConfig(e, "defaultConnectionName"):
-        this.defaultConnectionName = this.getSetting("defaultConnectionName");
-        return false;
-      case this.affectsConfig(e, "defaultScriptFetching"):
-        this.defaultScriptFetching = this.getSetting("defaultScriptFetching");
-        return false;
-      case this.affectsConfig(e, "singleFileAutoDownload"):
-        this.singleFileAutoDownload = this.getSetting("singleFileAutoDownload");
-        return false;
-      case this.affectsConfig(e, "localFileExtension"):
-        this.localFileExtension = this.getSetting("localFileExtension");
-        return false;
-      case this.affectsConfig(e, "maxPageSize"):
-        this.maxPageSize = this.getSetting("maxPageSize");
-        return true;
-      default:
-        return false;
+    if (!e.affectsConfiguration("siebelScriptAndWebTempEditor")) return false;
+    for (const name in this) {
+      const settingName = <keyof ExtensionSettings>name;
+      if (
+        !e.affectsConfiguration(`siebelScriptAndWebTempEditor.${settingName}`)
+      )
+        continue;
+      (this as unknown as any)[settingName] = this.getSetting(settingName);
+      return settingName === "connections" || settingName === "maxPageSize";
     }
   }
 
