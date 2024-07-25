@@ -29,10 +29,6 @@ type Config = {
   restWorkspaces: boolean;
 };
 
-//Data objects in the tree views
-type ScriptObject = Record<string, OnDiskObject>;
-type OnDiskObject = Record<string, boolean>;
-
 //Fields
 type Field = "Script" | "Definition";
 type NameField = "Name,Script" | "Name,Definition";
@@ -117,14 +113,11 @@ type RestAction =
 
 //TreeItemProperties
 type TreeItemProperties = {
-  label: string;
-  parent: string;
   message: string;
   path: string;
   condition: boolean;
   value: ExtensionSettings["defaultScriptFetching"] | "Yes";
   options: ("Yes" | "No" | "Only method names")[];
-  ext: ".html" | ExtensionSettings["localFileExtension"];
 };
 
 //Deprecated settings

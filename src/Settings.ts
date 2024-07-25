@@ -42,14 +42,11 @@ export class Settings {
 
   static configChange(e: vscode.ConfigurationChangeEvent) {
     if (!e.affectsConfiguration("siebelScriptAndWebTempEditor")) return false;
-    for (const name in this) {
-      const settingName = <keyof ExtensionSettings>name;
-      if (
-        !e.affectsConfiguration(`siebelScriptAndWebTempEditor.${settingName}`)
-      )
+    for (const name of Object.keys(this)) {
+      if (!e.affectsConfiguration(`siebelScriptAndWebTempEditor.${name}`))
         continue;
-      (this as unknown as any)[settingName] = this.getSetting(settingName);
-      return settingName === "connections" || settingName === "maxPageSize";
+      (<any>this)[name] = this.getSetting(<keyof ExtensionSettings>name);
+      return name === "connections" || name === "maxPageSize";
     }
   }
 
