@@ -106,7 +106,7 @@ export class Utils {
           return vscode.window.showErrorMessage(error.nameDifferent);
         request.data["Program Language"] = "JS";
       }
-      return await this.callRestApi("push", request);
+      await this.callRestApi("push", request);
     };
   }
 

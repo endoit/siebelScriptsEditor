@@ -144,14 +144,15 @@ export class ExtensionStateManager {
     return async ({ webview }: { webview: vscode.Webview }) => {
       vscode.workspace.onDidChangeConfiguration(async (e) => {
         const adjust = Settings.configChange(e);
-        if (adjust) return webview.postMessage(await this.setConnection());
+        if (!adjust) return;
+        await webview.postMessage(await this.setConnection());
       });
       webview.options = { enableScripts: true };
       webview.onDidReceiveMessage(
         async ({ command, data }: DataSourceMessage) => {
           switch (command) {
             case "connection":
-              return webview.postMessage(await this.setConnection(data));
+              return await webview.postMessage(await this.setConnection(data));
             case "workspace":
               return (this.workspace = data);
             case "type":
@@ -164,7 +165,7 @@ export class ExtensionStateManager {
         context.subscriptions
       );
       webview.html = WebViews.dataSourceHTML;
-      webview.postMessage(await this.setConnection());
+      await webview.postMessage(await this.setConnection());
     };
   }
 
@@ -283,7 +284,7 @@ export class ExtensionStateManager {
                   newConnections.push(connection);
               }
               await Settings.setConnections(newConnections);
-              return this.configWebviewPanel?.dispose();
+              this.configWebviewPanel?.dispose();
           }
         },
         undefined,

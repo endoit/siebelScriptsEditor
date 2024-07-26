@@ -20,7 +20,7 @@ export class Settings {
     settingName: T,
     settingValue: AllSettings[T]
   ) {
-    return await vscode.workspace
+    await vscode.workspace
       .getConfiguration("siebelScriptAndWebTempEditor")
       .update(settingName, settingValue, vscode.ConfigurationTarget.Global);
   }
