@@ -6,10 +6,7 @@ export const entity = {
     },
     buscomp: { parent: "Business Component", child: "BusComp Server Script" },
     applet: { parent: "Applet", child: "Applet Server Script" },
-    application: {
-      parent: "Application",
-      child: "Application Server Script",
-    },
+    application: { parent: "Application", child: "Application Server Script" },
     webtemp: { parent: "Web Template", child: "" },
   } as const,
   //constant query params

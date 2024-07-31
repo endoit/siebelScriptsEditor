@@ -17,8 +17,8 @@
 		"url": "https://github.com/endoit/siebelScriptsEditor"
 	},
 	"activationEvents": [
-		"onCommand:siebelscriptandwebtempeditor.pullScript",
-		"onCommand:siebelscriptandwebtempeditor.pushScript",
+		"onCommand:siebelscriptandwebtempeditor.pull",
+		"onCommand:siebelscriptandwebtempeditor.push",
 		"onView:extensionView"
 	],
 	"main": "./dist/extension.js",
@@ -63,13 +63,13 @@
 		},
 		"commands": [
 			{
-				"command": "siebelscriptandwebtempeditor.pullScript",
+				"command": "siebelscriptandwebtempeditor.pull",
 				"title": "Get script/web template from Siebel",
 				"icon": "$(arrow-down)",
 				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.pushScript",
+				"command": "siebelscriptandwebtempeditor.push",
 				"title": "Push script/web template to Siebel",
 				"icon": "$(arrow-up)",
 				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
@@ -96,12 +96,12 @@
 		"menus": {
 			"editor/title": [
 				{
-					"command": "siebelscriptandwebtempeditor.pullScript",
+					"command": "siebelscriptandwebtempeditor.pull",
 					"group": "navigation",
 					"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.pushScript",
+					"command": "siebelscriptandwebtempeditor.push",
 					"group": "navigation",
 					"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
 				}

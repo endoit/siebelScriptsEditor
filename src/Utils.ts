@@ -56,38 +56,35 @@ export class Utils {
         : (["to", ["Push", "No"], "put"] as const);
     return async () => {
       const document = vscode.window.activeTextEditor!.document,
-        parts = document.uri.path.split("/"),
-        [name, ext] = parts.at(-1)!.split("."),
+        uriParts = document.uri.path.split("/"),
+        [name, ext] = uriParts.at(-1)!.split("."),
         isScript = ext !== "html",
-        [field, offset] = isScript
-          ? (["Script", -5] as const)
-          : (["Definition", -4] as const),
-        [connectionName, workspace, type, parentName] = parts.slice(offset, -1),
+        [connectionName, workspace, type, parentName] = uriParts.slice(
+          isScript ? -5 : -4,
+          -1
+        ),
+        { parent, child } = entity[<SiebelObject>type],
+        [field, message, path] = isScript
+          ? ([
+              "Script",
+              `script of the ${parentName} ${parent}`,
+              [parentName, child, name].join("/"),
+            ] as const)
+          : (["Definition", "web template definition", name] as const),
         connection = Settings.getConnection(connectionName);
       if (!connection.name)
         return vscode.window.showErrorMessage(
           `Connection "${connectionName}" was not found in the Connections settings!`
         );
-      const { parent, child } = entity[<SiebelObject>type],
-        answer = await vscode.window.showInformationMessage(
-          `Do you want to ${action} the ${name} ${
-            isScript
-              ? `script of the ${parentName} ${parent}`
-              : `web template definition`
-          } ${fromTo} the ${workspace} workspace of the ${connectionName} connection?`,
-          ...options
-        );
+      const answer = await vscode.window.showInformationMessage(
+        `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connectionName} connection?`,
+        ...options
+      );
       if (answer !== "Pull" && answer !== "Push") return;
       const { url, username, password } = connection,
         request: RequestConfig = {
           method,
-          url: [
-            url,
-            "workspace",
-            workspace,
-            parent,
-            isScript ? [parentName, child, name].join("/") : name,
-          ].join("/"),
+          url: [url, "workspace", workspace, parent, path].join("/"),
           auth: { username, password },
         };
       if (isPull) {
@@ -110,12 +107,12 @@ export class Utils {
     };
   }
 
-  static async setupWorkspaceFolder(contextUri: vscode.Uri) {
+  static async setupWorkspaceFolder({ extensionUri }: vscode.ExtensionContext) {
     try {
       const workspaceUri = vscode.workspace.workspaceFolders![0].uri,
         typeDefUri = vscode.Uri.joinPath(workspaceUri, "index.d.ts"),
         jsconfigUri = vscode.Uri.joinPath(workspaceUri, "jsconfig.json"),
-        siebelTypesUri = vscode.Uri.joinPath(contextUri, "siebelTypes.txt");
+        siebelTypesUri = vscode.Uri.joinPath(extensionUri, "siebelTypes.txt");
       if (!(await this.exists(typeDefUri))) {
         await vscode.workspace.fs.copy(siebelTypesUri, typeDefUri);
         vscode.window.showInformationMessage(

@@ -5,11 +5,14 @@ import { Settings } from "./Settings";
 import { ExtensionStateManager } from "./ExtensionStateManager";
 
 export async function activate(context: vscode.ExtensionContext) {
-  if (!vscode.workspace.workspaceFolders)
-    return vscode.window.showErrorMessage(error.noWorkspaceFolder);
-  await Settings.moveDeprecatedSettings();
-  await Utils.setupWorkspaceFolder(context.extensionUri);
-  new ExtensionStateManager(context);
+  try {
+    if (!vscode.workspace.workspaceFolders) throw error.noWorkspaceFolder;
+    await Settings.moveDeprecated();
+    await Utils.setupWorkspaceFolder(context);
+    new ExtensionStateManager(context);
+  } catch (err: any) {
+    vscode.window.showErrorMessage(err.toString());
+  }
 }
 
 export function deactivate() {}

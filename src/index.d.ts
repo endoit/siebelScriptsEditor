@@ -111,8 +111,11 @@ type RestAction =
   | "restWorkspaces"
   | ButtonAction;
 
-//TreeItemProperties
-type TreeItemProperties = {
+//Actions for the getData method
+type DataAction = "names" | "scriptNames" | "download";
+
+//TreeItemQuestion
+type TreeItemQuestion = {
   message: string;
   path: string;
   condition: boolean;

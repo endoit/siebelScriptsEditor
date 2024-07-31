@@ -1,28 +1,28 @@
 import * as vscode from "vscode";
 
 export class Settings {
-  static connections = this.getSetting("connections");
-  static defaultConnectionName = this.getSetting("defaultConnectionName");
-  static singleFileAutoDownload = this.getSetting("singleFileAutoDownload");
-  static localFileExtension = this.getSetting("localFileExtension");
-  static defaultScriptFetching = this.getSetting("defaultScriptFetching");
-  static maxPageSize = this.getSetting("maxPageSize");
+  static connections = this.get("connections");
+  static defaultConnectionName = this.get("defaultConnectionName");
+  static singleFileAutoDownload = this.get("singleFileAutoDownload");
+  static localFileExtension = this.get("localFileExtension");
+  static defaultScriptFetching = this.get("defaultScriptFetching");
+  static maxPageSize = this.get("maxPageSize");
 
-  private static getSetting<T extends keyof AllSettings>(settingName: T) {
+  private static get<T extends keyof AllSettings>(name: T) {
     return <AllSettings[T]>(
       vscode.workspace
         .getConfiguration("siebelScriptAndWebTempEditor")
-        .get(settingName)
+        .get(name)
     );
   }
 
-  private static async setSetting<T extends keyof AllSettings>(
-    settingName: T,
-    settingValue: AllSettings[T]
+  private static async set<T extends keyof AllSettings>(
+    name: T,
+    value: AllSettings[T]
   ) {
     await vscode.workspace
       .getConfiguration("siebelScriptAndWebTempEditor")
-      .update(settingName, settingValue, vscode.ConfigurationTarget.Global);
+      .update(name, value, vscode.ConfigurationTarget.Global);
   }
 
   static getConnection(connectionName: string) {
@@ -33,11 +33,11 @@ export class Settings {
   }
 
   static async setConnections(newConnections: Config[]) {
-    await this.setSetting("connections", newConnections);
+    await this.set("connections", newConnections);
   }
 
   static async setDefaultConnectionName(newDefaultConnectionName: string) {
-    await this.setSetting("defaultConnectionName", newDefaultConnectionName);
+    await this.set("defaultConnectionName", newDefaultConnectionName);
   }
 
   static configChange(e: vscode.ConfigurationChangeEvent) {
@@ -45,26 +45,26 @@ export class Settings {
     for (const name of Object.keys(this)) {
       if (!e.affectsConfiguration(`siebelScriptAndWebTempEditor.${name}`))
         continue;
-      (<any>this)[name] = this.getSetting(<keyof ExtensionSettings>name);
+      (<any>this)[name] = this.get(<keyof ExtensionSettings>name);
       return name === "connections" || name === "maxPageSize";
     }
   }
 
-  static openSettings() {
+  static open() {
     vscode.commands.executeCommand(
       "workbench.action.openSettings",
       "siebelScriptAndWebTempEditor"
     );
   }
 
-  static async moveDeprecatedSettings() {
+  static async moveDeprecated() {
     try {
-      const oldConnections = this.getSetting("REST EndpointConfigurations");
+      const oldConnections = this.get("REST EndpointConfigurations");
       if (!oldConnections) return;
       const connections = this.connections;
       if (connections.length !== 0) return;
-      const workspaces = this.getSetting("workspaces") || [],
-        defaultConnection = this.getSetting("defaultConnection"),
+      const workspaces = this.get("workspaces") || [],
+        defaultConnection = this.get("defaultConnection"),
         newConnections: Config[] = [],
         workspaceObject: Record<string, string[]> = {};
       let isDefault = false;
@@ -101,10 +101,10 @@ export class Settings {
       await this.setDefaultConnectionName(
         isDefault ? defaultConnectionName : newConnections[0].name
       );
-      await this.setSetting("REST EndpointConfigurations", undefined);
-      await this.setSetting("workspaces", undefined);
-      await this.setSetting("defaultConnection", undefined);
-      await this.setSetting("getWorkspacesFromREST", undefined);
+      await this.set("REST EndpointConfigurations", undefined);
+      await this.set("workspaces", undefined);
+      await this.set("defaultConnection", undefined);
+      await this.set("getWorkspacesFromREST", undefined);
     } catch (err: any) {
       vscode.window.showErrorMessage(
         `An error occured when moving the deprecated parameters to the new settings: ${err.message}, please create connections manually!`

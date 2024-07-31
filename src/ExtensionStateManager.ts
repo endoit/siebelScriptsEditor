@@ -8,7 +8,6 @@ import { TreeData } from "./TreeData";
 
 export class ExtensionStateManager {
   private static _instance: ExtensionStateManager;
-  private readonly workspaceUri = vscode.workspace.workspaceFolders![0].uri;
   private readonly treeData = {
     service: new TreeData("service"),
     buscomp: new TreeData("buscomp"),
@@ -18,10 +17,7 @@ export class ExtensionStateManager {
   } as const;
   private configWebviewPanel: vscode.WebviewPanel | undefined;
   private connection = "";
-  private connections: string[] = [];
-  private _workspace = "";
-  private workspaces: string[] = [];
-  private interceptor = 0;
+  private workspace = "";
   private type: SiebelObject = "service";
 
   constructor(context: vscode.ExtensionContext) {
@@ -29,19 +25,18 @@ export class ExtensionStateManager {
     ExtensionStateManager._instance = this;
     axios.defaults.method = "get";
     axios.defaults.withCredentials = true;
-    axios.defaults.params = { uniformresponse: "y", childlinks: "None" };
-
-    const commands = {
-      pullScript: Utils.pushOrPull("pull"),
-      pushScript: Utils.pushOrPull("push"),
-      newConnection: this.configWebview(context, true),
-      editConnection: this.configWebview(context),
-      openSettings: Settings.openSettings,
-    };
 
     vscode.window.registerWebviewViewProvider("extensionView", {
       resolveWebviewView: this.dataSourceWebview(context),
     });
+
+    const commands = {
+      pull: Utils.pushOrPull("pull"),
+      push: Utils.pushOrPull("push"),
+      newConnection: this.configWebview(context, true),
+      editConnection: this.configWebview(context),
+      openSettings: Settings.open,
+    };
 
     for (const [command, callback] of Object.entries(commands)) {
       vscode.commands.registerCommand(
@@ -51,30 +46,27 @@ export class ExtensionStateManager {
     }
   }
 
-  private set workspace(newWorkspace: string) {
-    this._workspace = newWorkspace;
+  private setType(newType: string) {
+    this.type = <SiebelObject>newType;
+  }
+
+  private setWorkspace(newWorkspace: string) {
+    this.workspace = newWorkspace;
     const { url, username, password } = Settings.getConnection(this.connection);
-    axios.interceptors.request.eject(this.interceptor);
-    this.interceptor = axios.interceptors.request.use((config) => ({
-      ...config,
-      baseURL: [url, "workspace", this.workspace].join("/"),
-      auth: { username, password },
-      params: {
-        PageSize: Settings.maxPageSize,
-        ...config.params,
-      },
-    }));
+    axios.defaults.baseURL = [url, "workspace", this.workspace].join("/");
+    axios.defaults.auth = { username, password };
+    axios.defaults.params = {
+      uniformresponse: "y",
+      childlinks: "None",
+      PageSize: Settings.maxPageSize,
+    };
     for (const treeDataProvider of Object.values(this.treeData)) {
       treeDataProvider.folder = vscode.Uri.joinPath(
-        this.workspaceUri,
+        vscode.workspace.workspaceFolders![0].uri,
         this.connection,
         this.workspace
       );
     }
-  }
-
-  private get workspace() {
-    return this._workspace;
   }
 
   private async getWorkspacesFromRest(
@@ -99,22 +91,22 @@ export class ExtensionStateManager {
   private async setConnection(
     newConnection?: string
   ): Promise<ExtensionStateMessage> {
-    this.connections = [];
+    const connections = [];
     for (const { name } of Settings.connections) {
-      this.connections.push(name);
+      connections.push(name);
     }
-    if (this.connections.length === 0) {
+    if (connections.length === 0) {
       vscode.window.showErrorMessage(error.noConnection);
       return {};
     }
     const defaultConnectionName = Settings.defaultConnectionName;
     this.connection = newConnection
       ? newConnection
-      : this.connections.includes(this.connection)
+      : connections.includes(this.connection)
       ? this.connection
-      : this.connections.includes(defaultConnectionName)
+      : connections.includes(defaultConnectionName)
       ? defaultConnectionName
-      : this.connections[0];
+      : connections[0];
     const {
       url,
       username,
@@ -123,18 +115,19 @@ export class ExtensionStateManager {
       defaultWorkspace,
       restWorkspaces,
     } = Settings.getConnection(this.connection);
-    this.workspaces = restWorkspaces
-      ? await this.getWorkspacesFromRest(url, username, password)
-      : workspaces;
-    this.workspace = this.workspaces?.includes(this.workspace)
-      ? this.workspace
-      : restWorkspaces || !workspaces.includes(defaultWorkspace)
-      ? this.workspaces?.[0] || ""
-      : defaultWorkspace;
+    const newWorkspaces = restWorkspaces
+        ? await this.getWorkspacesFromRest(url, username, password)
+        : workspaces,
+      newWorkspace = newWorkspaces.includes(this.workspace)
+        ? this.workspace
+        : restWorkspaces || !newWorkspaces.includes(defaultWorkspace)
+        ? newWorkspaces?.[0] || ""
+        : defaultWorkspace;
+    this.setWorkspace(newWorkspace);
     return {
-      connections: this.connections,
+      connections,
       connection: this.connection,
-      workspaces: this.workspaces,
+      workspaces: newWorkspaces,
       workspace: this.workspace,
       type: this.type,
     };
@@ -143,8 +136,7 @@ export class ExtensionStateManager {
   private dataSourceWebview(context: vscode.ExtensionContext) {
     return async ({ webview }: { webview: vscode.Webview }) => {
       vscode.workspace.onDidChangeConfiguration(async (e) => {
-        const adjust = Settings.configChange(e);
-        if (!adjust) return;
+        if (!Settings.configChange(e)) return;
         await webview.postMessage(await this.setConnection());
       });
       webview.options = { enableScripts: true };
@@ -154,9 +146,9 @@ export class ExtensionStateManager {
             case "connection":
               return await webview.postMessage(await this.setConnection(data));
             case "workspace":
-              return (this.workspace = data);
+              return this.setWorkspace(data);
             case "type":
-              return (this.type = <SiebelObject>data);
+              return this.setType(data);
             case "search":
               return await this.treeData[this.type].search(data);
           }
@@ -177,8 +169,7 @@ export class ExtensionStateManager {
       const columnToShowIn = vscode.window.activeTextEditor
         ? vscode.window.activeTextEditor.viewColumn
         : undefined;
-      if (!isNewConnection) isNewConnection = this.connections.length === 0;
-
+      if (!isNewConnection) isNewConnection = Settings.connections.length === 0;
       if (this.configWebviewPanel) {
         this.configWebviewPanel.webview.html = WebViews.configHTML(
           this.connection,
@@ -278,13 +269,13 @@ export class ExtensionStateManager {
                 "No"
               );
               if (answer !== "Yes") return;
-              const newConnections = [];
-              for (const connection of connections) {
-                if (connection.name !== connectionName)
-                  newConnections.push(connection);
+              let index = 0;
+              for (index; index < connections.length; index++) {
+                if (connections[index].name === connectionName) break;
               }
-              await Settings.setConnections(newConnections);
-              this.configWebviewPanel?.dispose();
+              connections.splice(index, 1);
+              await Settings.setConnections(connections);
+              return this.configWebviewPanel?.dispose();
           }
         },
         undefined,
