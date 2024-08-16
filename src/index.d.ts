@@ -17,6 +17,7 @@ type ExtensionSettings = {
     | "All scripts"
     | "None - always ask";
   maxPageSize: 10 | 20 | 50 | 100 | 200 | 500;
+  defaultActionWhenFileExists: "None - always ask" | "Open file" | "Overwrite";
 };
 
 type Config = {
@@ -30,14 +31,13 @@ type Config = {
 };
 
 //Fields
-type Field = "Script" | "Definition";
 type NameField = "Name,Script" | "Name,Definition";
 
 //Query parameters
 type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
-  fields?: "Name" | Field | NameField;
+  fields?: "Name" | "Script" | "Definition" | NameField;
   PageSize?: ExtensionSettings["maxPageSize"];
 };
 
@@ -51,9 +51,9 @@ type Payload = {
 
 //Request config object
 type RequestConfig = {
-  method: "get" | "put";
   url: Config["url"];
-  auth: {
+  method?: "get" | "put";
+  auth?: {
     username: Config["username"];
     password: Config["password"];
   };
@@ -68,20 +68,16 @@ type RestResponse = {
   Definition?: string;
 };
 
-//message sent to the datasource webview
-type ExtensionStateMessage = {
-  connections?: Config["name"][];
-  connection?: Config["name"];
-  workspaces?: Config["workspaces"];
-  workspace?: string;
-  type?: SiebelObject;
-};
-
 //message received from the datasource webview
-type DataSourceMessage = {
-  command: "connection" | "workspace" | "type" | "search";
-  data: string;
-};
+type DataSourceMessage =
+  | {
+      command: "connection" | "workspace" | "search";
+      data: string;
+    }
+  | {
+      command: "type";
+      data: SiebelObject;
+    };
 
 //message received from the configuration webview
 type ConfigMessage = {
@@ -92,8 +88,8 @@ type ConfigMessage = {
     | "testRestWorkspaces"
     | "deleteConnection";
   action: "add" | "default" | "delete";
-  connectionName: Config["name"];
-  workspace: string;
+  name: Config["name"];
+  workspace: Config["workspaces"][number];
   defaultConnection: boolean;
   url: Config["url"];
   username: Config["username"];
@@ -111,16 +107,13 @@ type RestAction =
   | "restWorkspaces"
   | ButtonAction;
 
-//Actions for the getData method
-type DataAction = "names" | "scriptNames" | "download";
-
 //TreeItemQuestion
 type TreeItemQuestion = {
   message: string;
-  path: string;
   condition: boolean;
   value: ExtensionSettings["defaultScriptFetching"] | "Yes";
   options: ("Yes" | "No" | "Only method names")[];
+  url: string;
 };
 
 //Deprecated settings

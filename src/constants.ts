@@ -74,5 +74,5 @@ export const entity = {
     noEditableWorkspace:
       "No workspace with status Checkpointed or Edit-In-Progress was found!",
     nameDifferent:
-      "Unable to create new method, name of the file and the function is not the same!",
+      "Unable to push script, name of the file and the function is not the same!",
   } as const;

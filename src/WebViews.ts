@@ -1,7 +1,6 @@
-import { Settings } from "./Settings";
+import { getConnection, settings } from "./settings";
 
-export class WebViews {
-  private static readonly head = `<head>
+const head = `<head>
 	<style>
 		h1 {
 			text-align:center;
@@ -124,8 +123,8 @@ export class WebViews {
 	</style>
 </head>`;
 
-  static dataSourceHTML = `<!doctype><html>
-  ${this.head}
+export const dataSourceHTML = `<!doctype><html>
+  ${head}
 <body>
   <div class="datasource">
     <div class="grid-item grid-1">
@@ -152,7 +151,7 @@ export class WebViews {
   </div>
   <script>
     const vscode = acquireVsCodeApi(),
-			currentState = vscode.getState() || {},
+			currentState = vscode.getState() ?? {},
       objectNames = {
         service: "Business Service",
         buscomp: "Business Component",
@@ -210,18 +209,17 @@ export class WebViews {
 </body>
 </html>`;
 
-  static configHTML(connectionName: string, isNewConnection = false) {
-    const {
-        url = "",
-        username = "",
-        password = "",
-        workspaces = [],
-        restWorkspaces = false,
-        defaultWorkspace = "",
-      } = isNewConnection ? {} : Settings.getConnection(connectionName),
-      defaultConnectionName = Settings.defaultConnectionName;
-    return `<!doctype><html>
-	${this.head}
+export const configHTML = (name: string, isNewConnection = false) => {
+  const {
+    url = "",
+    username = "",
+    password = "",
+    workspaces = [],
+    restWorkspaces = false,
+    defaultWorkspace = "",
+  } = isNewConnection ? {} : getConnection(name);
+  return `<!doctype><html>
+	${head}
 	<body>
 		<h1>${isNewConnection ? "New Connection" : "Edit Connection"}</h1>
 		<div class="config">
@@ -230,7 +228,7 @@ export class WebViews {
 			</div>
 			<div class="grid-item grid-24">
 				<input type="text" class="input" name="connection-name" id="connection-name" value=${
-          isNewConnection ? "" : `"${connectionName}" readonly`
+          isNewConnection ? "" : `"${name}" readonly`
         }> 
 			</div>
 			<div class="grid-item grid-1">
@@ -290,7 +288,7 @@ export class WebViews {
 			</div>
 			<div class="grid-item grid-1 checkbox-container"> 
 			<input type="checkbox" class="checkbox" name="default-connection" id="default-connection" ${
-        defaultConnectionName === connectionName ? "checked" : ""
+        settings.defaultConnectionName === name ? "checked" : ""
       }>				
 			</div>
 			<div class="grid-item grid-2"> 
@@ -327,11 +325,11 @@ export class WebViews {
 			const vscode = acquireVsCodeApi(),
 				getBaseParameters = () => ({ url: document.getElementById("url").value, username:  document.getElementById("username").value, password: document.getElementById("password").value }),
 				editWorkspaces = () => {
-					const connectionName = document.getElementById("connection-name").value, 
+					const name = document.getElementById("connection-name").value, 
 						action = event.target.name,
 						workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;
 					if (!workspace) return;
-					vscode.postMessage({command: "workspace", connectionName, action, workspace});
+					vscode.postMessage({command: "workspace", name, action, workspace});
 				},
 				testRestWorkspaces = () => {
 					const { url, username, password } = getBaseParameters(),
@@ -343,18 +341,17 @@ export class WebViews {
 					vscode.postMessage({command: "testConnection", url, username, password});
 				},
 				newOrEditConnection = () => {
-					const connectionName = document.getElementById("connection-name").value,
+					const name = document.getElementById("connection-name").value,
 						{ url, username, password } = getBaseParameters(),
 						restWorkspaces = !!document.getElementById("rest-workspaces")?.checked,
 						defaultConnection = !!document.getElementById("default-connection")?.checked;
-					vscode.postMessage({command: "newOrEditConnection", connectionName, url, username, password, restWorkspaces, defaultConnection});
+					vscode.postMessage({command: "newOrEditConnection", name, url, username, password, restWorkspaces, defaultConnection});
 				},
 				deleteConnection = () => {
-					const connectionName = document.getElementById("connection-name").value;
-					vscode.postMessage({command: "deleteConnection", connectionName});
+					const name = document.getElementById("connection-name").value;
+					vscode.postMessage({command: "deleteConnection", name});
 				};
 			</script>
 		</body>
 	</html>`;
-  }
-}
+};
