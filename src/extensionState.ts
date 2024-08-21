@@ -1,11 +1,9 @@
 import * as vscode from "vscode";
 import { query, paths, error } from "./constants";
-import { callRestApi, pushOrPull, setupWorkspaceFolder } from "./utils";
+import { callRestApi } from "./utils";
 import {
   configChange,
   getConnection,
-  moveDeprecatedSettings,
-  openSettings,
   setConnections,
   setDefaultConnectionName,
   settings,
@@ -21,79 +19,31 @@ const treeData = {
   application: new TreeData("application"),
   webtemp: new TreeData("webtemp"),
 } as const;
-let configWebviewPanel: vscode.WebviewPanel | undefined,
+let connections: string[] = [],
   connection = "",
+  workspaces: string[] = [],
   workspace = "",
-  type: SiebelObject = "service";
+  type: SiebelObject = "service",
+  baseUrl: string,
+  configWebviewPanel: vscode.WebviewPanel | undefined;
 axios.defaults.method = "get";
 axios.defaults.withCredentials = true;
 
-export const initialize = async (context: vscode.ExtensionContext) => {
-  await moveDeprecatedSettings();
-  await setupWorkspaceFolder(context);
-
-  vscode.window.registerWebviewViewProvider("extensionView", {
-    resolveWebviewView: dataSourceWebview(context),
-  });
-
-  const commands = {
-    pull: pushOrPull("pull"),
-    push: pushOrPull("push"),
-    newConnection: configWebview(context, true),
-    editConnection: configWebview(context),
-    openSettings,
-  } as const;
-
-  for (const [command, callback] of Object.entries(commands)) {
-    vscode.commands.registerCommand(
-      `siebelscriptandwebtempeditor.${command}`,
-      callback
-    );
-  }
-};
-
-const setWorkspace = (newWorkspace: string) => {
-  workspace = newWorkspace;
-  const { url, username, password } = getConnection(connection),
-    folderUri = vscode.Uri.joinPath(
-      vscode.workspace.workspaceFolders![0].uri,
-      connection,
-      workspace
-    );
-  axios.defaults.baseURL = [url, "workspace", workspace].join("/");
-  axios.defaults.auth = { username, password };
-  axios.defaults.params = {
-    uniformresponse: "y",
-    childlinks: "None",
-    PageSize: settings.maxPageSize,
-  };
+const setFolderAndUrl = () => {
+  const folderUri = vscode.Uri.joinPath(
+    vscode.workspace.workspaceFolders![0].uri,
+    connection,
+    workspace
+  );
+  axios.defaults.baseURL = [baseUrl, "workspace", workspace].join("/");
   for (const treeDataProvider of Object.values(treeData)) {
     treeDataProvider.setFolder(folderUri);
   }
 };
 
-const getWorkspacesFromRest = async (
-  url: string,
-  username: string,
-  password: string
-) => {
-  const request: RequestConfig = {
-      method: "get",
-      url: [url, paths.restWorkspaces].join("/"),
-      auth: { username, password },
-      params: query.restWorkspaces,
-    },
-    data = await callRestApi("restWorkspaces", request),
-    workspaces = [];
-  for (const { Name } of data) {
-    workspaces.push(Name);
-  }
-  return workspaces;
-};
-
 const setConnection = async (newConnection?: string) => {
-  const connections = [],
-    defaultConnectionName = settings.defaultConnectionName;
+  const defaultConnectionName = settings.defaultConnectionName;
+  connections = [];
   for (const { name } of settings.connections) {
     connections.push(name);
   }
@@ -101,40 +51,52 @@ const setConnection = async (newConnection?: string) => {
     vscode.window.showErrorMessage(error.noConnection);
     return {};
   }
-  connection = newConnection
-    ? newConnection
-    : connections.includes(connection)
-    ? connection
-    : connections.includes(defaultConnectionName)
-    ? defaultConnectionName
-    : connections[0];
+  connection =
+    newConnection ??
+    (connections.includes(connection)
+      ? connection
+      : connections.includes(defaultConnectionName)
+      ? defaultConnectionName
+      : connections[0]);
   const {
-      url,
-      username,
-      password,
-      workspaces,
-      defaultWorkspace,
-      restWorkspaces,
-    } = getConnection(connection),
-    newWorkspaces = restWorkspaces
-      ? await getWorkspacesFromRest(url, username, password)
-      : workspaces,
-    newWorkspace = newWorkspaces.includes(workspace)
-      ? workspace
-      : restWorkspaces || !newWorkspaces.includes(defaultWorkspace)
-      ? newWorkspaces?.[0] ?? ""
-      : defaultWorkspace;
-  setWorkspace(newWorkspace);
-  return {
-    connections,
-    connection,
+    url,
+    username,
+    password,
     workspaces: newWorkspaces,
-    workspace,
-    type,
+    defaultWorkspace,
+    restWorkspaces,
+  } = getConnection(connection);
+  workspaces = newWorkspaces;
+  if (restWorkspaces) {
+    const request: RequestConfig = {
+        method: "get",
+        url: [url, paths.restWorkspaces].join("/"),
+        auth: { username, password },
+        params: query.restWorkspaces,
+      },
+      data = await callRestApi("restWorkspaces", request);
+    workspaces = [];
+    for (const { Name } of data) {
+      workspaces.push(Name);
+    }
+  }
+  workspace = workspaces.includes(workspace)
+    ? workspace
+    : restWorkspaces || !workspaces.includes(defaultWorkspace)
+    ? workspaces?.[0] ?? ""
+    : defaultWorkspace;
+  axios.defaults.auth = { username, password };
+  axios.defaults.params = {
+    uniformresponse: "y",
+    childlinks: "None",
+    PageSize: settings.maxPageSize,
   };
+  baseUrl = url;
+  setFolderAndUrl();
+  return { connections, connection, workspaces, workspace, type };
 };
 
-const dataSourceWebview =
+export const dataSourceWebview =
   (context: vscode.ExtensionContext) =>
   async ({ webview }: { webview: vscode.Webview }) => {
     vscode.workspace.onDidChangeConfiguration(async (e) => {
@@ -148,7 +110,8 @@ const dataSourceWebview =
           case "connection":
             return await webview.postMessage(await setConnection(data));
           case "workspace":
-            return setWorkspace(data);
+            workspace = data;
+            return setFolderAndUrl();
           case "type":
             return (type = data);
           case "search":
@@ -162,7 +125,7 @@ const dataSourceWebview =
     await webview.postMessage(await setConnection());
   };
 
-const configWebview =
+export const configWebview =
   (context: vscode.ExtensionContext, isNewConnection = false) =>
   async () => {
     const columnToShowIn = vscode.window.activeTextEditor

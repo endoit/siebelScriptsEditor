@@ -5,9 +5,6 @@ const get = <T extends keyof AllSettings>(name: T) =>
     vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor").get(name)
   );
 
-const refresh = <T extends keyof ExtensionSettings>(name: T) =>
-  (settings[name] = get(name));
-
 const set = async <T extends keyof AllSettings>(
   name: T,
   value: AllSettings[T]
@@ -16,7 +13,10 @@ const set = async <T extends keyof AllSettings>(
     .getConfiguration("siebelScriptAndWebTempEditor")
     .update(name, value, vscode.ConfigurationTarget.Global);
 
-export const settings = {
+const refresh = <T extends keyof ExtensionSettings>(name: T) =>
+  (settings[name] = get(name));
+
+export const settings: ExtensionSettings = {
   connections: get("connections"),
   defaultConnectionName: get("defaultConnectionName"),
   singleFileAutoDownload: get("singleFileAutoDownload"),
@@ -30,15 +30,14 @@ export const getConnection = (name: string) => {
   for (const connection of settings.connections) {
     if (connection.name === name) return connection;
   }
-  return {} as Config;
+  return <Config>{};
 };
 
 export const setConnections = async (newConnections: Config[]) =>
   await set("connections", newConnections);
 
-export const setDefaultConnectionName = async (
-  newDefaultConnectionName: string
-) => await set("defaultConnectionName", newDefaultConnectionName);
+export const setDefaultConnectionName = async (newName: string) =>
+  await set("defaultConnectionName", newName);
 
 export const configChange = (e: vscode.ConfigurationChangeEvent) => {
   if (!e.affectsConfiguration("siebelScriptAndWebTempEditor")) return false;
@@ -50,18 +49,11 @@ export const configChange = (e: vscode.ConfigurationChangeEvent) => {
   }
 };
 
-export const openSettings = () =>
-  vscode.commands.executeCommand(
-    "workbench.action.openSettings",
-    "siebelScriptAndWebTempEditor"
-  );
-
 export const moveDeprecatedSettings = async () => {
   try {
-    const oldConnections = get("REST EndpointConfigurations");
-    if (!oldConnections) return;
-    const connections = settings.connections;
-    if (connections.length !== 0) return;
+    const oldConnections = get("REST EndpointConfigurations"),
+      connections = settings.connections;
+    if (!oldConnections || connections.length !== 0) return;
     const workspaces = get("workspaces") ?? [],
       defaultConnection = get("defaultConnection"),
       newConnections: Config[] = [],

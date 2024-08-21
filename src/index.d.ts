@@ -116,6 +116,9 @@ type TreeItemQuestion = {
   url: string;
 };
 
+//On disk map
+type OnDisk = Map<string, ".js" | ".ts" | ".html">;
+
 //Deprecated settings
 type DeprecatedSettings = {
   "REST EndpointConfigurations"?: string[];
