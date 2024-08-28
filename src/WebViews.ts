@@ -209,7 +209,7 @@ export const dataSourceHTML = `<!doctype><html>
 </body>
 </html>`;
 
-export const configHTML = (name: string, isNewConnection = false) => {
+export const configHTML = (name: string, isNew = false) => {
   const {
     url = "",
     username = "",
@@ -217,18 +217,18 @@ export const configHTML = (name: string, isNewConnection = false) => {
     workspaces = [],
     restWorkspaces = false,
     defaultWorkspace = "",
-  } = isNewConnection ? {} : getConnection(name);
+  } = isNew ? {} : getConnection(name);
   return `<!doctype><html>
 	${head}
 	<body>
-		<h1>${isNewConnection ? "New Connection" : "Edit Connection"}</h1>
+		<h1>${isNew ? "New Connection" : "Edit Connection"}</h1>
 		<div class="config">
 			<div class="grid-item grid-1">
 				<label for="connection-name">Connection Name</label>
 			</div>
 			<div class="grid-item grid-24">
 				<input type="text" class="input" name="connection-name" id="connection-name" value=${
-          isNewConnection ? "" : `"${name}" readonly`
+          isNew ? "" : `"${name}" readonly`
         }> 
 			</div>
 			<div class="grid-item grid-1">
@@ -250,7 +250,7 @@ export const configHTML = (name: string, isNewConnection = false) => {
 				<input type="password" class="input" name="username" id="password" value="${password}">
 			</div>
 	${
-    isNewConnection
+    isNew
       ? ""
       : `
 			<div class="grid-item  grid-1">
@@ -298,11 +298,11 @@ export const configHTML = (name: string, isNewConnection = false) => {
 			<div class="grid-item grid-1">
 				<Button class="button" id="test" onclick="testConnection()">Test Connection</Button>  
 			</div>
-			<div class="grid-item ${isNewConnection ? "grid-24" : "grid-23"} ">
+			<div class="grid-item ${isNew ? "grid-24" : "grid-23"} ">
 				<Button class="button" id="newOrEditConnection" onclick="newOrEditConnection()">Save Connection</Button>
 			</div>  
 			${
-        isNewConnection
+        isNew
           ? ""
           : `<div class="grid-item grid-3">
 				<Button class="button" id="deleteConnection" onclick="deleteConnection()">Delete Connection</Button>
@@ -311,7 +311,7 @@ export const configHTML = (name: string, isNewConnection = false) => {
 		</div>
 		<script>
 			${
-        isNewConnection
+        isNew
           ? `document.getElementById("connection-name").focus();`
           : `const addWorkspace = document.getElementById("add-workspace");					
 				addWorkspace.focus();

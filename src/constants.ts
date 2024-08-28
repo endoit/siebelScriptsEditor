@@ -69,6 +69,7 @@ export const entity = {
       "Please create at least one connection with the New Connection button!",
     missingParameters:
       "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
+    connectionExists: "Connection with the same name already exists!",
     noBaseWorkspaceIOB:
       "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
     noEditableWorkspace:

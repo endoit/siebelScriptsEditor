@@ -13,12 +13,13 @@ import { dataSourceHTML, configHTML } from "./webViews";
 import { TreeData } from "./treeData";
 
 const treeData = {
-  service: new TreeData("service"),
-  buscomp: new TreeData("buscomp"),
-  applet: new TreeData("applet"),
-  application: new TreeData("application"),
-  webtemp: new TreeData("webtemp"),
-} as const;
+    service: new TreeData("service"),
+    buscomp: new TreeData("buscomp"),
+    applet: new TreeData("applet"),
+    application: new TreeData("application"),
+    webtemp: new TreeData("webtemp"),
+  } as const,
+  workspaceUri = vscode.workspace.workspaceFolders![0].uri;
 let connections: string[] = [],
   connection = "",
   workspaces: string[] = [],
@@ -29,35 +30,38 @@ let connections: string[] = [],
 axios.defaults.method = "get";
 axios.defaults.withCredentials = true;
 
-const setFolderAndUrl = () => {
-  const folderUri = vscode.Uri.joinPath(
-    vscode.workspace.workspaceFolders![0].uri,
-    connection,
-    workspace
-  );
+const setUrlAndFolder = () => {
   axios.defaults.baseURL = [baseUrl, "workspace", workspace].join("/");
-  for (const treeDataProvider of Object.values(treeData)) {
-    treeDataProvider.setFolder(folderUri);
+  for (const [type, treeDataProvider] of Object.entries(treeData)) {
+    treeDataProvider.folder = vscode.Uri.joinPath(
+      workspaceUri,
+      connection,
+      workspace,
+      type
+    );
+    treeDataProvider.clear();
   }
 };
 
-const setConnection = async (newConnection?: string) => {
+const getState = async () => {
   const defaultConnectionName = settings.defaultConnectionName;
   connections = [];
+  let isConnection = false,
+    isDefault = false;
   for (const { name } of settings.connections) {
     connections.push(name);
+    if (!isConnection && connection === name) isConnection = true;
+    if (!isDefault && defaultConnectionName === name) isDefault = true;
   }
   if (connections.length === 0) {
     vscode.window.showErrorMessage(error.noConnection);
     return {};
   }
-  connection =
-    newConnection ??
-    (connections.includes(connection)
-      ? connection
-      : connections.includes(defaultConnectionName)
-      ? defaultConnectionName
-      : connections[0]);
+  connection = isConnection
+    ? connection
+    : isDefault
+    ? defaultConnectionName
+    : connections[0];
   const {
     url,
     username,
@@ -66,7 +70,7 @@ const setConnection = async (newConnection?: string) => {
     defaultWorkspace,
     restWorkspaces,
   } = getConnection(connection);
-  workspaces = newWorkspaces;
+  workspaces = restWorkspaces ? [] : newWorkspaces;
   if (restWorkspaces) {
     const request: RequestConfig = {
         method: "get",
@@ -75,7 +79,6 @@ const setConnection = async (newConnection?: string) => {
         params: query.restWorkspaces,
       },
       data = await callRestApi("restWorkspaces", request);
-    workspaces = [];
     for (const { Name } of data) {
       workspaces.push(Name);
     }
@@ -92,7 +95,7 @@ const setConnection = async (newConnection?: string) => {
     PageSize: settings.maxPageSize,
   };
   baseUrl = url;
-  setFolderAndUrl();
+  setUrlAndFolder();
   return { connections, connection, workspaces, workspace, type };
 };
 
@@ -101,17 +104,18 @@ export const dataSourceWebview =
   async ({ webview }: { webview: vscode.Webview }) => {
     vscode.workspace.onDidChangeConfiguration(async (e) => {
       if (!configChange(e)) return;
-      await webview.postMessage(await setConnection());
+      await webview.postMessage(await getState());
     });
     webview.options = { enableScripts: true };
     webview.onDidReceiveMessage(
       async ({ command, data }: DataSourceMessage) => {
         switch (command) {
           case "connection":
-            return await webview.postMessage(await setConnection(data));
+            connection = data;
+            return await webview.postMessage(await getState());
           case "workspace":
             workspace = data;
-            return setFolderAndUrl();
+            return setUrlAndFolder();
           case "type":
             return (type = data);
           case "search":
@@ -122,18 +126,18 @@ export const dataSourceWebview =
       context.subscriptions
     );
     webview.html = dataSourceHTML;
-    await webview.postMessage(await setConnection());
+    await webview.postMessage(await getState());
   };
 
 export const configWebview =
-  (context: vscode.ExtensionContext, isNewConnection = false) =>
+  (context: vscode.ExtensionContext, isNew = false) =>
   async () => {
     const columnToShowIn = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
-    if (!isNewConnection) isNewConnection = settings.connections.length === 0;
+    if (!isNew) isNew = settings.connections.length === 0;
     if (configWebviewPanel) {
-      configWebviewPanel.webview.html = configHTML(connection, isNewConnection);
+      configWebviewPanel.webview.html = configHTML(connection, isNew);
       return configWebviewPanel.reveal(columnToShowIn);
     }
     configWebviewPanel = vscode.window.createWebviewPanel(
@@ -142,7 +146,7 @@ export const configWebview =
       columnToShowIn ?? vscode.ViewColumn.One,
       { enableScripts: true, retainContextWhenHidden: true }
     );
-    configWebviewPanel.webview.html = configHTML(connection, isNewConnection);
+    configWebviewPanel.webview.html = configHTML(connection, isNew);
     configWebviewPanel.onDidDispose(
       () => (configWebviewPanel = undefined),
       null,
@@ -196,6 +200,8 @@ export const configWebview =
             if (!(name && url && username && password))
               return vscode.window.showErrorMessage(error.missingParameters);
             if (connection.name) {
+              if (isNew)
+                return vscode.window.showErrorMessage(error.connectionExists);
               connection.url = url;
               connection.username = username;
               connection.password = password;

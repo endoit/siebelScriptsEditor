@@ -7,14 +7,14 @@ import { dataSourceWebview, configWebview } from "./extensionState";
 export async function activate(context: vscode.ExtensionContext) {
   try {
     if (!vscode.workspace.workspaceFolders) throw error.noWorkspaceFolder;
-    
+
     await moveDeprecatedSettings();
     await setupWorkspaceFolder(context);
-  
+
     vscode.window.registerWebviewViewProvider("extensionView", {
       resolveWebviewView: dataSourceWebview(context),
     });
-  
+
     const commands = {
       pull: pushOrPull("pull"),
       push: pushOrPull("push"),
@@ -26,7 +26,7 @@ export async function activate(context: vscode.ExtensionContext) {
           "siebelScriptAndWebTempEditor"
         ),
     } as const;
-  
+
     for (const [command, callback] of Object.entries(commands)) {
       vscode.commands.registerCommand(
         `siebelscriptandwebtempeditor.${command}`,

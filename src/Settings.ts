@@ -17,13 +17,7 @@ const refresh = <T extends keyof ExtensionSettings>(name: T) =>
   (settings[name] = get(name));
 
 export const settings: ExtensionSettings = {
-  connections: get("connections"),
-  defaultConnectionName: get("defaultConnectionName"),
-  singleFileAutoDownload: get("singleFileAutoDownload"),
-  localFileExtension: get("localFileExtension"),
-  defaultScriptFetching: get("defaultScriptFetching"),
-  maxPageSize: get("maxPageSize"),
-  defaultActionWhenFileExists: get("defaultActionWhenFileExists"),
+  ...vscode.workspace.getConfiguration().get("siebelScriptAndWebTempEditor")!,
 };
 
 export const getConnection = (name: string) => {
@@ -33,11 +27,11 @@ export const getConnection = (name: string) => {
   return <Config>{};
 };
 
-export const setConnections = async (newConnections: Config[]) =>
-  await set("connections", newConnections);
+export const setConnections = async (connections: Config[]) =>
+  await set("connections", connections);
 
-export const setDefaultConnectionName = async (newName: string) =>
-  await set("defaultConnectionName", newName);
+export const setDefaultConnectionName = async (name: string) =>
+  await set("defaultConnectionName", name);
 
 export const configChange = (e: vscode.ConfigurationChangeEvent) => {
   if (!e.affectsConfiguration("siebelScriptAndWebTempEditor")) return false;

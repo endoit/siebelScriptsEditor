@@ -10,7 +10,7 @@ const restApi = axios.create({
 export const callRestApi = async (
   action: RestAction,
   request: RequestConfig
-): Promise<RestResponse[]> => {
+): Promise<RestResponse> => {
   try {
     const response = await restApi(request);
     if (success[action]) vscode.window.showInformationMessage(success[action]);
@@ -27,21 +27,15 @@ export const exists = async (resourceUri: vscode.Uri) => {
   try {
     await vscode.workspace.fs.stat(resourceUri);
     return true;
-  } catch (err) {
+  } catch (err: any) {
     return false;
   }
 };
 
-export const writeFile = async (
-  fileUri: vscode.Uri,
-  fileContent: string,
-  openFile = false
-) => {
+export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
   try {
     const contents = Buffer.from(fileContent, "utf8");
     await vscode.workspace.fs.writeFile(fileUri, contents);
-    if (!openFile) return;
-    await vscode.window.showTextDocument(fileUri, { preview: false });
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }

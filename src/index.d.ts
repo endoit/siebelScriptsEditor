@@ -66,7 +66,7 @@ type RestResponse = {
   Name: string;
   Script?: string;
   Definition?: string;
-};
+}[];
 
 //message received from the datasource webview
 type DataSourceMessage =
@@ -107,13 +107,14 @@ type RestAction =
   | "restWorkspaces"
   | ButtonAction;
 
-//TreeItemQuestion
-type TreeItemQuestion = {
+//Tree Item Request parameters
+type TreeItemRequest  = {
   message: string;
   condition: boolean;
   value: ExtensionSettings["defaultScriptFetching"] | "Yes";
   options: ("Yes" | "No" | "Only method names")[];
   url: string;
+  fields: "Name" | NameField;
 };
 
 //On disk map
