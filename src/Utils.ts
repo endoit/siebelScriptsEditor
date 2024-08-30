@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
-import { entity, query, error, success } from "./constants";
+import {
+  urlObject,
+  query,
+  error,
+  success,
+  pullOptions,
+  pushOptions,
+} from "./constants";
 import { getConnection } from "./settings";
 import axios from "axios";
 
@@ -43,9 +50,7 @@ export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
 
 export const pushOrPull = (action: ButtonAction) => {
   const isPull = action === "pull",
-    [fromTo, options, method] = isPull
-      ? (["from", ["Pull", "No"], "get"] as const)
-      : (["to", ["Push", "No"], "put"] as const);
+    [fromTo, answerOptions, method] = isPull ? pullOptions : pushOptions;
   return async () => {
     const document = vscode.window.activeTextEditor!.document,
       uriParts = document.uri.path.split("/"),
@@ -55,7 +60,7 @@ export const pushOrPull = (action: ButtonAction) => {
         isScript ? -5 : -4,
         -1
       ),
-      { parent, child } = entity[<SiebelObject>type],
+      { parent, child } = urlObject[<SiebelObject>type],
       [field, message, path] = isScript
         ? ([
             "Script",
@@ -70,7 +75,7 @@ export const pushOrPull = (action: ButtonAction) => {
       );
     const answer = await vscode.window.showInformationMessage(
       `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connectionName} connection?`,
-      ...options
+      ...answerOptions
     );
     if (answer !== "Pull" && answer !== "Push") return;
     const { url, username, password } = connection,

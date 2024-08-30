@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { query, paths, error } from "./constants";
+import { query, paths, error, yesNo } from "./constants";
 import { callRestApi } from "./utils";
 import {
   configChange,
@@ -224,8 +224,7 @@ export const configWebview =
           case "deleteConnection":
             const answer = await vscode.window.showInformationMessage(
               `Do you want to delete the ${name} connection?`,
-              "Yes",
-              "No"
+              ...yesNo
             );
             if (answer !== "Yes") return;
             let index = 0;

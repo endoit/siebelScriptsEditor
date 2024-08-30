@@ -1,5 +1,5 @@
 //Repository object urls and names
-export const entity = {
+export const urlObject = {
     service: {
       parent: "Business Service",
       child: "Business Service Server Script",
@@ -46,6 +46,12 @@ export const entity = {
     testRestWorkspaces: "workspace/MAIN/Integration Object",
     restWorkspaces: "data/Workspace/Repository Workspace",
   } as const,
+  //constant arrays
+  yesNo = ["Yes", "No"] as const,
+  yesOnlyMethodNamesNo = ["Yes", "Only method names", "No"] as const,
+  pullOptions = ["from", ["Pull", "No"], "get"] as const,
+  pushOptions = ["to", ["Push", "No"], "put"] as const,
+  openFileOverwriteCancel = ["Open file", "Overwrite", "Cancel"] as const,
   //constant success and error messages messages
   success = {
     pull: "",

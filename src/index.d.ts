@@ -6,6 +6,9 @@ type SiebelObject =
   | "application"
   | "webtemp";
 
+//Url parts for siebel objects
+type UrlParts = { parent: string; child: string };
+
 //Settings
 type ExtensionSettings = {
   connections: Config[];
@@ -30,14 +33,14 @@ type Config = {
   restWorkspaces: boolean;
 };
 
-//Fields
-type NameField = "Name,Script" | "Name,Definition";
+//Data field
+type Field = "Script" | "Definition";
 
 //Query parameters
 type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
-  fields?: "Name" | "Script" | "Definition" | NameField;
+  fields?: "Name" | "Name," | Field | "Name,Script" | "Name,Definition";
   PageSize?: ExtensionSettings["maxPageSize"];
 };
 
@@ -107,18 +110,15 @@ type RestAction =
   | "restWorkspaces"
   | ButtonAction;
 
-//Tree Item Request parameters
-type TreeItemRequest  = {
-  message: string;
-  condition: boolean;
-  value: ExtensionSettings["defaultScriptFetching"] | "Yes";
-  options: ("Yes" | "No" | "Only method names")[];
-  url: string;
-  fields: "Name" | NameField;
-};
-
-//On disk map
+//On disk map for files
 type OnDisk = Map<string, ".js" | ".ts" | ".html">;
+
+//Answer options for tree item selection
+type AnswerOptions =
+  | readonly ["Yes", "No"]
+  | readonly ["Yes", "Only method names", "No"];
+
+type AnswerWhenTrue = "Yes" | ExtensionSettings["defaultScriptFetching"];
 
 //Deprecated settings
 type DeprecatedSettings = {

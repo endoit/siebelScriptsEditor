@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { error } from "./constants";
 import { moveDeprecatedSettings } from "./settings";
 import { setupWorkspaceFolder, pushOrPull } from "./utils";
-import { dataSourceWebview, configWebview } from "./extensionState";
+import { dataSourceWebview, configWebview } from "./state";
 
 export async function activate(context: vscode.ExtensionContext) {
   try {
