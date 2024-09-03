@@ -4,22 +4,25 @@ import { moveDeprecatedSettings } from "./settings";
 import { setupWorkspaceFolder, pushOrPull } from "./utils";
 import { dataSourceWebview, configWebview } from "./state";
 
-export async function activate(context: vscode.ExtensionContext) {
+export async function activate({
+  extensionUri,
+  subscriptions,
+}: vscode.ExtensionContext) {
   try {
     if (!vscode.workspace.workspaceFolders) throw error.noWorkspaceFolder;
 
     await moveDeprecatedSettings();
-    await setupWorkspaceFolder(context);
+    await setupWorkspaceFolder(extensionUri);
 
     vscode.window.registerWebviewViewProvider("extensionView", {
-      resolveWebviewView: dataSourceWebview(context),
+      resolveWebviewView: dataSourceWebview(subscriptions),
     });
 
     const commands = {
       pull: pushOrPull("pull"),
       push: pushOrPull("push"),
-      newConnection: configWebview(context, true),
-      editConnection: configWebview(context),
+      newConnection: configWebview(subscriptions, "new"),
+      editConnection: configWebview(subscriptions, "edit"),
       openSettings: () =>
         vscode.commands.executeCommand(
           "workbench.action.openSettings",
@@ -28,14 +31,14 @@ export async function activate(context: vscode.ExtensionContext) {
     } as const;
 
     for (const [command, callback] of Object.entries(commands)) {
-      vscode.commands.registerCommand(
-        `siebelscriptandwebtempeditor.${command}`,
-        callback
+      subscriptions.push(
+        vscode.commands.registerCommand(
+          `siebelscriptandwebtempeditor.${command}`,
+          callback
+        )
       );
     }
   } catch (err: any) {
-    vscode.window.showErrorMessage(err.toString());
+    vscode.window.showErrorMessage(err?.message ?? err.toString());
   }
 }
-
-export function deactivate() {}

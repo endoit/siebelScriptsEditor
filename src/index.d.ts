@@ -1,13 +1,20 @@
-//Siebel object types
-type SiebelObject =
-  | "service"
-  | "buscomp"
-  | "applet"
-  | "application"
-  | "webtemp";
+//Siebel object urls
+type SiebelObjectUrls = {
+  service: {
+    parent: "Business Service";
+    child: "Business Service Server Script";
+  };
+  buscomp: { parent: "Business Component"; child: "BusComp Server Script" };
+  applet: { parent: "Applet"; child: "Applet Server Script" };
+  application: { parent: "Application"; child: "Application Server Script" };
+  webtemp: { parent: "Web Template"; child: "" };
+};
 
-//Url parts for siebel objects
-type UrlParts = { parent: string; child: string };
+//Siebel object types
+type Type = keyof SiebelObjectUrls;
+
+//Url parts for the Siebel objects
+type UrlParts = SiebelObjectUrls[Type];
 
 //Settings
 type ExtensionSettings = {
@@ -40,7 +47,7 @@ type Field = "Script" | "Definition";
 type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
-  fields?: "Name" | "Name," | Field | "Name,Script" | "Name,Definition";
+  fields?: "Name" | Field | `Name,${Field}`;
   PageSize?: ExtensionSettings["maxPageSize"];
 };
 
@@ -79,7 +86,7 @@ type DataSourceMessage =
     }
   | {
       command: "type";
-      data: SiebelObject;
+      data: Type;
     };
 
 //message received from the configuration webview
@@ -99,6 +106,9 @@ type ConfigMessage = {
   password: Config["password"];
   restWorkspaces: Config["restWorkspaces"];
 };
+
+//Config webview type
+type WebviewType = "new" | "edit";
 
 //Button actions
 type ButtonAction = "push" | "pull";
@@ -130,3 +140,6 @@ type DeprecatedSettings = {
 
 //Union of all settings
 type AllSettings = ExtensionSettings & DeprecatedSettings;
+
+//type for subscriptions
+type Subscriptions = { dispose(): any }[];

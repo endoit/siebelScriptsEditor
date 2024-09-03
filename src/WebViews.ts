@@ -1,4 +1,4 @@
-import { getConnection, settings } from "./settings";
+import { getConfig, settings } from "./settings";
 
 const head = `<head>
 	<style>
@@ -217,7 +217,7 @@ export const configHTML = (name: string, isNew = false) => {
     workspaces = [],
     restWorkspaces = false,
     defaultWorkspace = "",
-  } = isNew ? {} : getConnection(name);
+  } = isNew ? {} : getConfig(name);
   return `<!doctype><html>
 	${head}
 	<body>

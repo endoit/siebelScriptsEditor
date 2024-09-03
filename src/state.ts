@@ -3,9 +3,9 @@ import { query, paths, error, yesNo } from "./constants";
 import { callRestApi } from "./utils";
 import {
   configChange,
-  getConnection,
-  setConnections,
-  setDefaultConnectionName,
+  getConfig,
+  setConfigs,
+  setDefaultConnection,
   settings,
 } from "./settings";
 import axios from "axios";
@@ -19,12 +19,12 @@ const treeData = {
     application: new TreeData("application"),
     webtemp: new TreeData("webtemp"),
   } as const,
-  workspaceUri = vscode.workspace.workspaceFolders![0].uri;
+  workspaceUri = vscode.workspace.workspaceFolders?.[0].uri!;
 let connections: string[] = [],
   connection = "",
   workspaces: string[] = [],
   workspace = "",
-  type: SiebelObject = "service",
+  type: Type = "service",
   baseUrl: string,
   configWebviewPanel: vscode.WebviewPanel | undefined;
 axios.defaults.method = "get";
@@ -32,26 +32,25 @@ axios.defaults.withCredentials = true;
 
 const setUrlAndFolder = () => {
   axios.defaults.baseURL = [baseUrl, "workspace", workspace].join("/");
-  for (const [type, treeDataProvider] of Object.entries(treeData)) {
+  for (const [objectType, treeDataProvider] of Object.entries(treeData)) {
     treeDataProvider.folder = vscode.Uri.joinPath(
       workspaceUri,
       connection,
       workspace,
-      type
+      objectType
     );
-    treeDataProvider.clear();
   }
 };
 
 const getState = async () => {
-  const defaultConnectionName = settings.defaultConnectionName;
+  const defaultConnection = settings.defaultConnectionName;
   connections = [];
   let isConnection = false,
     isDefault = false;
   for (const { name } of settings.connections) {
     connections.push(name);
-    if (!isConnection && connection === name) isConnection = true;
-    if (!isDefault && defaultConnectionName === name) isDefault = true;
+    isConnection ||= connection === name;
+    isDefault ||= defaultConnection === name;
   }
   if (connections.length === 0) {
     vscode.window.showErrorMessage(error.noConnection);
@@ -60,7 +59,7 @@ const getState = async () => {
   connection = isConnection
     ? connection
     : isDefault
-    ? defaultConnectionName
+    ? defaultConnection
     : connections[0];
   const {
     url,
@@ -69,7 +68,7 @@ const getState = async () => {
     workspaces: newWorkspaces,
     defaultWorkspace,
     restWorkspaces,
-  } = getConnection(connection);
+  } = getConfig(connection);
   workspaces = restWorkspaces ? [] : newWorkspaces;
   if (restWorkspaces) {
     const request: RequestConfig = {
@@ -100,7 +99,7 @@ const getState = async () => {
 };
 
 export const dataSourceWebview =
-  (context: vscode.ExtensionContext) =>
+  (subscriptions: Subscriptions) =>
   async ({ webview }: { webview: vscode.Webview }) => {
     vscode.workspace.onDidChangeConfiguration(async (e) => {
       if (!configChange(e)) return;
@@ -123,34 +122,29 @@ export const dataSourceWebview =
         }
       },
       undefined,
-      context.subscriptions
+      subscriptions
     );
     webview.html = dataSourceHTML;
     await webview.postMessage(await getState());
   };
 
 export const configWebview =
-  (context: vscode.ExtensionContext, isNew = false) =>
-  async () => {
-    const columnToShowIn = vscode.window.activeTextEditor
-      ? vscode.window.activeTextEditor.viewColumn
-      : undefined;
-    if (!isNew) isNew = settings.connections.length === 0;
-    if (configWebviewPanel) {
-      configWebviewPanel.webview.html = configHTML(connection, isNew);
-      return configWebviewPanel.reveal(columnToShowIn);
-    }
-    configWebviewPanel = vscode.window.createWebviewPanel(
+  (subscriptions: Subscriptions, webviewType: WebviewType) => async () => {
+    const columnToShowIn = vscode.window.activeTextEditor?.viewColumn,
+      isPanel = configWebviewPanel !== undefined,
+      isNew = webviewType === "new" || settings.connections.length === 0;
+    configWebviewPanel ??= vscode.window.createWebviewPanel(
       "configureConnection",
       "Configure Connection",
       columnToShowIn ?? vscode.ViewColumn.One,
       { enableScripts: true, retainContextWhenHidden: true }
     );
     configWebviewPanel.webview.html = configHTML(connection, isNew);
+    if (isPanel) return configWebviewPanel.reveal(columnToShowIn);
     configWebviewPanel.onDidDispose(
       () => (configWebviewPanel = undefined),
       null,
-      context.subscriptions
+      subscriptions
     );
     configWebviewPanel.webview.onDidReceiveMessage(
       async ({
@@ -164,26 +158,27 @@ export const configWebview =
         restWorkspaces,
         defaultConnection,
       }: ConfigMessage) => {
-        const connections = settings.connections,
-          connection = getConnection(name);
+        const configs = settings.connections,
+          config = getConfig(name);
         switch (command) {
           case "workspace":
-            const { workspaces } = connection;
+            const { workspaces } = config;
             switch (action) {
               case "add":
                 if (workspaces.includes(workspace)) return;
                 workspaces.unshift(workspace);
                 if (workspaces.length !== 1) break;
               case "default":
-                connection.defaultWorkspace = workspace;
+                config.defaultWorkspace = workspace;
                 break;
               case "delete":
-                workspaces.splice(workspaces.indexOf(workspace), 1);
-                if (connection.defaultWorkspace === workspace)
-                  connection.defaultWorkspace = workspaces[0] ?? "";
-                break;
+                const index = workspaces.indexOf(workspace);
+                if (index === -1) return;
+                workspaces.splice(index, 1);
+                if (config.defaultWorkspace !== workspace) break;
+                config.defaultWorkspace = workspaces[0] ?? "";
             }
-            await setConnections(connections);
+            await setConfigs(configs);
             return (configWebviewPanel!.webview.html = configHTML(name));
           case "testConnection":
           case "testRestWorkspaces":
@@ -199,18 +194,19 @@ export const configWebview =
           case "newOrEditConnection":
             if (!(name && url && username && password))
               return vscode.window.showErrorMessage(error.missingParameters);
-            if (connection.name) {
+            if (config.name) {
               if (isNew)
                 return vscode.window.showErrorMessage(error.connectionExists);
-              connection.url = url;
-              connection.username = username;
-              connection.password = password;
-              connection.restWorkspaces = restWorkspaces;
-              await setConnections(connections);
-              if (defaultConnection) await setDefaultConnectionName(name);
+              config.url = url;
+              config.username = username;
+              config.password = password;
+              config.restWorkspaces = restWorkspaces;
+              await setConfigs(configs);
+              if (!defaultConnection) return configWebviewPanel?.dispose();
+              await setDefaultConnection(name);
               return configWebviewPanel?.dispose();
             }
-            connections.unshift({
+            configs.unshift({
               name,
               url,
               username,
@@ -219,7 +215,7 @@ export const configWebview =
               workspaces: [],
               defaultWorkspace: "",
             });
-            await setConnections(connections);
+            await setConfigs(configs);
             return (configWebviewPanel!.webview.html = configHTML(name));
           case "deleteConnection":
             const answer = await vscode.window.showInformationMessage(
@@ -228,16 +224,16 @@ export const configWebview =
             );
             if (answer !== "Yes") return;
             let index = 0;
-            for (index; index < connections.length; index++) {
-              if (connections[index].name === name) break;
-              if (index + 1 === connections.length) return;
+            for (index; index < configs.length; index++) {
+              if (configs[index].name === name) break;
+              if (index + 1 === configs.length) return;
             }
-            connections.splice(index, 1);
-            await setConnections(connections);
+            configs.splice(index, 1);
+            await setConfigs(configs);
             return configWebviewPanel?.dispose();
         }
       },
       undefined,
-      context.subscriptions
+      subscriptions
     );
   };

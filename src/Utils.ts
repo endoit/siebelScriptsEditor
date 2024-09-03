@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 import {
-  urlObject,
+  siebelObjectUrls,
   query,
   error,
   success,
   pullOptions,
   pushOptions,
 } from "./constants";
-import { getConnection } from "./settings";
+import { getConfig } from "./settings";
 import axios from "axios";
 
 const restApi = axios.create({
@@ -49,64 +49,63 @@ export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
 };
 
 export const pushOrPull = (action: ButtonAction) => {
-  const isPull = action === "pull",
-    [fromTo, answerOptions, method] = isPull ? pullOptions : pushOptions;
+  const [fromTo, answerOptions, method] =
+    action === "pull" ? pullOptions : pushOptions;
   return async () => {
     const document = vscode.window.activeTextEditor!.document,
-      uriParts = document.uri.path.split("/"),
-      [name, ext] = uriParts.at(-1)!.split("."),
+      pathParts = document.uri.path.split("/"),
+      [name, ext] = pathParts.at(-1)!.split("."),
       isScript = ext !== "html",
-      [connectionName, workspace, type, parentName] = uriParts.slice(
+      [connection, workspace, type, parent] = pathParts.slice(
         isScript ? -5 : -4,
         -1
       ),
-      { parent, child } = urlObject[<SiebelObject>type],
-      [field, message, path] = isScript
-        ? ([
-            "Script",
-            `script of the ${parentName} ${parent}`,
-            [parentName, child, name].join("/"),
-          ] as const)
-        : (["Definition", "web template definition", name] as const),
-      connection = getConnection(connectionName);
-    if (!connection.name)
+      { url, username, password } = getConfig(connection),
+      urlParts = siebelObjectUrls[<Type>type];
+    if (!url || !urlParts)
       return vscode.window.showErrorMessage(
-        `Connection "${connectionName}" was not found in the Connections settings!`
+        `Connection ${connection} was not found in the Connections setting or folder structure was changed manually and does not meet the expectations of the extension!`
       );
-    const answer = await vscode.window.showInformationMessage(
-      `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connectionName} connection?`,
-      ...answerOptions
-    );
-    if (answer !== "Pull" && answer !== "Push") return;
-    const { url, username, password } = connection,
+    const [field, message, path]: [Field, string, string] = isScript
+        ? [
+            "Script",
+            `script of the ${parent} ${urlParts.parent}`,
+            [parent, urlParts.child, name].join("/"),
+          ]
+        : ["Definition", "web template definition", name],
       request: RequestConfig = {
         method,
-        url: [url, "workspace", workspace, parent, path].join("/"),
+        url: [url, "workspace", workspace, urlParts.parent, path].join("/"),
         auth: { username, password },
-      };
-    if (isPull) {
-      request.params = query.pull[field];
-      const response = await callRestApi("pull", request),
-        text = response[0]?.[field];
-      if (!text) return;
-      return await writeFile(document.uri, text);
+      },
+      answer = await vscode.window.showInformationMessage(
+        `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connection} connection?`,
+        ...answerOptions
+      );
+    if (answer !== "Pull" && answer !== "Push") return;
+    switch (action) {
+      case "pull":
+        request.params = query.pull[field];
+        const response = await callRestApi("pull", request),
+          content = response[0]?.[field];
+        if (!content) return;
+        return await writeFile(document.uri, content);
+      case "push":
+        await document.save();
+        const text = document.getText();
+        request.data = { Name: name, [field]: text };
+        if (isScript) {
+          const sameName = new RegExp(`function\\s+${name}\\s*\\(`).test(text);
+          if (!sameName && name !== "(declarations)")
+            return vscode.window.showErrorMessage(error.nameDifferent);
+          request.data["Program Language"] = "JS";
+        }
+        return await callRestApi("push", request);
     }
-    await document.save();
-    const text = document.getText();
-    request.data = { Name: name, [field]: text };
-    if (isScript) {
-      const sameName = new RegExp(`function\\s+${name}\\s*\\(`).test(text);
-      if (!sameName && name !== "(declarations)")
-        return vscode.window.showErrorMessage(error.nameDifferent);
-      request.data["Program Language"] = "JS";
-    }
-    await callRestApi("push", request);
   };
 };
 
-export const setupWorkspaceFolder = async ({
-  extensionUri,
-}: vscode.ExtensionContext) => {
+export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   try {
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri,
       typeDefUri = vscode.Uri.joinPath(workspaceUri, "index.d.ts"),

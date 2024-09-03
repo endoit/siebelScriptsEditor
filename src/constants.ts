@@ -1,5 +1,5 @@
 //Repository object urls and names
-export const urlObject = {
+export const siebelObjectUrls: SiebelObjectUrls = {
     service: {
       parent: "Business Service",
       child: "Business Service Server Script",

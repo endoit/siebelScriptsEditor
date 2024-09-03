@@ -20,17 +20,17 @@ export const settings: ExtensionSettings = {
   ...vscode.workspace.getConfiguration().get("siebelScriptAndWebTempEditor")!,
 };
 
-export const getConnection = (name: string) => {
+export const getConfig = (name: string) => {
   for (const connection of settings.connections) {
     if (connection.name === name) return connection;
   }
   return <Config>{};
 };
 
-export const setConnections = async (connections: Config[]) =>
+export const setConfigs = async (connections: Config[]) =>
   await set("connections", connections);
 
-export const setDefaultConnectionName = async (name: string) =>
+export const setDefaultConnection = async (name: string) =>
   await set("defaultConnectionName", name);
 
 export const configChange = (e: vscode.ConfigurationChangeEvent) => {
@@ -80,8 +80,8 @@ export const moveDeprecatedSettings = async () => {
       }
       newConnections.push(connection);
     }
-    await setConnections(newConnections);
-    await setDefaultConnectionName(
+    await setConfigs(newConnections);
+    await setDefaultConnection(
       isDefault ? defaultConnectionName : newConnections[0].name
     );
     await set("REST EndpointConfigurations", undefined);
