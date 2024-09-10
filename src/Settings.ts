@@ -13,8 +13,10 @@ const set = async <T extends keyof AllSettings>(
     .getConfiguration("siebelScriptAndWebTempEditor")
     .update(name, value, vscode.ConfigurationTarget.Global);
 
-const refresh = <T extends keyof ExtensionSettings>(name: T) =>
-  (settings[name] = get(name));
+const refresh = <T extends keyof ExtensionSettings>(name: T) => {
+  settings[name] = get(name);
+  return name === "connections" || name === "maxPageSize";
+};
 
 export const settings: ExtensionSettings = {
   ...vscode.workspace.getConfiguration().get("siebelScriptAndWebTempEditor")!,
@@ -27,8 +29,8 @@ export const getConfig = (name: string) => {
   return <Config>{};
 };
 
-export const setConfigs = async (connections: Config[]) =>
-  await set("connections", connections);
+export const setConfigs = async (configs: Config[]) =>
+  await set("connections", configs);
 
 export const setDefaultConnection = async (name: string) =>
   await set("defaultConnectionName", name);
@@ -36,25 +38,21 @@ export const setDefaultConnection = async (name: string) =>
 export const configChange = (e: vscode.ConfigurationChangeEvent) => {
   if (!e.affectsConfiguration("siebelScriptAndWebTempEditor")) return false;
   for (const name of <(keyof ExtensionSettings)[]>Object.keys(settings)) {
-    if (!e.affectsConfiguration(`siebelScriptAndWebTempEditor.${name}`))
-      continue;
-    refresh(name);
-    return name === "connections" || name === "maxPageSize";
+    if (e.affectsConfiguration(`siebelScriptAndWebTempEditor.${name}`))
+      return refresh(name);
   }
 };
 
 export const moveDeprecatedSettings = async () => {
   try {
     const oldConnections = get("REST EndpointConfigurations"),
-      connections = settings.connections;
-    if (!oldConnections || connections.length !== 0) return;
+      configs = settings.connections;
+    if (!oldConnections || configs.length !== 0) return;
     const workspaces = get("workspaces") ?? [],
-      defaultConnection = get("defaultConnection"),
-      newConnections: Config[] = [],
-      workspaceObject: Record<string, string[]> = {};
-    let isDefault = false;
-    const [defaultConnectionName = "", defaultWorkspace = ""] =
-      defaultConnection?.split(":") ?? [];
+      workspaceObject: Record<string, string[]> = {},
+      [defaultConnectionName = "", defaultWorkspace = ""] =
+        get("defaultConnection")?.split(":") ?? [];
+    let defaultConnection: string | undefined;
     for (const workspace of workspaces) {
       const [name, workspaceString] = workspace.split(":");
       workspaceObject[name] = workspaceString ? workspaceString.split(",") : [];
@@ -69,21 +67,17 @@ export const moveDeprecatedSettings = async () => {
           url,
           workspaces: workspaceObject[name] ?? [],
           restWorkspaces: false,
-          defaultWorkspace: workspaceObject[name][0] ?? "",
+          defaultWorkspace: workspaceObject[name]?.[0] ?? "",
         };
-      if (
-        name === defaultConnectionName &&
-        workspaceObject[name].includes(defaultWorkspace)
-      ) {
-        connection.defaultWorkspace = defaultWorkspace;
-        isDefault = true;
-      }
-      newConnections.push(connection);
+      configs.push(connection);
+      if (name !== defaultConnectionName) continue;
+      if (!workspaceObject[name].includes(defaultWorkspace)) continue;
+      connection.defaultWorkspace = defaultWorkspace;
+      defaultConnection = name;
     }
-    await setConfigs(newConnections);
-    await setDefaultConnection(
-      isDefault ? defaultConnectionName : newConnections[0].name
-    );
+    defaultConnection ??= configs[0]?.name ?? "";
+    await setConfigs(configs);
+    await setDefaultConnection(defaultConnection);
     await set("REST EndpointConfigurations", undefined);
     await set("workspaces", undefined);
     await set("defaultConnection", undefined);

@@ -75,9 +75,9 @@ export const siebelObjectUrls: SiebelObjectUrls = {
       "Please create at least one connection with the New Connection button!",
     missingParameters:
       "Missing Connection Name/Siebel REST API Base URI/Username/Password, please check the connection configuration!",
-    connectionExists: "Connection with the same name already exists!",
     noBaseWorkspaceIOB:
       "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
+    connectionExists: "Connection with the same name already exists!",
     noEditableWorkspace:
       "No workspace with status Checkpointed or Edit-In-Progress was found!",
     nameDifferent:

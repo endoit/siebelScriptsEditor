@@ -1,4 +1,4 @@
-import { getConfig, settings } from "./settings";
+import { settings } from "./settings";
 
 const head = `<head>
 	<style>
@@ -184,7 +184,8 @@ export const dataSourceHTML = `<!doctype><html>
         const searchString = document.getElementById("search-bar").value;
 				currentState.searchString = searchString;
 				vscode.setState(currentState);
-        if (searchString !== "") vscode.postMessage({ command: "search", data: searchString });
+        if (!searchString) return;
+				vscode.postMessage({ command: "search", data: searchString });
       },
 			populate = () => {
 				const { connections = [], connection = "", workspaces = [], workspace = "", type = "service", searchString = "" } = currentState;
@@ -209,16 +210,18 @@ export const dataSourceHTML = `<!doctype><html>
 </body>
 </html>`;
 
-export const configHTML = (name: string, isNew = false) => {
-  const {
+export const configHTML = (
+  {
+    name = "",
     url = "",
     username = "",
     password = "",
     workspaces = [],
     restWorkspaces = false,
     defaultWorkspace = "",
-  } = isNew ? {} : getConfig(name);
-  return `<!doctype><html>
+  }: Config,
+  isNew = false
+) => `<!doctype><html>
 	${head}
 	<body>
 		<h1>${isNew ? "New Connection" : "Edit Connection"}</h1>
@@ -316,10 +319,9 @@ export const configHTML = (name: string, isNew = false) => {
           : `const addWorkspace = document.getElementById("add-workspace");					
 				addWorkspace.focus();
 				addWorkspace.addEventListener("keypress", (e) => {
-					if (e.key === "Enter") {
-						e.preventDefault();
-						document.getElementById("add-workspace-button").click();
-					}
+					if (e.key !== "Enter") return;
+					e.preventDefault();
+					document.getElementById("add-workspace-button").click();					
 				});`
       }
 			const vscode = acquireVsCodeApi(),
@@ -334,7 +336,8 @@ export const configHTML = (name: string, isNew = false) => {
 				testRestWorkspaces = () => {
 					const { url, username, password } = getBaseParameters(),
 						restWorkspaces = document.getElementById("rest-workspaces").checked;
-					if (restWorkspaces) vscode.postMessage({command: "testRestWorkspaces", url, username, password});
+					if (!restWorkspaces) return;
+					vscode.postMessage({command: "testRestWorkspaces", url, username, password});
 				},
 				testConnection = () => {
 					const { url, username, password } = getBaseParameters();
@@ -344,8 +347,10 @@ export const configHTML = (name: string, isNew = false) => {
 					const name = document.getElementById("connection-name").value,
 						{ url, username, password } = getBaseParameters(),
 						restWorkspaces = !!document.getElementById("rest-workspaces")?.checked,
-						defaultConnection = !!document.getElementById("default-connection")?.checked;
-					vscode.postMessage({command: "newOrEditConnection", name, url, username, password, restWorkspaces, defaultConnection});
+						isDefaultConnection = !!document.getElementById("default-connection")?.checked;
+					vscode.postMessage({command: "${
+            isNew ? "newConnection" : "editConnection"
+          }", name, url, username, password, restWorkspaces, isDefaultConnection});
 				},
 				deleteConnection = () => {
 					const name = document.getElementById("connection-name").value;
@@ -354,4 +359,3 @@ export const configHTML = (name: string, isNew = false) => {
 			</script>
 		</body>
 	</html>`;
-};

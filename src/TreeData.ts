@@ -20,13 +20,12 @@ const getData = async (
     const response = await axios({ url, params });
     return response?.data?.items ?? [];
   } catch (err: any) {
-    if (err.response?.status !== 404) {
-      vscode.window.showErrorMessage(
-        `Error using the Siebel REST API: ${
-          err.response?.data?.ERROR ?? err.message
-        }`
-      );
-    }
+    if (err.response?.status === 404) return [];
+    vscode.window.showErrorMessage(
+      `Error using the Siebel REST API: ${
+        err.response?.data?.ERROR ?? err.message
+      }`
+    );
     return [];
   }
 };
@@ -42,7 +41,7 @@ const isFileScript = (ext: string): ext is "js" | "ts" =>
 const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
 
 export class TreeData {
-  private readonly urlParts: UrlParts;
+  private readonly urlParts;
   private readonly setTreeItems: (data: RestResponse) => Promise<void>;
   private readonly isFileValid: (ext: string) => ext is "js" | "ts" | "html";
   private readonly _onDidChangeTreeData = new vscode.EventEmitter();
@@ -64,11 +63,10 @@ export class TreeData {
       if (treeItem === undefined || treeItem instanceof TreeItemObject) return;
       await this.selectTreeItem(<TreeItemScript | TreeItemWebTemp>treeItem);
     });
-    if (type !== "webtemp")
-      treeView.onDidExpandElement(
-        async ({ element }) =>
-          await this.selectTreeItem(<TreeItemObject>element)
-      );
+    if (type === "webtemp") return;
+    treeView.onDidExpandElement(
+      async ({ element }) => await this.selectTreeItem(<TreeItemObject>element)
+    );
   }
 
   set folder(folderUri: vscode.Uri) {
@@ -91,22 +89,23 @@ export class TreeData {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
       this.treeItems = [];
-      const fields = "Name",
-        searchspec = `Name LIKE '${searchSpec}*'`,
-        data = await getData(this.urlParts.parent, { fields, searchspec });
+      const data = await getData(this.urlParts.parent, {
+        fields: "Name",
+        searchspec: `Name LIKE '${searchSpec}*'`,
+      });
       await this.setTreeItems(data);
       this._onDidChangeTreeData.fire(null);
       timeoutId = null;
     }, 300);
   }
 
-  private async getFilesOnDisk(parent = "") {
+  private async getFilesOnDisk(folderUri: vscode.Uri) {
     const files: OnDisk = new Map(),
-      directoryUri = vscode.Uri.joinPath(this.folderUri, parent);
-    if (!(await exists(directoryUri))) return files;
-    const content = await vscode.workspace.fs.readDirectory(directoryUri);
-    for (const [nameExt, type] of content) {
-      if (type !== 1) continue;
+      isFolder = await exists(folderUri);
+    if (!isFolder) return files;
+    const content = await vscode.workspace.fs.readDirectory(folderUri);
+    for (const [nameExt, fileType] of content) {
+      if (fileType !== 1) continue;
       const [name, ext] = nameExt.split(".");
       if (!this.isFileValid(ext)) continue;
       files.set(name, `.${ext}`);
@@ -116,47 +115,50 @@ export class TreeData {
 
   private async setTreeItemsScript(data: RestResponse) {
     for (const { Name } of data) {
-      const onDisk = await this.getFilesOnDisk(Name);
-      this.treeItems.push(new TreeItemObject(Name, onDisk, this.urlParts));
+      const folderUri = vscode.Uri.joinPath(this.folderUri, Name),
+        onDisk = await this.getFilesOnDisk(folderUri);
+      this.treeItems.push(
+        new TreeItemObject(Name, onDisk, folderUri, this.urlParts)
+      );
     }
   }
 
   private async setTreeItemsWebTemp(data: RestResponse) {
-    const onDisk = await this.getFilesOnDisk();
+    const onDisk = await this.getFilesOnDisk(this.folderUri);
     for (const { Name } of data) {
-      this.treeItems.push(new TreeItemWebTemp(Name, onDisk));
+      this.treeItems.push(new TreeItemWebTemp(Name, onDisk, this.folderUri));
     }
   }
 
   private async selectTreeItem(
     treeItem: TreeItemObject | TreeItemScript | TreeItemWebTemp
   ) {
-    const didTreeChange = await treeItem.select(this.folderUri);
+    const didTreeChange = await treeItem.select();
     if (!didTreeChange) return;
     this._onDidChangeTreeData.fire(null);
   }
 }
 
-class TreeItemScript extends vscode.TreeItem {
+class TreeItemWebTemp extends vscode.TreeItem {
   override readonly label: string;
   override readonly collapsibleState: vscode.TreeItemCollapsibleState =
     vscode.TreeItemCollapsibleState.None;
   readonly onDisk;
+  readonly folderUri;
   readonly answerOptions: AnswerOptions = yesNo;
-  readonly field: Field = "Script";
-  declare message: string;
-  declare url: string;
-  private readonly parent: string;
+  readonly field: Field = "Definition";
+  readonly message: string = "web template";
+  url = "";
 
-  constructor(label: string, onDisk: OnDisk, parent = "", urlParts?: UrlParts) {
+  constructor(label: string, onDisk: OnDisk, folderUri: vscode.Uri) {
     super(label);
     this.label = label;
     this.onDisk = onDisk;
-    this.parent = parent;
-    this.icon = checkmarkIcon;
-    if (!parent || !urlParts) return;
-    this.message = `script of the ${parent} ${urlParts.parent}`;
-    this.url = [urlParts.parent, parent, urlParts.child, label].join("/");
+    this.folderUri = folderUri;
+    if (new.target !== TreeItemWebTemp) return;
+    this.url = ["Web Template", label].join("/");
+    if (!onDisk.has(label)) return;
+    this.iconPath = checkmarkIcon;
   }
 
   get condition() {
@@ -165,35 +167,35 @@ class TreeItemScript extends vscode.TreeItem {
   get answerWhenTrue(): AnswerWhenTrue {
     return "Yes";
   }
-  get ext() {
-    return this.onDisk.get(this.label) ?? settings.localFileExtension;
-  }
-  set icon(themeIcon: vscode.ThemeIcon) {
-    if (!this.onDisk.has(this.label)) return;
-    this.iconPath = themeIcon;
+  get ext(): FileExt {
+    return ".html";
   }
 
-  async select(folderUri: vscode.Uri) {
+  async select() {
     const answer = this.condition
-        ? this.answerWhenTrue
-        : await vscode.window.showInformationMessage(
-            `Do you want to get the ${this.label} ${this.message} from Siebel?`,
-            ...this.answerOptions
-          ),
-      namesOnly = answer === "Only method names";
-    if (answer !== "Yes" && answer !== "All scripts" && !namesOnly)
-      return false;
-    const data = await getData(this.url, {
-      fields: namesOnly ? "Name" : `Name,${this.field}`,
-    });
-    if (data.length === 0) return false;
-    return await this.pull(data, folderUri);
+      ? this.answerWhenTrue
+      : await vscode.window.showInformationMessage(
+          `Do you want to get the ${this.label} ${this.message} from Siebel?`,
+          ...this.answerOptions
+        );
+    let fields: QueryParams["fields"];
+    switch (answer) {
+      case "Yes":
+      case "All scripts":
+        fields = `Name,${this.field}`;
+      case "Only method names":
+        fields ??= "Name";
+        const data = await getData(this.url, { fields });
+        if (data.length === 0) return false;
+        return await this.pull(data);
+      default:
+        return false;
+    }
   }
 
-  async pull([{ [this.field]: text }]: RestResponse, folderUri: vscode.Uri) {
+  async pull([{ [this.field]: text }]: RestResponse) {
     const fileUri = vscode.Uri.joinPath(
-        folderUri,
-        this.parent,
+        this.folderUri,
         `${this.label}${this.ext}`
       ),
       answer = !this.onDisk.has(this.label)
@@ -201,32 +203,62 @@ class TreeItemScript extends vscode.TreeItem {
         : settings.defaultActionWhenFileExists !== "None - always ask"
         ? settings.defaultActionWhenFileExists
         : await vscode.window.showInformationMessage(
-            `The ${this.label} item is already downloaded, would you like to open it, or pull it from Siebel and overwrite the file?`,
+            `The ${this.label} is already downloaded, would you like to open it, or pull it from Siebel and overwrite the file?`,
             ...openFileOverwriteCancel
           );
-    if (answer === "Open file") await openFile(fileUri);
-    if (answer !== "Overwrite" || text === undefined) return false;
-    this.onDisk.set(this.label, this.ext);
-    this.iconPath = checkmarkIcon;
-    await writeFile(fileUri, text);
-    await openFile(fileUri);
-    return true;
+    switch (answer) {
+      case "Overwrite":
+        if (text === undefined) return false;
+        this.onDisk.set(this.label, this.ext);
+        this.iconPath = checkmarkIcon;
+        await writeFile(fileUri, text);
+      case "Open file":
+        await openFile(fileUri);
+        return answer === "Overwrite";
+      default:
+        return false;
+    }
   }
 }
 
-class TreeItemObject extends TreeItemScript {
+class TreeItemScript extends TreeItemWebTemp {
+  override readonly field: Field = "Script";
+  override readonly message = "server script";
+
+  constructor(
+    label: string,
+    onDisk: OnDisk,
+    folderUri: vscode.Uri,
+    url: string
+  ) {
+    super(label, onDisk, folderUri);
+    this.url = [url, label].join("/");
+    if (!onDisk.has(label)) return;
+    this.iconPath = checkmarkIcon;
+  }
+
+  override get ext() {
+    return this.onDisk.get(this.label) ?? settings.localFileExtension;
+  }
+}
+
+class TreeItemObject extends TreeItemWebTemp {
   override readonly collapsibleState =
     vscode.TreeItemCollapsibleState.Collapsed;
   override readonly answerOptions = yesOnlyMethodNamesNo;
-  readonly urlParts;
+  override readonly message = "server scripts";
   children: TreeItemScript[] = [];
 
-  constructor(label: string, onDisk: OnDisk, urlParts: UrlParts) {
-    super(label, onDisk);
-    this.urlParts = urlParts;
-    this.message = `${urlParts.parent} scripts`;
+  constructor(
+    label: string,
+    onDisk: OnDisk,
+    folderUri: vscode.Uri,
+    urlParts: UrlParts
+  ) {
+    super(label, onDisk, folderUri);
     this.url = [urlParts.parent, label, urlParts.child].join("/");
-    this.icon = checkmarkIcon;
+    if (onDisk.size === 0) return;
+    this.iconPath = checkmarkIcon;
   }
 
   override get condition() {
@@ -235,40 +267,18 @@ class TreeItemObject extends TreeItemScript {
   override get answerWhenTrue() {
     return settings.defaultScriptFetching;
   }
-  override set icon(themeIcon: vscode.ThemeIcon) {
-    if (this.onDisk.size === 0) return;
-    this.iconPath = themeIcon;
-  }
 
-  override async pull(data: RestResponse, folderUri: vscode.Uri) {
+  override async pull(data: RestResponse) {
     this.children = [];
     for (const item of data) {
-      const child = new TreeItemScript(
-        item.Name,
-        this.onDisk,
-        this.label,
-        this.urlParts
-      );
+      const { Name, Script } = item,
+        child = new TreeItemScript(Name, this.onDisk, this.folderUri, this.url);
       this.children.push(child);
-      if (item.Script === undefined) continue;
-      await child.pull([item], folderUri);
+      if (Script === undefined) continue;
+      await child.pull([item]);
     }
-    this.icon = checkmarkIcon;
+    if (this.onDisk.size === 0) return true;
+    this.iconPath = checkmarkIcon;
     return true;
-  }
-}
-
-class TreeItemWebTemp extends TreeItemScript {
-  override readonly field = "Definition";
-  override readonly message = "Web Template definition";
-
-  constructor(label: string, onDisk: OnDisk) {
-    super(label, onDisk);
-    this.url = ["Web Template", label].join("/");
-    this.icon = checkmarkIcon;
-  }
-
-  override get ext(): ".html" {
-    return ".html";
   }
 }

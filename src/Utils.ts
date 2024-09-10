@@ -19,9 +19,11 @@ export const callRestApi = async (
   request: RequestConfig
 ): Promise<RestResponse> => {
   try {
-    const response = await restApi(request);
-    if (success[action]) vscode.window.showInformationMessage(success[action]);
-    return response?.data?.items ?? [];
+    const response = await restApi(request),
+      data = response?.data?.items ?? [];
+    if (!success[action]) return data;
+    vscode.window.showInformationMessage(success[action]);
+    return data;
   } catch (err: any) {
     vscode.window.showErrorMessage(
       `${error[action]} ${err.response?.data?.ERROR ?? err.message}.`
@@ -82,25 +84,25 @@ export const pushOrPull = (action: ButtonAction) => {
         `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connection} connection?`,
         ...answerOptions
       );
-    if (answer !== "Pull" && answer !== "Push") return;
-    switch (action) {
-      case "pull":
+    switch (answer) {
+      case "Pull":
         request.params = query.pull[field];
         const response = await callRestApi("pull", request),
           content = response[0]?.[field];
         if (!content) return;
         return await writeFile(document.uri, content);
-      case "push":
+      case "Push":
         await document.save();
         const text = document.getText();
         request.data = { Name: name, [field]: text };
-        if (isScript) {
-          const sameName = new RegExp(`function\\s+${name}\\s*\\(`).test(text);
-          if (!sameName && name !== "(declarations)")
-            return vscode.window.showErrorMessage(error.nameDifferent);
-          request.data["Program Language"] = "JS";
-        }
+        if (!isScript) return await callRestApi("push", request);
+        const sameName = new RegExp(`function\\s+${name}\\s*\\(`).test(text);
+        if (!sameName && name !== "(declarations)")
+          return vscode.window.showErrorMessage(error.nameDifferent);
+        request.data["Program Language"] = "JS";
         return await callRestApi("push", request);
+      default:
+        return;
     }
   };
 };
@@ -109,22 +111,29 @@ export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   try {
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri,
       typeDefUri = vscode.Uri.joinPath(workspaceUri, "index.d.ts"),
+      isTypeDef = await exists(typeDefUri),
       jsconfigUri = vscode.Uri.joinPath(workspaceUri, "jsconfig.json"),
+      isJsconfig = await exists(jsconfigUri),
       siebelTypesUri = vscode.Uri.joinPath(extensionUri, "siebelTypes.txt");
-    if (!(await exists(typeDefUri))) {
-      await vscode.workspace.fs.copy(siebelTypesUri, typeDefUri);
-      vscode.window.showInformationMessage(
-        `File index.d.ts was created in the ${workspaceUri.fsPath} folder!`
-      );
+    switch (true) {
+      case isTypeDef && isJsconfig:
+        return;
+      case !isTypeDef:
+        await vscode.workspace.fs.copy(siebelTypesUri, typeDefUri);
+        vscode.window.showInformationMessage(
+          `File index.d.ts was created in the ${workspaceUri.fsPath} folder!`
+        );
+        if (isJsconfig) return;
+      case !isJsconfig:
+        await writeFile(
+          jsconfigUri,
+          `{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}`
+        );
+        vscode.window.showInformationMessage(
+          `File jsconfig.json was created in the ${workspaceUri.fsPath} folder!`
+        );
+        return;
     }
-    if (await exists(jsconfigUri)) return;
-    await writeFile(
-      jsconfigUri,
-      `{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}`
-    );
-    vscode.window.showInformationMessage(
-      `File jsconfig.json was created in the ${workspaceUri.fsPath} folder!`
-    );
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }

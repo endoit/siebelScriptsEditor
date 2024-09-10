@@ -92,7 +92,8 @@ type DataSourceMessage =
 //message received from the configuration webview
 type ConfigMessage = {
   command:
-    | "newOrEditConnection"
+    | "newConnection"
+      | "editConnection"
     | "testConnection"
     | "workspace"
     | "testRestWorkspaces"
@@ -100,7 +101,7 @@ type ConfigMessage = {
   action: "add" | "default" | "delete";
   name: Config["name"];
   workspace: Config["workspaces"][number];
-  defaultConnection: boolean;
+  isDefaultConnection: boolean;
   url: Config["url"];
   username: Config["username"];
   password: Config["password"];
@@ -143,3 +144,6 @@ type AllSettings = ExtensionSettings & DeprecatedSettings;
 
 //type for subscriptions
 type Subscriptions = { dispose(): any }[];
+
+//file extensions
+type FileExt = ".js" | ".ts" | ".html"

@@ -9,7 +9,8 @@ export async function activate({
   subscriptions,
 }: vscode.ExtensionContext) {
   try {
-    if (!vscode.workspace.workspaceFolders) throw error.noWorkspaceFolder;
+    if (!vscode.workspace.workspaceFolders)
+      return vscode.window.showErrorMessage(error.noWorkspaceFolder);
 
     await moveDeprecatedSettings();
     await setupWorkspaceFolder(extensionUri);
@@ -39,6 +40,6 @@ export async function activate({
       );
     }
   } catch (err: any) {
-    vscode.window.showErrorMessage(err?.message ?? err.toString());
+    vscode.window.showErrorMessage(err?.message);
   }
 }
