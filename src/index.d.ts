@@ -93,7 +93,7 @@ type DataSourceMessage =
 type ConfigMessage = {
   command:
     | "newConnection"
-      | "editConnection"
+    | "editConnection"
     | "testConnection"
     | "workspace"
     | "testRestWorkspaces"
@@ -121,8 +121,11 @@ type RestAction =
   | "restWorkspaces"
   | ButtonAction;
 
+//file extensions
+type FileExt = ".js" | ".ts" | ".html";
+
 //On disk map for files
-type OnDisk = Map<string, ".js" | ".ts" | ".html">;
+type OnDisk = Map<string, FileExt>;
 
 //Answer options for tree item selection
 type AnswerOptions =
@@ -144,6 +147,3 @@ type AllSettings = ExtensionSettings & DeprecatedSettings;
 
 //type for subscriptions
 type Subscriptions = { dispose(): any }[];
-
-//file extensions
-type FileExt = ".js" | ".ts" | ".html"

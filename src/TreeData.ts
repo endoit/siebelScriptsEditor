@@ -173,19 +173,19 @@ class TreeItemWebTemp extends vscode.TreeItem {
 
   async select() {
     const answer = this.condition
-      ? this.answerWhenTrue
-      : await vscode.window.showInformationMessage(
-          `Do you want to get the ${this.label} ${this.message} from Siebel?`,
-          ...this.answerOptions
-        );
-    let fields: QueryParams["fields"];
+        ? this.answerWhenTrue
+        : await vscode.window.showInformationMessage(
+            `Do you want to get the ${this.label} ${this.message} from Siebel?`,
+            ...this.answerOptions
+          ),
+      params: QueryParams = {};
     switch (answer) {
       case "Yes":
       case "All scripts":
-        fields = `Name,${this.field}`;
+        params.fields = `Name,${this.field}`;
       case "Only method names":
-        fields ??= "Name";
-        const data = await getData(this.url, { fields });
+        params.fields ??= "Name";
+        const data = await getData(this.url, params);
         if (data.length === 0) return false;
         return await this.pull(data);
       default:
@@ -203,7 +203,7 @@ class TreeItemWebTemp extends vscode.TreeItem {
         : settings.defaultActionWhenFileExists !== "None - always ask"
         ? settings.defaultActionWhenFileExists
         : await vscode.window.showInformationMessage(
-            `The ${this.label} is already downloaded, would you like to open it, or pull it from Siebel and overwrite the file?`,
+            `The ${this.label} ${this.message} is already downloaded, would you like to open it, or pull it from Siebel and overwrite the file?`,
             ...openFileOverwriteCancel
           );
     switch (answer) {
