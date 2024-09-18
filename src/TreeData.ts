@@ -89,10 +89,11 @@ export class TreeData {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
       this.treeItems = [];
-      const data = await getData(this.urlParts.parent, {
-        fields: "Name",
-        searchspec: `Name LIKE '${searchSpec}*'`,
-      });
+      const params: QueryParams = {
+          fields: "Name",
+          searchspec: `Name LIKE '${searchSpec}*'`,
+        },
+        data = await getData(this.urlParts.parent, params);
       await this.setTreeItems(data);
       this._onDidChangeTreeData.fire(null);
       timeoutId = null;
@@ -145,9 +146,6 @@ class TreeItemWebTemp extends vscode.TreeItem {
     vscode.TreeItemCollapsibleState.None;
   readonly onDisk;
   readonly folderUri;
-  readonly answerOptions: AnswerOptions = yesNo;
-  readonly field: Field = "Definition";
-  readonly message: string = "web template";
   url = "";
 
   constructor(label: string, onDisk: OnDisk, folderUri: vscode.Uri) {
@@ -160,24 +158,24 @@ class TreeItemWebTemp extends vscode.TreeItem {
     if (!onDisk.has(label)) return;
     this.iconPath = checkmarkIcon;
   }
-
-  get condition() {
-    return settings.singleFileAutoDownload;
-  }
-  get answerWhenTrue(): AnswerWhenTrue {
-    return "Yes";
+  get field(): Field {
+    return "Definition";
   }
   get ext(): FileExt {
     return ".html";
   }
 
+  async getAnswer(): Promise<Answer> {
+    return settings.singleFileAutoDownload
+      ? "Yes"
+      : await vscode.window.showInformationMessage(
+          `Do you want to get the ${this.label} from Siebel?`,
+          ...yesNo
+        );
+  }
+
   async select() {
-    const answer = this.condition
-        ? this.answerWhenTrue
-        : await vscode.window.showInformationMessage(
-            `Do you want to get the ${this.label} ${this.message} from Siebel?`,
-            ...this.answerOptions
-          ),
+    const answer = await this.getAnswer(),
       params: QueryParams = {};
     switch (answer) {
       case "Yes":
@@ -203,7 +201,7 @@ class TreeItemWebTemp extends vscode.TreeItem {
         : settings.defaultActionWhenFileExists !== "None - always ask"
         ? settings.defaultActionWhenFileExists
         : await vscode.window.showInformationMessage(
-            `The ${this.label} ${this.message} is already downloaded, would you like to open it, or pull it from Siebel and overwrite the file?`,
+            `The ${this.label} is already downloaded, would you like to open it, or pull it from Siebel and overwrite the file?`,
             ...openFileOverwriteCancel
           );
     switch (answer) {
@@ -222,9 +220,6 @@ class TreeItemWebTemp extends vscode.TreeItem {
 }
 
 class TreeItemScript extends TreeItemWebTemp {
-  override readonly field: Field = "Script";
-  override readonly message = "server script";
-
   constructor(
     label: string,
     onDisk: OnDisk,
@@ -237,6 +232,9 @@ class TreeItemScript extends TreeItemWebTemp {
     this.iconPath = checkmarkIcon;
   }
 
+  override get field(): Field {
+    return "Script";
+  }
   override get ext() {
     return this.onDisk.get(this.label) ?? settings.localFileExtension;
   }
@@ -245,8 +243,6 @@ class TreeItemScript extends TreeItemWebTemp {
 class TreeItemObject extends TreeItemWebTemp {
   override readonly collapsibleState =
     vscode.TreeItemCollapsibleState.Collapsed;
-  override readonly answerOptions = yesOnlyMethodNamesNo;
-  override readonly message = "server scripts";
   children: TreeItemScript[] = [];
 
   constructor(
@@ -261,11 +257,17 @@ class TreeItemObject extends TreeItemWebTemp {
     this.iconPath = checkmarkIcon;
   }
 
-  override get condition() {
-    return settings.defaultScriptFetching !== "None - always ask";
+  override get field(): Field {
+    return "Script";
   }
-  override get answerWhenTrue() {
-    return settings.defaultScriptFetching;
+
+  override async getAnswer() {
+    return settings.defaultScriptFetching !== "None - always ask"
+      ? settings.defaultScriptFetching
+      : await vscode.window.showInformationMessage(
+          `Do you want to get all server scripts of the ${this.label} from Siebel?`,
+          ...yesOnlyMethodNamesNo
+        );
   }
 
   override async pull(data: RestResponse) {

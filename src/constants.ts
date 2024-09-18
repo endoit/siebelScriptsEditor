@@ -1,4 +1,4 @@
-//Repository object urls and names
+//Repository object urls
 export const siebelObjectUrls: SiebelObjectUrls = {
     service: {
       parent: "Business Service",
@@ -49,9 +49,9 @@ export const siebelObjectUrls: SiebelObjectUrls = {
   //constant arrays
   yesNo = ["Yes", "No"] as const,
   yesOnlyMethodNamesNo = ["Yes", "Only method names", "No"] as const,
+  openFileOverwriteCancel = ["Open file", "Overwrite", "Cancel"] as const,
   pullOptions = ["from", ["Pull", "No"], "get"] as const,
   pushOptions = ["to", ["Push", "No"], "put"] as const,
-  openFileOverwriteCancel = ["Open file", "Overwrite", "Cancel"] as const,
   //constant success and error messages messages
   success = {
     pull: "",

@@ -128,11 +128,7 @@ type FileExt = ".js" | ".ts" | ".html";
 type OnDisk = Map<string, FileExt>;
 
 //Answer options for tree item selection
-type AnswerOptions =
-  | readonly ["Yes", "No"]
-  | readonly ["Yes", "Only method names", "No"];
-
-type AnswerWhenTrue = "Yes" | ExtensionSettings["defaultScriptFetching"];
+type Answer = "Only method names" | "All scripts" | "Yes" | "No" | undefined;
 
 //Deprecated settings
 type DeprecatedSettings = {
