@@ -117,17 +117,19 @@ export class TreeData {
   private async setTreeItemsScript(data: RestResponse) {
     for (const { Name } of data) {
       const folderUri = vscode.Uri.joinPath(this.folderUri, Name),
-        onDisk = await this.getFilesOnDisk(folderUri);
-      this.treeItems.push(
-        new TreeItemObject(Name, onDisk, folderUri, this.urlParts)
-      );
+        onDisk = await this.getFilesOnDisk(folderUri),
+        url = [this.urlParts.parent, Name, this.urlParts.child].join("/");
+      this.treeItems.push(new TreeItemObject(Name, onDisk, folderUri, url));
     }
   }
 
   private async setTreeItemsWebTemp(data: RestResponse) {
     const onDisk = await this.getFilesOnDisk(this.folderUri);
     for (const { Name } of data) {
-      this.treeItems.push(new TreeItemWebTemp(Name, onDisk, this.folderUri));
+      const url = [this.urlParts.parent, Name].join("/");
+      this.treeItems.push(
+        new TreeItemWebTemp(Name, onDisk, this.folderUri, url)
+      );
     }
   }
 
@@ -140,29 +142,35 @@ export class TreeData {
   }
 }
 
-class TreeItemWebTemp extends vscode.TreeItem {
-  override readonly label: string;
+class TreeItemScript extends vscode.TreeItem {
   override readonly collapsibleState: vscode.TreeItemCollapsibleState =
     vscode.TreeItemCollapsibleState.None;
+  readonly field: Field = "Script";
+  declare readonly label: string;
   readonly onDisk;
   readonly folderUri;
-  url = "";
+  readonly url: string;
 
-  constructor(label: string, onDisk: OnDisk, folderUri: vscode.Uri) {
+  constructor(
+    label: string,
+    onDisk: OnDisk,
+    folderUri: vscode.Uri,
+    url: string
+  ) {
     super(label);
-    this.label = label;
     this.onDisk = onDisk;
     this.folderUri = folderUri;
-    if (new.target !== TreeItemWebTemp) return;
-    this.url = ["Web Template", label].join("/");
-    if (!onDisk.has(label)) return;
+    this.url = url;
+    this.setIcon();
+  }
+
+  get ext() {
+    return this.onDisk.get(this.label) ?? settings.localFileExtension;
+  }
+
+  setIcon() {
+    if (!this.onDisk.has(this.label)) return;
     this.iconPath = checkmarkIcon;
-  }
-  get field(): Field {
-    return "Definition";
-  }
-  get ext(): FileExt {
-    return ".html";
   }
 
   async getAnswer(): Promise<Answer> {
@@ -219,46 +227,22 @@ class TreeItemWebTemp extends vscode.TreeItem {
   }
 }
 
-class TreeItemScript extends TreeItemWebTemp {
-  constructor(
-    label: string,
-    onDisk: OnDisk,
-    folderUri: vscode.Uri,
-    url: string
-  ) {
-    super(label, onDisk, folderUri);
-    this.url = [url, label].join("/");
-    if (!onDisk.has(label)) return;
-    this.iconPath = checkmarkIcon;
-  }
-
-  override get field(): Field {
-    return "Script";
-  }
-  override get ext() {
-    return this.onDisk.get(this.label) ?? settings.localFileExtension;
+class TreeItemWebTemp extends TreeItemScript {
+  override readonly field = "Definition";
+  
+  override get ext(): FileExt {
+    return ".html";
   }
 }
 
-class TreeItemObject extends TreeItemWebTemp {
+class TreeItemObject extends TreeItemScript {
   override readonly collapsibleState =
     vscode.TreeItemCollapsibleState.Collapsed;
   children: TreeItemScript[] = [];
 
-  constructor(
-    label: string,
-    onDisk: OnDisk,
-    folderUri: vscode.Uri,
-    urlParts: UrlParts
-  ) {
-    super(label, onDisk, folderUri);
-    this.url = [urlParts.parent, label, urlParts.child].join("/");
-    if (onDisk.size === 0) return;
+  override setIcon() {
+    if (this.onDisk.size === 0) return;
     this.iconPath = checkmarkIcon;
-  }
-
-  override get field(): Field {
-    return "Script";
   }
 
   override async getAnswer() {
@@ -274,13 +258,13 @@ class TreeItemObject extends TreeItemWebTemp {
     this.children = [];
     for (const item of data) {
       const { Name, Script } = item,
-        child = new TreeItemScript(Name, this.onDisk, this.folderUri, this.url);
+        url = [this.url, Name].join("/"),
+        child = new TreeItemScript(Name, this.onDisk, this.folderUri, url);
       this.children.push(child);
       if (Script === undefined) continue;
       await child.pull([item]);
     }
-    if (this.onDisk.size === 0) return true;
-    this.iconPath = checkmarkIcon;
+    this.setIcon();
     return true;
   }
 }
