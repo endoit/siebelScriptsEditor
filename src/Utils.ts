@@ -68,13 +68,13 @@ export const pushOrPull = (action: ButtonAction) => {
       return vscode.window.showErrorMessage(
         `Connection ${connection} was not found in the Connections setting or folder structure was changed manually and does not meet the expectations of the extension!`
       );
-    const [field, message, path]: [Field, string, string] = isScript
+    const [field, path, message]: [Field, string, string] = isScript
         ? [
             "Script",
-            `script of the ${parent} ${urlParts.parent}`,
             [parent, urlParts.child, name].join("/"),
+            `script of the ${parent} ${urlParts.parent}`,
           ]
-        : ["Definition", "web template definition", name],
+        : ["Definition", name, "web template definition"],
       request: RequestConfig = {
         method,
         url: [url, "workspace", workspace, urlParts.parent, path].join("/"),
@@ -112,9 +112,9 @@ export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
     const workspaceUri = vscode.workspace.workspaceFolders![0].uri,
       typeDefUri = vscode.Uri.joinPath(workspaceUri, "index.d.ts"),
       isTypeDef = await exists(typeDefUri),
+      siebelTypesUri = vscode.Uri.joinPath(extensionUri, "siebelTypes.txt"),
       jsconfigUri = vscode.Uri.joinPath(workspaceUri, "jsconfig.json"),
       isJsconfig = await exists(jsconfigUri),
-      siebelTypesUri = vscode.Uri.joinPath(extensionUri, "siebelTypes.txt"),
       jsConfig = `{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}`;
     switch (false) {
       case isTypeDef:

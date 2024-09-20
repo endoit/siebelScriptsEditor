@@ -119,7 +119,7 @@ export class TreeData {
       const folderUri = vscode.Uri.joinPath(this.folderUri, Name),
         onDisk = await this.getFilesOnDisk(folderUri),
         url = [this.urlParts.parent, Name, this.urlParts.child].join("/");
-      this.treeItems.push(new TreeItemObject(Name, onDisk, folderUri, url));
+      this.treeItems.push(new TreeItemObject(Name, url, onDisk, folderUri));
     }
   }
 
@@ -128,7 +128,7 @@ export class TreeData {
     for (const { Name } of data) {
       const url = [this.urlParts.parent, Name].join("/");
       this.treeItems.push(
-        new TreeItemWebTemp(Name, onDisk, this.folderUri, url)
+        new TreeItemWebTemp(Name, url, onDisk, this.folderUri)
       );
     }
   }
@@ -145,25 +145,27 @@ export class TreeData {
 class TreeItemScript extends vscode.TreeItem {
   override readonly collapsibleState: vscode.TreeItemCollapsibleState =
     vscode.TreeItemCollapsibleState.None;
-  readonly field: Field = "Script";
   declare readonly label: string;
+  readonly url: string;
   readonly onDisk;
   readonly folderUri;
-  readonly url: string;
 
   constructor(
     label: string,
+    url: string,
     onDisk: OnDisk,
-    folderUri: vscode.Uri,
-    url: string
+    folderUri: vscode.Uri
   ) {
     super(label);
+    this.url = url;
     this.onDisk = onDisk;
     this.folderUri = folderUri;
-    this.url = url;
     this.setIcon();
   }
 
+  get field(): Field {
+    return "Script";
+  }
   get ext() {
     return this.onDisk.get(this.label) ?? settings.localFileExtension;
   }
@@ -228,8 +230,9 @@ class TreeItemScript extends vscode.TreeItem {
 }
 
 class TreeItemWebTemp extends TreeItemScript {
-  override readonly field = "Definition";
-  
+  override get field(): Field {
+    return "Definition";
+  }
   override get ext(): FileExt {
     return ".html";
   }
@@ -259,7 +262,7 @@ class TreeItemObject extends TreeItemScript {
     for (const item of data) {
       const { Name, Script } = item,
         url = [this.url, Name].join("/"),
-        child = new TreeItemScript(Name, this.onDisk, this.folderUri, url);
+        child = new TreeItemScript(Name, url, this.onDisk, this.folderUri);
       this.children.push(child);
       if (Script === undefined) continue;
       await child.pull([item]);
