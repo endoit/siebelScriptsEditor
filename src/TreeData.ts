@@ -160,7 +160,7 @@ class TreeItemScript extends vscode.TreeItem {
     this.url = url;
     this.onDisk = onDisk;
     this.folderUri = folderUri;
-    this.setIcon();
+    this.icon = checkmarkIcon;
   }
 
   get field(): Field {
@@ -169,10 +169,9 @@ class TreeItemScript extends vscode.TreeItem {
   get ext() {
     return this.onDisk.get(this.label) ?? settings.localFileExtension;
   }
-
-  setIcon() {
+  set icon(iconPath: vscode.ThemeIcon) {
     if (!this.onDisk.has(this.label)) return;
-    this.iconPath = checkmarkIcon;
+    this.iconPath = iconPath;
   }
 
   async getAnswer(): Promise<Answer> {
@@ -243,9 +242,9 @@ class TreeItemObject extends TreeItemScript {
     vscode.TreeItemCollapsibleState.Collapsed;
   children: TreeItemScript[] = [];
 
-  override setIcon() {
+  override set icon(iconPath: vscode.ThemeIcon) {
     if (this.onDisk.size === 0) return;
-    this.iconPath = checkmarkIcon;
+    this.iconPath = iconPath;
   }
 
   override async getAnswer() {
@@ -267,7 +266,7 @@ class TreeItemObject extends TreeItemScript {
       if (Script === undefined) continue;
       await child.pull([item]);
     }
-    this.setIcon();
+    this.icon = checkmarkIcon;
     return true;
   }
 }
