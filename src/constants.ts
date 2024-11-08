@@ -27,7 +27,8 @@ export const siebelObjectUrls: SiebelObjectUrls = {
     restWorkspaces: {
       fields: "Name",
       workspace: "MAIN",
-      searchspec: "Status='Checkpointed' OR Status='Edit-In-Progress'",
+      searchspec:
+        "Status='Created' OR Status='Checkpointed' OR Status='Edit-In-Progress'",
       uniformresponse: "y",
       childlinks: "None",
     },
@@ -68,7 +69,7 @@ export const siebelObjectUrls: SiebelObjectUrls = {
     testRestWorkspaces:
       "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
     restWorkspaces:
-      "No workspace with status Checkpointed or Edit-In-Progress was found!",
+      "No workspace with status Created, Checkpointed or Edit-In-Progress was found!",
     noWorkspaceFolder:
       "Please open a Visual Studio Code workspace folder to use the extension!",
     noConnection:
@@ -78,8 +79,6 @@ export const siebelObjectUrls: SiebelObjectUrls = {
     noBaseWorkspaceIOB:
       "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
     connectionExists: "Connection with the same name already exists!",
-    noEditableWorkspace:
-      "No workspace with status Checkpointed or Edit-In-Progress was found!",
     nameDifferent:
       "Unable to push script, name of the file and the function is not the same!",
   } as const;
