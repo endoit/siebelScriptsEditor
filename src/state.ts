@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { query, paths, error, yesNo } from "./constants";
-import { callRestApi } from "./utils";
+import { workspaceUri, callRestApi } from "./utils";
 import {
   configChange,
   getConfig,
@@ -13,13 +13,12 @@ import { dataSourceHTML, configHTML } from "./webViews";
 import { TreeData } from "./treeData";
 
 const treeData = {
-    service: new TreeData("service"),
-    buscomp: new TreeData("buscomp"),
-    applet: new TreeData("applet"),
-    application: new TreeData("application"),
-    webtemp: new TreeData("webtemp"),
-  } as const,
-  workspaceUri = vscode.workspace.workspaceFolders?.[0].uri!;
+  service: new TreeData("service"),
+  buscomp: new TreeData("buscomp"),
+  applet: new TreeData("applet"),
+  application: new TreeData("application"),
+  webtemp: new TreeData("webtemp"),
+} as const;
 let connections: string[] = [],
   connection = "",
   workspaces: string[] = [],
@@ -206,8 +205,11 @@ export const configWebview =
             config.password = password;
             config.restWorkspaces = restWorkspaces;
             if (isDefaultConnection) await setDefaultConnection(name);
+            await setConfigs(configs);
+            if (command === "editConnection")
+              return configWebviewPanel?.dispose();
             webview.html = configHTML(config);
-            return await setConfigs(configs);
+            return;
           case "deleteConnection":
             const answer = await vscode.window.showInformationMessage(
               `Do you want to delete the ${name} connection?`,

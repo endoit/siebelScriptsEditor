@@ -51,11 +51,15 @@ export const siebelObjectUrls: SiebelObjectUrls = {
   yesNo = ["Yes", "No"] as const,
   yesOnlyMethodNamesNo = ["Yes", "Only method names", "No"] as const,
   openFileOverwriteCancel = ["Open file", "Overwrite", "Cancel"] as const,
-  pullOptions = ["from", ["Pull", "No"], "get"] as const,
-  pushOptions = ["to", ["Push", "No"], "put"] as const,
+  buttonOptions = {
+    pull: ["from", ["Pull", "No"], "get"],
+    compare: ["from", ["Compare", "No"], "get"],
+    push: ["to", ["Push", "No"], "put"],
+  } as const,
   //constant success and error messages messages
   success = {
     pull: "",
+    compare: "",
     push: "Successfully pushed object to Siebel!",
     testConnection: "Connection is working!",
     testRestWorkspaces:
@@ -63,11 +67,12 @@ export const siebelObjectUrls: SiebelObjectUrls = {
     restWorkspaces: "",
   } as const,
   error = {
-    pull: "Error when pulling from Siebel:",
-    push: "Error when pushing to Siebel:",
-    testConnection: "Error in the connection:",
+    pull: "Object was not found in Siebel!",
+    compare: "Object was not found in Siebel!",
+    push: "Object was not found in Siebel!",
+    testConnection: "",
     testRestWorkspaces:
-      "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing or check the REST API connection!",
+      "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing!",
     restWorkspaces:
       "No workspace with status Created, Checkpointed or Edit-In-Progress was found!",
     noWorkspaceFolder:

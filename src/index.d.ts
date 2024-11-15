@@ -112,7 +112,7 @@ type ConfigMessage = {
 type WebviewType = "new" | "edit";
 
 //Button actions
-type ButtonAction = "push" | "pull";
+type ButtonAction = "push" | "pull" | "compare";
 
 //Siebel rest api action
 type RestAction =

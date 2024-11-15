@@ -195,9 +195,8 @@ class TreeItemScript extends vscode.TreeItem {
         const data = await getData(this.url, params);
         if (data.length === 0) return false;
         return await this.pull(data);
-      default:
-        return false;
     }
+    return false;
   }
 
   async pull([{ [this.field]: text }]: RestResponse) {
@@ -221,10 +220,8 @@ class TreeItemScript extends vscode.TreeItem {
         await writeFile(fileUri, text);
       case "Open file":
         await openFile(fileUri);
-        return answer === "Overwrite";
-      default:
-        return false;
     }
+    return answer === "Overwrite";
   }
 }
 

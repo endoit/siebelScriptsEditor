@@ -19,6 +19,7 @@
 	"activationEvents": [
 		"onCommand:siebelscriptandwebtempeditor.pull",
 		"onCommand:siebelscriptandwebtempeditor.push",
+		"onCommand:siebelscriptandwebtempeditor.compare",
 		"onView:extensionView"
 	],
 	"main": "./dist/extension.js",
@@ -65,13 +66,19 @@
 			{
 				"command": "siebelscriptandwebtempeditor.pull",
 				"title": "Pull script/web template from Siebel",
-				"icon": "$(arrow-down)",
+				"icon": "$(fold-down)",
 				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.push",
 				"title": "Push script/web template to Siebel",
-				"icon": "$(arrow-up)",
+				"icon": "$(fold-up)",
+				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.compare",
+				"title": "Compare script/web template with Siebel",
+				"icon": "$(symbol-boolean)",
 				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
 			},
 			{
@@ -102,7 +109,12 @@
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.push",
-					"group": "navigation",
+					"group": "navigation@1",
+					"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.compare",
+					"group": "navigation@2",
 					"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
 				}
 			],

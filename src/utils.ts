@@ -4,8 +4,7 @@ import {
   query,
   error,
   success,
-  pullOptions,
-  pushOptions,
+  buttonOptions,
 } from "./constants";
 import { getConfig } from "./settings";
 import axios from "axios";
@@ -13,6 +12,8 @@ import axios from "axios";
 const restApi = axios.create({
   withCredentials: true,
 });
+
+export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
 
 export const callRestApi = async (
   action: RestAction,
@@ -26,7 +27,9 @@ export const callRestApi = async (
     return data;
   } catch (err: any) {
     vscode.window.showErrorMessage(
-      `${error[action]} ${err.response?.data?.ERROR ?? err.message}.`
+      err.response?.status === 404
+        ? error[action]
+        : `Error: ${err.response?.data?.ERROR ?? err.message}.`
     );
     return [];
   }
@@ -50,9 +53,10 @@ export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
   }
 };
 
-export const pushOrPull = (action: ButtonAction) => {
-  const [fromTo, answerOptions, method] =
-    action === "pull" ? pullOptions : pushOptions;
+const buttonAction = (action: ButtonAction) => {
+  const [fromTo, answerOptions, method] = buttonOptions[action],
+    isPull = action === "pull",
+    compareUri = vscode.Uri.joinPath(workspaceUri, ".compare");
   return async () => {
     const document = vscode.window.activeTextEditor!.document,
       pathParts = document.uri.path.split("/"),
@@ -68,13 +72,13 @@ export const pushOrPull = (action: ButtonAction) => {
       return vscode.window.showErrorMessage(
         `Connection ${connection} was not found in the Connections setting or folder structure was changed manually and does not meet the expectations of the extension!`
       );
-    const [field, path, message] = isScript
+    const [field, path, message]: [Field, string, string] = isScript
         ? [
-            <Field>"Script",
+            "Script",
             [parent, urlParts.child, name].join("/"),
             `script of the ${parent} ${urlParts.parent}`,
           ]
-        : [<Field>"Definition", name, "web template definition"],
+        : ["Definition", name, "web template definition"],
       request: RequestConfig = {
         method,
         url: [url, "workspace", workspace, urlParts.parent, path].join("/"),
@@ -86,11 +90,20 @@ export const pushOrPull = (action: ButtonAction) => {
       );
     switch (answer) {
       case "Pull":
+      case "Compare":
         request.params = query.pull[field];
-        const response = await callRestApi("pull", request),
-          content = response[0]?.[field];
-        if (!content) return;
-        return await writeFile(document.uri, content);
+        const response = await callRestApi(action, request),
+          content = response[0]?.[field],
+          targetUri = isPull ? document.uri : compareUri;
+        if (content === undefined) return;
+        await writeFile(targetUri, content);
+        if (isPull) return;
+        return await vscode.commands.executeCommand(
+          "vscode.diff",
+          targetUri,
+          document.uri,
+          `Compare ${name} with Siebel`
+        );
       case "Push":
         await document.save();
         const text = document.getText();
@@ -101,16 +114,17 @@ export const pushOrPull = (action: ButtonAction) => {
           return vscode.window.showErrorMessage(error.nameDifferent);
         request.data["Program Language"] = "JS";
         return await callRestApi("push", request);
-      default:
-        return;
     }
   };
 };
 
+export const pull = buttonAction("pull");
+export const push = buttonAction("push");
+export const compare = buttonAction("compare");
+
 export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   try {
-    const workspaceUri = vscode.workspace.workspaceFolders![0].uri,
-      typeDefUri = vscode.Uri.joinPath(workspaceUri, "index.d.ts"),
+    const typeDefUri = vscode.Uri.joinPath(workspaceUri, "index.d.ts"),
       isTypeDef = await exists(typeDefUri),
       siebelTypesUri = vscode.Uri.joinPath(extensionUri, "siebelTypes.txt"),
       jsconfigUri = vscode.Uri.joinPath(workspaceUri, "jsconfig.json"),
@@ -128,8 +142,6 @@ export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
         return vscode.window.showInformationMessage(
           `File jsconfig.json was created in the ${workspaceUri.fsPath} folder!`
         );
-      default:
-        return;
     }
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
