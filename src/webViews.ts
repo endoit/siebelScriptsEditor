@@ -335,9 +335,10 @@ export const configHTML = (
 				},
 				testRestWorkspaces = () => {
 					const { url, username, password } = getBaseParameters(),
+						name = document.getElementById("connection-name").value,
 						restWorkspaces = document.getElementById("rest-workspaces").checked;
 					if (!restWorkspaces) return;
-					vscode.postMessage({command: "testRestWorkspaces", url, username, password});
+					vscode.postMessage({command: "testRestWorkspaces", url, username, password, name});
 				},
 				testConnection = () => {
 					const { url, username, password } = getBaseParameters();
@@ -356,6 +357,9 @@ export const configHTML = (
 					const name = document.getElementById("connection-name").value;
 					vscode.postMessage({command: "deleteConnection", name});
 				};
+				window.addEventListener("message", ({ isRestWorkspaces }) => {
+					if (!isRestWorkspaces) document.getElementById("rest-workspaces").checked = false;
+				});
 			</script>
 		</body>
 	</html>`;

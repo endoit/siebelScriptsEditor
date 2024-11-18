@@ -67,9 +67,9 @@ export const siebelObjectUrls: SiebelObjectUrls = {
     restWorkspaces: "",
   } as const,
   error = {
-    pull: "Object was not found in Siebel!",
-    compare: "Object was not found in Siebel!",
-    push: "Object was not found in Siebel!",
+    pull: "Unable to pull, object was not found in Siebel!",
+    compare: "Unable to compare, object was not found in Siebel!",
+    push: "Unable to push, object was not found in Siebel!",
     testConnection: "",
     testRestWorkspaces:
       "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing!",

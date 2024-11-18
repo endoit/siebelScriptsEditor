@@ -185,12 +185,15 @@ export const configWebview =
             if (!(url && username && password))
               return vscode.window.showErrorMessage(error.missingParameters);
             const request: RequestConfig = {
-              method: "get",
-              url: [url, paths[command]].join("/"),
-              auth: { username, password },
-              params: query[command],
-            };
-            return await callRestApi(command, request);
+                method: "get",
+                url: [url, paths[command]].join("/"),
+                auth: { username, password },
+                params: query[command],
+              },
+              response = await callRestApi(command, request);
+            if (command === "testConnection" || response?.[0] !== undefined)
+              return;
+            return await webview.postMessage({ isRestWorkspaces: false });
           case "newConnection":
             if (!(name && url && username && password))
               return vscode.window.showErrorMessage(error.missingParameters);
