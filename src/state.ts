@@ -182,8 +182,6 @@ export const configWebview =
             return await setConfigs(configs);
           case "testConnection":
           case "testRestWorkspaces":
-            if (!(url && username && password))
-              return vscode.window.showErrorMessage(error.missingParameters);
             const request: RequestConfig = {
                 method: "get",
                 url: [url, paths[command]].join("/"),
@@ -191,13 +189,13 @@ export const configWebview =
                 params: query[command],
               },
               response = await callRestApi(command, request);
-            if (command === "testConnection" || response?.[0] !== undefined)
-              return;
-            return await webview.postMessage({ isRestWorkspaces: false });
+            if (command === "testConnection") return;
+            return await webview.postMessage({
+              uncheckRestWorkspaces: response?.[0] === undefined,
+            });
           case "newConnection":
-            if (!(name && url && username && password))
-              return vscode.window.showErrorMessage(error.missingParameters);
-            if (getConfig(name).name)
+            const connectionExists = !!getConfig(name).name;
+            if (connectionExists)
               return vscode.window.showErrorMessage(error.connectionExists);
             config.name = name;
             config.workspaces = [];
@@ -211,8 +209,7 @@ export const configWebview =
             await setConfigs(configs);
             if (command === "editConnection")
               return configWebviewPanel?.dispose();
-            webview.html = configHTML(config);
-            return;
+            return (webview.html = configHTML(config));
           case "deleteConnection":
             const answer = await vscode.window.showInformationMessage(
               `Do you want to delete the ${name} connection?`,

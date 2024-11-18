@@ -230,7 +230,7 @@ export const configHTML = (
 				<label for="connection-name">Connection Name</label>
 			</div>
 			<div class="grid-item grid-24">
-				<input type="text" class="input" name="connection-name" id="connection-name" value=${
+				<input type="text" class="input" name="connection-name" id="connection-name" oninput="enableButtons()" value=${
           isNew ? "" : `"${name}" readonly`
         }> 
 			</div>
@@ -238,19 +238,19 @@ export const configHTML = (
 				<label for="url">Siebel REST API Base URI</label>
 			</div>
 			<div class="grid-item grid-24">
-				<input type="text" class="input" name="url" id="url" value="${url}" placeholder="https://Server Name:Port/siebel/v1.0">
+				<input type="text" class="input" name="url" id="url" value="${url}" placeholder="https://Server Name:Port/siebel/v1.0" oninput="enableButtons()">
 			</div>
 			<div class="grid-item grid-1">
 				<label for="username">Username</label>
 			</div>
 			<div class="grid-item grid-24"> 
-				<input type="text" class="input" name="username" id="username" value="${username}">
+				<input type="text" class="input" name="username" id="username" value="${username}" oninput="enableButtons()">
 			</div>
 			<div class="grid-item grid-1">
 				<label for="password">Password</label>
 			</div>
 			<div class="grid-item grid-24">
-				<input type="password" class="input" name="username" id="password" value="${password}">
+				<input type="password" class="input" name="username" id="password" value="${password}" oninput="enableButtons()">
 			</div>
 	${
     isNew
@@ -260,10 +260,10 @@ export const configHTML = (
 				<label for="add-workspace">Workspaces
 			</div>
 			<div class="grid-item  grid-2">
-				<input class="input" type="text" name="add-workspace" id="add-workspace">
+				<input class="input" type="text" name="add-workspace" id="add-workspace" oninput="enableAddWorkspace()">
 			</div>
 			<div class="grid-item grid-34">
-				<Button class="button button-small" name="add" onclick="editWorkspaces()" id="add-workspace-button">Add</Button>			
+				<Button class="button button-small" name="add" onclick="editWorkspaces()" id="add-workspace-button" disabled>Add</Button>			
 			</div>    
 				${workspaces
           .map(
@@ -313,17 +313,21 @@ export const configHTML = (
       }
 		</div>
 		<script>
-			${
-        isNew
-          ? `document.getElementById("connection-name").focus();`
-          : `const addWorkspace = document.getElementById("add-workspace");					
-				addWorkspace.focus();
-				addWorkspace.addEventListener("keypress", (e) => {
-					if (e.key !== "Enter") return;
-					e.preventDefault();
-					document.getElementById("add-workspace-button").click();					
-				});`
-      }
+		${
+      isNew
+        ? `document.getElementById("connection-name").focus();`
+        : `const addWorkspace = document.getElementById("add-workspace"),
+			enableAddWorkspace = () => {
+				const addButton = document.getElementById("add-workspace-button");
+				addButton.disabled = !document.getElementById("add-workspace").value;
+			};				
+			addWorkspace.focus();
+			addWorkspace.addEventListener("keypress", (e) => {
+				if (e.key !== "Enter") return;
+				e.preventDefault();
+				document.getElementById("add-workspace-button").click();					
+			});	`
+    }
 			const vscode = acquireVsCodeApi(),
 				getBaseParameters = () => ({ url: document.getElementById("url").value, username:  document.getElementById("username").value, password: document.getElementById("password").value }),
 				editWorkspaces = () => {
@@ -356,9 +360,19 @@ export const configHTML = (
 				deleteConnection = () => {
 					const name = document.getElementById("connection-name").value;
 					vscode.postMessage({command: "deleteConnection", name});
+				},
+				enableButtons = () => {
+   			const testButton = document.getElementById("test"),
+					saveButton = document.getElementById("newOrEditConnection"),
+					name = document.getElementById("connection-name").value,
+					{ url, username, password } = getBaseParameters(),
+					 isDisabled = !(name && url && username && password);
+					testButton.disabled = isDisabled;
+    			saveButton.disabled = isDisabled;
 				};
-				window.addEventListener("message", ({ isRestWorkspaces }) => {
-					if (!isRestWorkspaces) document.getElementById("rest-workspaces").checked = false;
+				enableButtons();
+				window.addEventListener("message", ({ data: { uncheckRestWorkspaces } }) => {
+					if (uncheckRestWorkspaces) document.getElementById("rest-workspaces").checked = false;
 				});
 			</script>
 		</body>
