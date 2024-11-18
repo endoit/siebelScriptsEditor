@@ -29,7 +29,7 @@ export const callRestApi = async (
     vscode.window.showErrorMessage(
       err.response?.status === 404
         ? error[action]
-        : `Error: ${err.response?.data?.ERROR ?? err.message}.`
+        : `Error: ${err.response?.data?.ERROR ?? err.message}`
     );
     return [];
   }
@@ -55,7 +55,7 @@ export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
 
 const buttonAction = (action: ButtonAction) => {
   const [fromTo, answerOptions, method] = buttonOptions[action],
-    isPull = action === "pull",
+    isCompare = action === "compare",
     compareUri = vscode.Uri.joinPath(workspaceUri, ".compare");
   return async () => {
     const document = vscode.window.activeTextEditor!.document,
@@ -84,25 +84,27 @@ const buttonAction = (action: ButtonAction) => {
         url: [url, "workspace", workspace, urlParts.parent, path].join("/"),
         auth: { username, password },
       },
-      answer = await vscode.window.showInformationMessage(
-        `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connection} connection?`,
-        ...answerOptions
-      );
+      answer = isCompare
+        ? "Compare"
+        : await vscode.window.showInformationMessage(
+            `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connection} connection?`,
+            ...answerOptions
+          );
     switch (answer) {
       case "Pull":
       case "Compare":
         request.params = query.pull[field];
         const response = await callRestApi(action, request),
           content = response[0]?.[field],
-          targetUri = isPull ? document.uri : compareUri;
+          targetUri = isCompare ? compareUri : document.uri;
         if (content === undefined) return;
         await writeFile(targetUri, content);
-        if (isPull) return;
+        if (!isCompare) return;
         return await vscode.commands.executeCommand(
           "vscode.diff",
           targetUri,
           document.uri,
-          `Compare ${name} with Siebel`
+          `Comparison of ${name}`
         );
       case "Push":
         await document.save();
