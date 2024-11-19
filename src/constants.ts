@@ -52,9 +52,9 @@ export const siebelObjectUrls: SiebelObjectUrls = {
   yesOnlyMethodNamesNo = ["Yes", "Only method names", "No"] as const,
   openFileOverwriteCancel = ["Open file", "Overwrite", "Cancel"] as const,
   buttonOptions = {
-    pull: ["from", ["Pull", "No"], "get"],
-    compare: ["from", ["Compare", "No"], "get"],
-    push: ["to", ["Push", "No"], "put"],
+    pull: ["from", ["Pull", "No"], "get", false],
+    compare: ["from", ["Compare", "No"], "get", true],
+    push: ["to", ["Push", "No"], "put", false],
   } as const,
   //constant success and error messages messages
   success = {

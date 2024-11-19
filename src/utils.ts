@@ -9,11 +9,12 @@ import {
 import { getConfig } from "./settings";
 import axios from "axios";
 
-const restApi = axios.create({
-  withCredentials: true,
-});
-
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
+
+const restApi = axios.create({
+    withCredentials: true,
+  }),
+  compareUri = workspaceUri && vscode.Uri.joinPath(workspaceUri, ".compare");
 
 export const callRestApi = async (
   action: RestAction,
@@ -54,9 +55,7 @@ export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
 };
 
 const buttonAction = (action: ButtonAction) => {
-  const [fromTo, answerOptions, method] = buttonOptions[action],
-    isCompare = action === "compare",
-    compareUri = vscode.Uri.joinPath(workspaceUri, ".compare");
+  const [fromTo, answerOptions, method, isCompare] = buttonOptions[action];
   return async () => {
     const document = vscode.window.activeTextEditor!.document,
       pathParts = document.uri.path.split("/"),
