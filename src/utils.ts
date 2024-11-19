@@ -71,13 +71,13 @@ const buttonAction = (action: ButtonAction) => {
       return vscode.window.showErrorMessage(
         `Connection ${connection} was not found in the Connections setting or folder structure was changed manually and does not meet the expectations of the extension!`
       );
-    const [field, path, message]: [Field, string, string] = isScript
+    const [field, path, message] = isScript
         ? [
-            "Script",
+            <Field>"Script",
             [parent, urlParts.child, name].join("/"),
             `script of the ${parent} ${urlParts.parent}`,
           ]
-        : ["Definition", name, "web template definition"],
+        : [<Field>"Definition", name, "web template definition"],
       request: RequestConfig = {
         method,
         url: [url, "workspace", workspace, urlParts.parent, path].join("/"),
@@ -94,14 +94,13 @@ const buttonAction = (action: ButtonAction) => {
       case "Compare":
         request.params = query.pull[field];
         const response = await callRestApi(action, request),
-          content = response[0]?.[field],
-          targetUri = isCompare ? compareUri : document.uri;
+          content = response[0]?.[field];
         if (content === undefined) return;
-        await writeFile(targetUri, content);
+        await writeFile(isCompare ? compareUri : document.uri, content);
         if (!isCompare) return;
         return await vscode.commands.executeCommand(
           "vscode.diff",
-          targetUri,
+          compareUri,
           document.uri,
           `Comparison of ${name}`
         );
