@@ -210,6 +210,12 @@ export const dataSourceHTML = `<!doctype><html>
 </body>
 </html>`;
 
+export const noWorkspaceFolderHTML = `<!doctype><html>
+<body>
+	<h2>Please open a Visual Studio Code workspace folder to use the extension!</h2>
+</body>
+</html>`;
+
 export const configHTML = (
   {
     name = "",
@@ -364,11 +370,13 @@ export const configHTML = (
 				enableButtons = () => {
    			const testButton = document.getElementById("test"),
 					saveButton = document.getElementById("newOrEditConnection"),
+					restWorkspaces = document.getElementById("rest-workspaces"),
 					name = document.getElementById("connection-name").value,
 					{ url, username, password } = getBaseParameters(),
 					 isDisabled = !(name && url && username && password);
 					testButton.disabled = isDisabled;
     			saveButton.disabled = isDisabled;
+					if (restWorkspaces) restWorkspaces.disabled = isDisabled;
 				};
 				enableButtons();
 				window.addEventListener("message", ({ data: { uncheckRestWorkspaces } }) => {
