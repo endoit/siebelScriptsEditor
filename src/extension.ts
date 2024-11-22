@@ -1,13 +1,6 @@
 import * as vscode from "vscode";
-import { error } from "./constants";
 import { moveDeprecatedSettings } from "./settings";
-import {
-  setupWorkspaceFolder,
-  workspaceUri,
-  push,
-  pull,
-  compare,
-} from "./utils";
+import { setupWorkspaceFolder, push, pull, compare } from "./utils";
 import { dataSourceWebview, configWebview } from "./state";
 
 export async function activate({
@@ -15,9 +8,6 @@ export async function activate({
   subscriptions,
 }: vscode.ExtensionContext) {
   try {
-    if (!workspaceUri)
-      return vscode.window.showErrorMessage(error.noWorkspaceFolder);
-
     await moveDeprecatedSettings();
     await setupWorkspaceFolder(extensionUri);
 

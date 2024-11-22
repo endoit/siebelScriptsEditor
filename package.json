@@ -121,17 +121,17 @@
 			"view/title": [
 				{
 					"command": "siebelscriptandwebtempeditor.newConnection",
-					"when": "view == extensionView",
+					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.editConnection",
-					"when": "view == extensionView",
+					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@1"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.openSettings",
-					"when": "view == extensionView",
+					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@2"
 				}
 			]

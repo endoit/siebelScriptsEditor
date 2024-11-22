@@ -30,7 +30,9 @@ export const callRestApi = async (
     vscode.window.showErrorMessage(
       err.response?.status === 404
         ? error[action]
-        : `Error: ${err.response?.data?.ERROR ?? err.message}`
+        : `Error using the Siebel REST API: ${
+            err.response?.data?.ERROR ?? err.message
+          }`
     );
     return [];
   }
@@ -96,8 +98,8 @@ const buttonAction = (action: ButtonAction) => {
         const response = await callRestApi(action, request),
           content = response[0]?.[field];
         if (content === undefined) return;
-        await writeFile(isCompare ? compareUri : document.uri, content);
-        if (!isCompare) return;
+        if (!isCompare) return await writeFile(document.uri, content);
+        await writeFile(compareUri, content);
         return await vscode.commands.executeCommand(
           "vscode.diff",
           compareUri,
@@ -109,10 +111,11 @@ const buttonAction = (action: ButtonAction) => {
         const text = document.getText();
         request.data = { Name: name, [field]: text };
         if (!isScript) return await callRestApi("push", request);
-        const sameName = new RegExp(`function\\s+${name}\\s*\\(`).test(text);
-        if (!sameName && name !== "(declarations)")
-          return vscode.window.showErrorMessage(error.nameDifferent);
         request.data["Program Language"] = "JS";
+        const differs =
+          !new RegExp(`function\\s+${name}\\s*\\(`).test(text) &&
+          name !== "(declarations)";
+        if (differs) return vscode.window.showErrorMessage(error.nameDifferent);
         return await callRestApi("push", request);
     }
   };
@@ -124,6 +127,7 @@ export const compare = buttonAction("compare");
 
 export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   try {
+    if (!workspaceUri) return;
     const typeDefUri = vscode.Uri.joinPath(workspaceUri, "index.d.ts"),
       isTypeDef = await exists(typeDefUri),
       siebelTypesUri = vscode.Uri.joinPath(extensionUri, "siebelTypes.txt"),

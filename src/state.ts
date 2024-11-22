@@ -9,7 +9,7 @@ import {
   settings,
 } from "./settings";
 import axios from "axios";
-import { dataSourceHTML, configHTML } from "./webViews";
+import { dataSourceHTML, configHTML, noWorkspaceFolderHTML } from "./webViews";
 import { TreeData } from "./treeData";
 
 const treeData = {
@@ -45,7 +45,7 @@ const setUrlAndFolder = () => {
   }
 };
 
-const getState = async () => {
+const setState = async (webview: vscode.Webview) => {
   let isConnection = false,
     isDefault = false;
   connections = [];
@@ -56,7 +56,7 @@ const getState = async () => {
   }
   if (connections.length === 0) {
     vscode.window.showErrorMessage(error.noConnection);
-    return {};
+    return await webview.postMessage({});
   }
   connection = isConnection
     ? connection
@@ -93,15 +93,22 @@ const getState = async () => {
   axios.defaults.params.PageSize = settings.maxPageSize;
   baseUrl = url;
   setUrlAndFolder();
-  return { connections, connection, workspaces, workspace, type };
+  await webview.postMessage({
+    connections,
+    connection,
+    workspaces,
+    workspace,
+    type,
+  });
 };
 
 export const dataSourceWebview =
   (subscriptions: Subscriptions) =>
   async ({ webview }: { webview: vscode.Webview }) => {
+    if (!workspaceUri) return void (webview.html = noWorkspaceFolderHTML);
     vscode.workspace.onDidChangeConfiguration(async (e) => {
       if (!configChange(e)) return;
-      await webview.postMessage(await getState());
+      await setState(webview);
     });
     webview.options = { enableScripts: true };
     webview.onDidReceiveMessage(
@@ -109,7 +116,7 @@ export const dataSourceWebview =
         switch (command) {
           case "connection":
             connection = data;
-            return await webview.postMessage(await getState());
+            return await setState(webview);
           case "workspace":
             workspace = data;
             return setUrlAndFolder();
@@ -123,7 +130,7 @@ export const dataSourceWebview =
       subscriptions
     );
     webview.html = dataSourceHTML;
-    await webview.postMessage(await getState());
+    await setState(webview);
   };
 
 export const configWebview =

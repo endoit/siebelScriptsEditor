@@ -75,8 +75,6 @@ export const siebelObjectUrls: SiebelObjectUrls = {
       "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing!",
     restWorkspaces:
       "No workspace with status Created, Checkpointed or Edit-In-Progress was found!",
-    noWorkspaceFolder:
-      "Please open a Visual Studio Code workspace folder to use the extension!",
     noConnection:
       "Please create at least one connection with the New Connection button!",
     noBaseWorkspaceIOB:
