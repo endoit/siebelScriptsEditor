@@ -45,7 +45,7 @@ const setUrlAndFolder = () => {
   }
 };
 
-const setState = async (webview: vscode.Webview) => {
+const getState = async () => {
   let isConnection = false,
     isDefault = false;
   connections = [];
@@ -56,7 +56,7 @@ const setState = async (webview: vscode.Webview) => {
   }
   if (connections.length === 0) {
     vscode.window.showErrorMessage(error.noConnection);
-    return await webview.postMessage({});
+    return {};
   }
   connection = isConnection
     ? connection
@@ -93,13 +93,7 @@ const setState = async (webview: vscode.Webview) => {
   axios.defaults.params.PageSize = settings.maxPageSize;
   baseUrl = url;
   setUrlAndFolder();
-  await webview.postMessage({
-    connections,
-    connection,
-    workspaces,
-    workspace,
-    type,
-  });
+  return { connections, connection, workspaces, workspace, type };
 };
 
 export const dataSourceWebview =
@@ -108,7 +102,7 @@ export const dataSourceWebview =
     if (!workspaceUri) return void (webview.html = noWorkspaceFolderHTML);
     vscode.workspace.onDidChangeConfiguration(async (e) => {
       if (!configChange(e)) return;
-      await setState(webview);
+      await webview.postMessage(await getState());
     });
     webview.options = { enableScripts: true };
     webview.onDidReceiveMessage(
@@ -116,7 +110,7 @@ export const dataSourceWebview =
         switch (command) {
           case "connection":
             connection = data;
-            return await setState(webview);
+            return await webview.postMessage(await getState());
           case "workspace":
             workspace = data;
             return setUrlAndFolder();
@@ -130,7 +124,7 @@ export const dataSourceWebview =
       subscriptions
     );
     webview.html = dataSourceHTML;
-    await setState(webview);
+    await webview.postMessage(await getState());
   };
 
 export const configWebview =
