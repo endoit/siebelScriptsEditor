@@ -5,6 +5,7 @@ import {
   error,
   success,
   buttonOptions,
+  paths,
 } from "./constants";
 import { getConfig } from "./settings";
 import axios from "axios";
@@ -56,6 +57,25 @@ export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
   }
 };
 
+export const getRestWorkspaces = async (
+  url: string,
+  username: string,
+  password: string
+) => {
+  const workspaces = [],
+    request: RequestConfig = {
+      method: "get",
+      url: [url, paths.restWorkspaces].join("/"),
+      auth: { username, password },
+      params: query.restWorkspaces,
+    },
+    data = await callRestApi("restWorkspaces", request);
+  for (const { Name } of data) {
+    workspaces.push(Name);
+  }
+  return workspaces;
+};
+
 const buttonAction = (action: ButtonAction) => {
   const [fromTo, answerOptions, method, isCompare] = buttonOptions[action];
   return async () => {
@@ -67,8 +87,20 @@ const buttonAction = (action: ButtonAction) => {
         isScript ? -5 : -4,
         -1
       ),
-      { url, username, password } = getConfig(connection),
+      { url, username, password, workspaces, restWorkspaces } =
+        getConfig(connection),
       urlParts = siebelObjectUrls[<Type>type];
+    const options: vscode.QuickPickItem[] = [
+        { label: workspace, description: "Compare in the same workspace" },
+      ],
+      workspaceList =
+        isCompare && restWorkspaces
+          ? await getRestWorkspaces(url, username, password)
+          : workspaces;
+    for (const workspaceItem of workspaceList) {
+      if (workspaceItem === workspace) continue;
+      options.push({ label: workspaceItem });
+    }
     if (!url || !urlParts)
       return vscode.window.showErrorMessage(
         `Connection ${connection} was not found in the Connections setting or folder structure was changed manually and does not meet the expectations of the extension!`
@@ -80,20 +112,33 @@ const buttonAction = (action: ButtonAction) => {
             `script of the ${parent} ${urlParts.parent}`,
           ]
         : [<Field>"Definition", name, "web template definition"],
-      request: RequestConfig = {
-        method,
-        url: [url, "workspace", workspace, urlParts.parent, path].join("/"),
-        auth: { username, password },
-      },
       answer = isCompare
-        ? "Compare"
+        ? await vscode.window.showQuickPick(options, {
+            title: "Choose a workspace to compare against",
+            placeHolder: "Workspace",
+            canPickMany: false,
+          })
         : await vscode.window.showInformationMessage(
             `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connection} connection?`,
             ...answerOptions
           );
-    switch (answer) {
-      case "Pull":
-      case "Compare":
+    if (!answer || answer === "No") return;
+    const otherWorkspace = (<vscode.QuickPickItem>answer).label ?? "",
+      request: RequestConfig = {
+        method,
+        url: [
+          url,
+          "workspace",
+          isCompare ? otherWorkspace : workspace,
+          urlParts.parent,
+          path,
+        ].join("/"),
+        auth: { username, password },
+      };
+
+    switch (action) {
+      case "compare":
+      case "pull":
         request.params = query.pull[field];
         const response = await callRestApi(action, request),
           content = response[0]?.[field];
@@ -104,9 +149,9 @@ const buttonAction = (action: ButtonAction) => {
           "vscode.diff",
           compareUri,
           document.uri,
-          `Comparison of ${name}`
+          `Comparison of ${name} between ${otherWorkspace} and ${workspace} (downloaded)`
         );
-      case "Push":
+      case "push":
         await document.save();
         const text = document.getText();
         request.data = { Name: name, [field]: text };

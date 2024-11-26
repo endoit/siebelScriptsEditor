@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { query, paths, error, yesNo } from "./constants";
-import { workspaceUri, callRestApi } from "./utils";
+import { workspaceUri, callRestApi, getRestWorkspaces } from "./utils";
 import {
   configChange,
   getConfig,
@@ -67,23 +67,13 @@ const getState = async () => {
     url,
     username,
     password,
-    workspaces: newWorkspaces,
+    workspaces: workspaceList,
     defaultWorkspace,
     restWorkspaces,
   } = getConfig(connection);
-  workspaces = restWorkspaces ? [] : newWorkspaces;
-  if (restWorkspaces) {
-    const request: RequestConfig = {
-        method: "get",
-        url: [url, paths.restWorkspaces].join("/"),
-        auth: { username, password },
-        params: query.restWorkspaces,
-      },
-      data = await callRestApi("restWorkspaces", request);
-    for (const { Name } of data) {
-      workspaces.push(Name);
-    }
-  }
+  workspaces = restWorkspaces
+    ? await getRestWorkspaces(url, username, password)
+    : workspaceList;
   workspace = workspaces.includes(workspace)
     ? workspace
     : restWorkspaces || !workspaces.includes(defaultWorkspace)
