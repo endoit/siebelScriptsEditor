@@ -70,7 +70,7 @@ export const siebelObjectUrls: SiebelObjectUrls = {
     pull: "Unable to pull, object was not found in Siebel!",
     compare: "Unable to compare, object does not exists in the selected workspace!",
     push: "Unable to push, object was not found in Siebel!",
-    testConnection: "",
+    testConnection: "Error in the Siebel REST API Base URI!",
     testRestWorkspaces:
       "Error getting workspaces from the Siebel REST API, Base Workspace integration object is missing!",
     restWorkspaces:
