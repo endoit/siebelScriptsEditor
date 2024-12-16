@@ -37,6 +37,6 @@ export async function activate({
       );
     }
   } catch (err: any) {
-    vscode.window.showErrorMessage(err?.message);
+    vscode.window.showErrorMessage(err.message);
   }
 }

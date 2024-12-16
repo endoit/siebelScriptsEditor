@@ -135,7 +135,6 @@ const buttonAction = (action: ButtonAction) => {
         ].join("/"),
         auth: { username, password },
       };
-
     switch (action) {
       case "compare":
       case "pull":
@@ -179,18 +178,17 @@ export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
       jsconfigUri = vscode.Uri.joinPath(workspaceUri, "jsconfig.json"),
       isJsconfig = await exists(jsconfigUri),
       jsConfig = `{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}`;
-    switch (false) {
-      case isTypeDef:
-        await vscode.workspace.fs.copy(siebelTypesUri, typeDefUri);
-        vscode.window.showInformationMessage(
-          `File index.d.ts was created in the ${workspaceUri.fsPath} folder!`
-        );
-        if (isJsconfig) return;
-      case isJsconfig:
-        await writeFile(jsconfigUri, jsConfig);
-        return vscode.window.showInformationMessage(
-          `File jsconfig.json was created in the ${workspaceUri.fsPath} folder!`
-        );
+    if (!isTypeDef) {
+      await vscode.workspace.fs.copy(siebelTypesUri, typeDefUri);
+      vscode.window.showInformationMessage(
+        `File index.d.ts was created in the ${workspaceUri.fsPath} folder!`
+      );
+    }
+    if (!isJsconfig) {
+      await writeFile(jsconfigUri, jsConfig);
+      vscode.window.showInformationMessage(
+        `File jsconfig.json was created in the ${workspaceUri.fsPath} folder!`
+      );
     }
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);

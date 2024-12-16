@@ -84,9 +84,9 @@ interface Application {
   /**
    * Activates a view.
    * @param viewName The name of the view that the Siebel application must display.
-   * @param busObjName [Optional] The business object that Siebel CRM uses to display the view. You cannot specify the current active business object. If you do not provide this argument, or if you specify Nothing in this argument, then Siebel CRM activates a new business object in the normal way.
+   * @param busObj [Optional] The business object that Siebel CRM uses to display the view. You cannot specify the current active business object. If you do not provide this argument, or if you specify Nothing in this argument, then Siebel CRM activates a new business object in the normal way.
    */
-  GotoView(viewName: string, busObjName?: string): void;
+  GotoView(viewName: string, busObj?: BusObject): void;
   /**
    * Calls a method.
    * @param methodName The name of the method.

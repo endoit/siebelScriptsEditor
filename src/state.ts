@@ -19,6 +19,7 @@ const treeData = {
   application: new TreeData("application"),
   webtemp: new TreeData("webtemp"),
 } as const;
+
 let connections: string[] = [],
   connection = "",
   workspaces: string[] = [],
@@ -26,6 +27,7 @@ let connections: string[] = [],
   type: Type = "service",
   baseUrl: string,
   configWebviewPanel: vscode.WebviewPanel | undefined;
+
 axios.defaults.method = "get";
 axios.defaults.withCredentials = true;
 axios.defaults.params = {

@@ -10,6 +10,7 @@ import { settings } from "./settings";
 import axios from "axios";
 
 const checkmarkIcon = new vscode.ThemeIcon("check");
+
 let timeoutId: NodeJS.Timeout | number | null = null;
 
 const getData = async (
@@ -29,6 +30,7 @@ const getData = async (
     return [];
   }
 };
+
 const openFile = async (fileUri: vscode.Uri) => {
   try {
     await vscode.window.showTextDocument(fileUri, { preview: false });
@@ -36,8 +38,10 @@ const openFile = async (fileUri: vscode.Uri) => {
     vscode.window.showErrorMessage(err.message);
   }
 };
+
 const isFileScript = (ext: string): ext is "js" | "ts" =>
   ext === "js" || ext === "ts";
+
 const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
 
 export class TreeData {
