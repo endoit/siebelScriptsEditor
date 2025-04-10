@@ -1,7 +1,14 @@
 import * as vscode from "vscode";
 import { moveDeprecatedSettings } from "./settings";
-import { setupWorkspaceFolder, push, pull, compare } from "./utils";
-import { dataSourceWebview, configWebview } from "./state";
+import { openSettings, setupWorkspaceFolder } from "./utils";
+import { refreshConnections, dataSourceWebview, configWebview } from "./state";
+import {
+  compare,
+  pull,
+  push,
+  parseFilePath,
+  reparseFilePath,
+} from "./buttonAction";
 
 export async function activate({
   extensionUri,
@@ -15,17 +22,17 @@ export async function activate({
       resolveWebviewView: dataSourceWebview(subscriptions),
     });
 
+    vscode.window.onDidChangeActiveTextEditor(parseFilePath);
+    vscode.workspace.onDidRenameFiles(reparseFilePath);
+
     const commands = {
       pull,
       push,
       compare,
+      refreshConnections,
       newConnection: configWebview(subscriptions, "new"),
       editConnection: configWebview(subscriptions, "edit"),
-      openSettings: () =>
-        vscode.commands.executeCommand(
-          "workbench.action.openSettings",
-          "siebelScriptAndWebTempEditor"
-        ),
+      openSettings,
     } as const;
 
     for (const [command, callback] of Object.entries(commands)) {

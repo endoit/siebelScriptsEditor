@@ -63,6 +63,11 @@ const head = `<head>
 			cursor: pointer;
 		}
 
+		.select[disabled] {
+			background-color: var(--vscode-disabledForeground);
+			cursor: not-allowed;
+		}
+
 		.button {
 			color: var(--vscode-button-foreground);
 			background: var(--vscode-button-background);
@@ -81,6 +86,10 @@ const head = `<head>
 
 		.button-small {
 			line-height: 10px;
+		}
+
+		.button-small[hidden] {
+  		visibility: hidden;
 		}
 
 		.button:hover {
@@ -188,12 +197,17 @@ export const dataSourceHTML = `<!doctype><html>
 				vscode.postMessage({ command: "search", data: searchString });
       },
 			populate = () => {
-				const { connections = [], connection = "", workspaces = [], workspace = "", type = "service", searchString = "" } = currentState;
+				const { connections = [], connection = "", workspaces = [], workspace = "", type = "service", searchString = "" } = currentState,
+					noConnection = connections.length === 0,
+					noWorkspaces = noConnection || workspaces.length === 0;
 				document.getElementById("connection").innerHTML = createOptions(connections, connection);
+				document.getElementById("connection").disabled = noConnection;
 				document.getElementById("workspace").innerHTML = createOptions(workspaces, workspace);
+				document.getElementById("workspace").disabled = noWorkspaces;
 				document.getElementById("type").innerHTML = createOptions(["service", "buscomp", "applet", "application", "webtemp"], type, true);
+				document.getElementById("type").disabled = noWorkspaces;
 				document.getElementById("search-bar").value = searchString;
-				document.getElementById("search-bar").readOnly = connections.length === 0 || workspaces.length === 0;
+				document.getElementById("search-bar").readOnly = noWorkspaces;
 			};
 		populate();
     window.addEventListener("message", ({ data: { connections = [], connection = "", workspaces = [], workspace = "", type = "service" } }) => {
@@ -283,7 +297,9 @@ export const configHTML = (
         }</Button></div>
 				<div class="grid-item grid-2">${workspace}</div>
 				<div class="grid-item grid-3" data-value="${workspace}">
-					<Button class="button button-small" name="delete" onclick="editWorkspaces()">Delete</Button>
+					<Button class="button button-small" name="delete" onclick="editWorkspaces()" ${
+            workspace === "MAIN" ? "hidden" : ""
+          }>Delete</Button>
 				</div>`
           )
           .join("")}
@@ -324,8 +340,10 @@ export const configHTML = (
         ? `document.getElementById("connection-name").focus();`
         : `const addWorkspace = document.getElementById("add-workspace"),
 			enableAddWorkspace = () => {
-				const addButton = document.getElementById("add-workspace-button");
-				addButton.disabled = !document.getElementById("add-workspace").value;
+				const addButton = document.getElementById("add-workspace-button"),
+					workspace = document.getElementById("add-workspace").value,
+					parts = workspace.split("_");
+				addButton.disabled = !workspace || !/^[A-Za-z0-9_-]+$/.test(workspace) || (parts.length === 1 || (parts.length === 2 && parts[1] === "")) || "${workspaces}".split(",").includes(workspace);
 			};				
 			addWorkspace.focus();
 			addWorkspace.addEventListener("keypress", (e) => {
@@ -338,9 +356,8 @@ export const configHTML = (
 				getBaseParameters = () => ({ url: document.getElementById("url").value, username:  document.getElementById("username").value, password: document.getElementById("password").value }),
 				editWorkspaces = () => {
 					const name = document.getElementById("connection-name").value, 
-						action = event.target.name,
-						workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;
-					if (!workspace) return;
+						action = event.target.name;
+					const	workspace = action === "add" ? document.getElementById("add-workspace").value : event.target.parentNode.dataset.value;		
 					vscode.postMessage({command: "workspace", name, action, workspace});
 				},
 				testRestWorkspaces = () => {

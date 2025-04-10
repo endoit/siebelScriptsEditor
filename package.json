@@ -17,9 +17,6 @@
 		"url": "https://github.com/endoit/siebelScriptsEditor"
 	},
 	"activationEvents": [
-		"onCommand:siebelscriptandwebtempeditor.pull",
-		"onCommand:siebelscriptandwebtempeditor.push",
-		"onCommand:siebelscriptandwebtempeditor.compare",
 		"onView:extensionView"
 	],
 	"main": "./dist/extension.js",
@@ -67,19 +64,25 @@
 				"command": "siebelscriptandwebtempeditor.pull",
 				"title": "Pull script/web template from Siebel",
 				"icon": "$(fold-down)",
-				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.push",
 				"title": "Push script/web template to Siebel",
 				"icon": "$(fold-up)",
-				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushEnabled && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.compare",
 				"title": "Compare script/web template with Siebel",
 				"icon": "$(symbol-boolean)",
-				"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.refreshConnections",
+				"title": "Refresh Connections",
+				"when": "workspaceFolderCount > 0",
+				"icon": "$(refresh)"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.newConnection",
@@ -105,34 +108,39 @@
 				{
 					"command": "siebelscriptandwebtempeditor.pull",
 					"group": "navigation",
-					"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.push",
 					"group": "navigation@1",
-					"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushEnabled && !isInDiffEditor"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.compare",
 					"group": "navigation@2",
-					"when": "workspaceFolderCount > 0 && ((resourceDirname =~ /service|buscomp|applet|application/ && (resourceExtname == .js || resourceExtname == .ts)) || (resourceDirname =~ /webtemp/ && resourceExtname == .html)) && !isInDiffEditor"
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
 				}
 			],
 			"view/title": [
 				{
-					"command": "siebelscriptandwebtempeditor.newConnection",
+					"command": "siebelscriptandwebtempeditor.refreshConnections",
 					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.editConnection",
+					"command": "siebelscriptandwebtempeditor.newConnection",
 					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@1"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.openSettings",
+					"command": "siebelscriptandwebtempeditor.editConnection",
 					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@2"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.openSettings",
+					"when": "workspaceFolderCount > 0 && view == extensionView",
+					"group": "navigation@3"
 				}
 			]
 		},
@@ -218,7 +226,7 @@
 		"run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
 	},
 	"dependencies": {
-		"axios": "^1.6.2"
+		"axios": "^1.8.4"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.4",
@@ -229,7 +237,7 @@
 		"@typescript-eslint/eslint-plugin": "^5.45.0",
 		"@typescript-eslint/parser": "^5.45.0",
 		"@vscode/test-electron": "^1.6.2",
-		"@vscode/test-web": "^0.0.33",
+		"@vscode/test-web": "^0.0.68",
 		"assert": "^2.0.0",
 		"eslint": "^8.28.0",
 		"glob": "^7.1.7",

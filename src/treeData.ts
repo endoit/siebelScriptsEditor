@@ -5,49 +5,15 @@ import {
   yesNo,
   yesOnlyMethodNamesNo,
 } from "./constants";
-import { exists, writeFile } from "./utils";
+import { checkmarkIcon, exists, getTreeData, isFileScript, isFileWebTemp, openFile, writeFile } from "./utils";
 import { settings } from "./settings";
-import axios from "axios";
-
-const checkmarkIcon = new vscode.ThemeIcon("check");
 
 let timeoutId: NodeJS.Timeout | number | null = null;
-
-const getData = async (
-  url: string,
-  params: QueryParams
-): Promise<RestResponse> => {
-  try {
-    const response = await axios({ url, params });
-    return response?.data?.items ?? [];
-  } catch (err: any) {
-    if (err.response?.status === 404) return [];
-    vscode.window.showErrorMessage(
-      `Error using the Siebel REST API: ${
-        err.response?.data?.ERROR ?? err.message
-      }`
-    );
-    return [];
-  }
-};
-
-const openFile = async (fileUri: vscode.Uri) => {
-  try {
-    await vscode.window.showTextDocument(fileUri, { preview: false });
-  } catch (err: any) {
-    vscode.window.showErrorMessage(err.message);
-  }
-};
-
-const isFileScript = (ext: string): ext is "js" | "ts" =>
-  ext === "js" || ext === "ts";
-
-const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
 
 export class TreeData {
   private readonly urlParts;
   private readonly setTreeItems: (data: RestResponse) => Promise<void>;
-  private readonly isFileValid: (ext: string) => ext is "js" | "ts" | "html";
+  private readonly isFileValid: (ext: string) => ext is FileExtNoDot;
   private readonly _onDidChangeTreeData = new vscode.EventEmitter();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private treeItems: (TreeItemObject | TreeItemWebTemp)[] = [];
@@ -97,7 +63,7 @@ export class TreeData {
           fields: "Name",
           searchspec: `Name LIKE '${searchSpec}*'`,
         },
-        data = await getData(this.urlParts.parent, params);
+        data = await getTreeData(this.urlParts.parent, params);
       await this.setTreeItems(data);
       this._onDidChangeTreeData.fire(null);
       timeoutId = null;
@@ -130,7 +96,7 @@ export class TreeData {
   private async setTreeItemsWebTemp(data: RestResponse) {
     const onDisk = await this.getFilesOnDisk(this.folderUri);
     for (const { Name } of data) {
-      const url = [this.urlParts.parent, Name].join("/");
+      const url = ["Web Template", Name].join("/");
       this.treeItems.push(
         new TreeItemWebTemp(Name, url, onDisk, this.folderUri)
       );
@@ -196,7 +162,7 @@ class TreeItemScript extends vscode.TreeItem {
         params.fields = `Name,${this.field}`;
       case "Only method names":
         params.fields ??= "Name";
-        const data = await getData(this.url, params);
+        const data = await getTreeData(this.url, params);
         if (data.length === 0) return false;
         return await this.pull(data);
     }

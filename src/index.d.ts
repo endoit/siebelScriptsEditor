@@ -1,25 +1,10 @@
-//Siebel object urls
-type SiebelObjectUrls = {
-  service: {
-    parent: "Business Service";
-    child: "Business Service Server Script";
-  };
-  buscomp: { parent: "Business Component"; child: "BusComp Server Script" };
-  applet: { parent: "Applet"; child: "Applet Server Script" };
-  application: { parent: "Application"; child: "Application Server Script" };
-  webtemp: { parent: "Web Template"; child: "" };
-};
-
 //Siebel object types
-type Type = keyof SiebelObjectUrls;
-
-//Url parts for the Siebel objects
-type UrlParts = SiebelObjectUrls[Type];
+type Type = "service" | "buscomp" | "applet" | "application" | "webtemp";
 
 //Settings
 type ExtensionSettings = {
   connections: Config[];
-  defaultConnectionName: Config["name"];
+  defaultConnectionName: string;
   singleFileAutoDownload: boolean;
   localFileExtension: ".js" | ".ts";
   defaultScriptFetching:
@@ -30,15 +15,14 @@ type ExtensionSettings = {
   defaultActionWhenFileExists: "None - always ask" | "Open file" | "Overwrite";
 };
 
+type RestRequest = { username: string; password: string; url: string };
+
 type Config = {
   name: string;
-  username: string;
-  password: string;
-  url: string;
   workspaces: string[];
   defaultWorkspace: string;
   restWorkspaces: boolean;
-};
+} & RestRequest;
 
 //Data field
 type Field = "Script" | "Definition";
@@ -47,7 +31,7 @@ type Field = "Script" | "Definition";
 type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
-  fields?: "Name" | Field | `Name,${Field}`;
+  fields?: "Name" | Field | `Name,${Field}` | "Name,Status";
   PageSize?: ExtensionSettings["maxPageSize"];
 };
 
@@ -59,23 +43,13 @@ type Payload = {
   Definition?: string;
 };
 
-//Request config object
-type RequestConfig = {
-  url: Config["url"];
-  method?: "get" | "put";
-  auth?: {
-    username: Config["username"];
-    password: Config["password"];
-  };
-  params?: QueryParams;
-  data?: Payload;
-};
-
 //Siebel REST response
 type RestResponse = {
   Name: string;
   Script?: string;
   Definition?: string;
+  Status?: string;
+  RepositoryWorkspace?: RestResponse;
 }[];
 
 //message received from the datasource webview
@@ -90,39 +64,41 @@ type DataSourceMessage =
     };
 
 //message received from the configuration webview
+type WorkspaceAction = "add" | "default" | "delete";
+
 type ConfigMessage = {
   command:
-    | "newConnection"
-    | "editConnection"
-    | "testConnection"
     | "workspace"
     | "testRestWorkspaces"
+    | "testConnection"
+    | "newConnection"
+    | "editConnection"
     | "deleteConnection";
-  action: "add" | "default" | "delete";
-  name: Config["name"];
-  workspace: Config["workspaces"][number];
+  action: WorkspaceAction;
+  name: string;
+  workspace: string;
   isDefaultConnection: boolean;
-  url: Config["url"];
-  username: Config["username"];
-  password: Config["password"];
-  restWorkspaces: Config["restWorkspaces"];
-};
-
-//Config webview type
-type WebviewType = "new" | "edit";
-
-//Button actions
-type ButtonAction = "push" | "pull" | "compare";
+  restWorkspaces: boolean;
+} & RestRequest;
 
 //Siebel rest api action
 type RestAction =
   | "testConnection"
-  | "testRestWorkspaces"
-  | "restWorkspaces"
-  | ButtonAction;
+  | "allWorkspaces"
+  | "editableWorkspaces"
+  | "push"
+  | "pullScript"
+  | "pullDefinition"
+  | "compareScript"
+  | "compareDefinition"
+  |"treeData";
+
+//Config webview type
+type WebviewType = "new" | "edit";
 
 //file extensions
 type FileExt = ".js" | ".ts" | ".html";
+type FileExtNoDot = "js" | "ts" | "html";
 
 //On disk map for files
 type OnDisk = Map<string, FileExt>;

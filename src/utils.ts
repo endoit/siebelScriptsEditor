@@ -1,41 +1,118 @@
 import * as vscode from "vscode";
 import {
-  siebelObjectUrls,
-  query,
+  baseConfig,
   error,
+  openFileOptions,
+  query,
   success,
-  buttonOptions,
-  paths,
 } from "./constants";
-import { getConfig } from "./settings";
-import axios from "axios";
+import { create } from "axios";
 
-export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
+export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
+  compareFileUris =
+    workspaceUri &&
+    ({
+      js: vscode.Uri.joinPath(workspaceUri, "compare", "compare.js"),
+      ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
+      html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
+    } as const),
+  checkmarkIcon = new vscode.ThemeIcon("check"),
+  searchInstance = create(baseConfig);
 
-const restApi = axios.create({
-    withCredentials: true,
-  }),
-  compareUri = workspaceUri && vscode.Uri.joinPath(workspaceUri, ".compare");
+const restInstance = create(baseConfig);
 
-export const callRestApi = async (
-  action: RestAction,
-  request: RequestConfig
+export const openSettings = () =>
+  vscode.commands.executeCommand(
+    "workbench.action.openSettings",
+    "siebelScriptAndWebTempEditor"
+  );
+
+const setButtonContext = (button: "pull" | "push", isEnabled: boolean) =>
+  vscode.commands.executeCommand(
+    "setContext",
+    `siebelscriptandwebtempeditor.${button}Enabled`,
+    isEnabled
+  );
+
+export const enableButtons = (
+  isEnabled: boolean,
+  workspace = "",
+  username = ""
+) => {
+  setButtonContext("pull", isEnabled);
+  setButtonContext(
+    "push",
+    isEnabled && workspace.includes(`_${username.toLowerCase()}_`)
+  );
+};
+
+const handleRestError = (err: any, action: RestAction) => {
+  vscode.window.showErrorMessage(
+    err.response?.status === 404
+      ? error[action]
+      : `Error using the Siebel REST API: ${
+          err.response?.data?.ERROR ?? err.message
+        }`
+  );
+  return [];
+};
+
+export const getTreeData = async (
+  url: string,
+  params: QueryParams
 ): Promise<RestResponse> => {
   try {
-    const response = await restApi(request),
+    const response = await searchInstance.get(url, { params });
+    return response?.data?.items ?? [];
+  } catch (err: any) {
+    return handleRestError(err, "treeData");
+  }
+};
+
+export const getObject = async (
+  action: RestAction,
+  { url: baseURL, username, password }: RestRequest,
+  relativeUrl: string
+): Promise<RestResponse> => {
+  try {
+    const request = {
+        baseURL,
+        auth: { username, password },
+        params: query[action],
+      },
+      response = await restInstance.get(relativeUrl, request),
       data = response?.data?.items ?? [];
-    if (!success[action]) return data;
     vscode.window.showInformationMessage(success[action]);
     return data;
   } catch (err: any) {
-    vscode.window.showErrorMessage(
-      err.response?.status === 404
-        ? error[action]
-        : `Error using the Siebel REST API: ${
-            err.response?.data?.ERROR ?? err.message
-          }`
-    );
-    return [];
+    return handleRestError(err, action);
+  }
+};
+
+export const putObject = async (
+  { url: baseURL, username, password }: Config,
+  relativeUrl: string,
+  data: Payload
+) => {
+  try {
+    const request = { baseURL, auth: { username, password } };
+    await restInstance.put(relativeUrl, data, request);
+    vscode.window.showInformationMessage(success.push);
+  } catch (err: any) {
+    handleRestError(err, "push");
+  }
+};
+
+export const isFileScript = (ext: string): ext is "js" | "ts" =>
+  ext === "js" || ext === "ts";
+
+export const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
+
+export const openFile = async (fileUri: vscode.Uri) => {
+  try {
+    await vscode.window.showTextDocument(fileUri, openFileOptions);
+  } catch (err: any) {
+    vscode.window.showErrorMessage(err.message);
   }
 };
 
@@ -56,118 +133,6 @@ export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
     vscode.window.showErrorMessage(err.message);
   }
 };
-
-export const getRestWorkspaces = async (
-  url: string,
-  username: string,
-  password: string
-) => {
-  const workspaces = [],
-    request: RequestConfig = {
-      method: "get",
-      url: [url, paths.restWorkspaces].join("/"),
-      auth: { username, password },
-      params: query.restWorkspaces,
-    },
-    data = await callRestApi("restWorkspaces", request);
-  for (const { Name } of data) {
-    workspaces.push(Name);
-  }
-  return workspaces;
-};
-
-const buttonAction = (action: ButtonAction) => {
-  const [fromTo, answerOptions, method, isCompare] = buttonOptions[action];
-  return async () => {
-    const document = vscode.window.activeTextEditor!.document,
-      pathParts = document.uri.path.split("/"),
-      [name, ext] = pathParts.at(-1)!.split("."),
-      isScript = ext !== "html",
-      [connection, workspace, type, parent] = pathParts.slice(
-        isScript ? -5 : -4,
-        -1
-      ),
-      { url, username, password, workspaces, restWorkspaces } =
-        getConfig(connection),
-      urlParts = siebelObjectUrls[<Type>type];
-    const options: vscode.QuickPickItem[] = [
-        { label: workspace, description: "Compare in the same workspace" },
-      ],
-      workspaceList =
-        isCompare && restWorkspaces
-          ? await getRestWorkspaces(url, username, password)
-          : workspaces;
-    for (const workspaceItem of workspaceList) {
-      if (workspaceItem === workspace) continue;
-      options.push({ label: workspaceItem });
-    }
-    if (!url || !urlParts)
-      return vscode.window.showErrorMessage(
-        `Connection ${connection} was not found in the Connections setting or folder structure was changed manually and does not meet the expectations of the extension!`
-      );
-    const [field, path, message] = isScript
-        ? [
-            <Field>"Script",
-            [parent, urlParts.child, name].join("/"),
-            `script of the ${parent} ${urlParts.parent}`,
-          ]
-        : [<Field>"Definition", name, "web template definition"],
-      answer = isCompare
-        ? await vscode.window.showQuickPick(options, {
-            title: "Choose a workspace to compare against",
-            placeHolder: "Workspace",
-            canPickMany: false,
-          })
-        : await vscode.window.showInformationMessage(
-            `Do you want to ${action} the ${name} ${message} ${fromTo} the ${workspace} workspace of the ${connection} connection?`,
-            ...answerOptions
-          );
-    if (!answer || answer === "No") return;
-    const otherWorkspace = (<vscode.QuickPickItem>answer).label ?? "",
-      request: RequestConfig = {
-        method,
-        url: [
-          url,
-          "workspace",
-          isCompare ? otherWorkspace : workspace,
-          urlParts.parent,
-          path,
-        ].join("/"),
-        auth: { username, password },
-      };
-    switch (action) {
-      case "compare":
-      case "pull":
-        request.params = query.pull[field];
-        const response = await callRestApi(action, request),
-          content = response[0]?.[field];
-        if (content === undefined) return;
-        if (!isCompare) return await writeFile(document.uri, content);
-        await writeFile(compareUri, content);
-        return await vscode.commands.executeCommand(
-          "vscode.diff",
-          compareUri,
-          document.uri,
-          `Comparison of ${name} between ${otherWorkspace} and ${workspace} (downloaded)`
-        );
-      case "push":
-        await document.save();
-        const text = document.getText();
-        request.data = { Name: name, [field]: text };
-        if (!isScript) return await callRestApi("push", request);
-        request.data["Program Language"] = "JS";
-        const differs =
-          !new RegExp(`function\\s+${name}\\s*\\(`).test(text) &&
-          name !== "(declarations)";
-        if (differs) return vscode.window.showErrorMessage(error.nameDifferent);
-        return await callRestApi("push", request);
-    }
-  };
-};
-
-export const pull = buttonAction("pull");
-export const push = buttonAction("push");
-export const compare = buttonAction("compare");
 
 export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   try {
