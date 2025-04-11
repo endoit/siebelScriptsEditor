@@ -8,18 +8,9 @@ import {
 } from "./constants";
 import { create } from "axios";
 
-export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
-  compareFileUris =
-    workspaceUri &&
-    ({
-      js: vscode.Uri.joinPath(workspaceUri, "compare", "compare.js"),
-      ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
-      html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
-    } as const),
-  checkmarkIcon = new vscode.ThemeIcon("check"),
-  searchInstance = create(baseConfig);
-
-const restInstance = create(baseConfig);
+export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
+ 
+const restApi = create(baseConfig);
 
 export const openSettings = () =>
   vscode.commands.executeCommand(
@@ -46,7 +37,7 @@ export const enableButtons = (
   );
 };
 
-const handleRestError = (err: any, action: RestAction) => {
+export const handleRestError = (err: any, action: RestAction) => {
   vscode.window.showErrorMessage(
     err.response?.status === 404
       ? error[action]
@@ -55,18 +46,6 @@ const handleRestError = (err: any, action: RestAction) => {
         }`
   );
   return [];
-};
-
-export const getTreeData = async (
-  url: string,
-  params: QueryParams
-): Promise<RestResponse> => {
-  try {
-    const response = await searchInstance.get(url, { params });
-    return response?.data?.items ?? [];
-  } catch (err: any) {
-    return handleRestError(err, "treeData");
-  }
 };
 
 export const getObject = async (
@@ -80,7 +59,7 @@ export const getObject = async (
         auth: { username, password },
         params: query[action],
       },
-      response = await restInstance.get(relativeUrl, request),
+      response = await restApi.get(relativeUrl, request),
       data = response?.data?.items ?? [];
     vscode.window.showInformationMessage(success[action]);
     return data;
@@ -96,7 +75,7 @@ export const putObject = async (
 ) => {
   try {
     const request = { baseURL, auth: { username, password } };
-    await restInstance.put(relativeUrl, data, request);
+    await restApi.put(relativeUrl, data, request);
     vscode.window.showInformationMessage(success.push);
   } catch (err: any) {
     handleRestError(err, "push");

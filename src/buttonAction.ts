@@ -6,18 +6,26 @@ import {
   paths,
   pullNo,
   pushNo,
-  siebelObjectUrls,
+  objectUrlParts,
 } from "./constants";
 import { getConfig } from "./settings";
 import {
-  compareFileUris,
   getObject,
   isFileScript,
   isFileWebTemp,
   putObject,
   writeFile,
   enableButtons,
+  workspaceUri,
 } from "./utils";
+
+const compareFileUris =
+  workspaceUri &&
+  ({
+    js: vscode.Uri.joinPath(workspaceUri, "compare", "compare.js"),
+    ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
+    html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
+  } as const);
 
 let document: vscode.TextDocument,
   name: string,
@@ -27,7 +35,7 @@ let document: vscode.TextDocument,
   message: string,
   workspace: string,
   config: Config,
-  workspaceUrl: string;
+  objectUrl: string;
 
 export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
   try {
@@ -37,14 +45,14 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     [name, ext] = <[string, FileExtNoDot]>parts.pop()!.split(".");
     switch (true) {
       case isFileScript(ext) && parts.length > 4:
-        const parentObject = parts.pop()!,
-          { parent, child } = siebelObjectUrls[<Type>parts.pop()] ?? {};
-        if (!parent) throw buttonError;
+        const parent = parts.pop()!,
+          urlParts = objectUrlParts[<Type>parts.pop()];
+        if (!urlParts) throw buttonError;
         field = "Script";
-        resourceUrl = [parent, parentObject, child, name].join("/");
-        message = `script of the ${parent} ${parentObject}`;
+        resourceUrl = [urlParts.parent, parent, urlParts.child, name].join("/");
+        message = `script of the ${parent} ${urlParts.parent}`;
         break;
-      case isFileWebTemp(ext) && parts.pop() === "webtemp" && parts.length > 3:
+      case isFileWebTemp(ext) && parts.length > 3 && parts.pop() === "webtemp":
         field = "Definition";
         resourceUrl = ["Web Template", name].join("/");
         message = "web template definition";
@@ -55,7 +63,7 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     workspace = parts.pop()!;
     config = getConfig(parts.pop()!);
     if (Object.keys(config).length === 0) throw buttonError;
-    workspaceUrl = ["workspace", workspace, resourceUrl].join("/");
+    objectUrl = ["workspace", workspace, resourceUrl].join("/");
     enableButtons(true, workspace, config.username);
   } catch (err: any) {
     enableButtons(false);
@@ -77,7 +85,7 @@ export const pull = async () => {
     ...pullNo
   );
   if (answer !== "Pull") return;
-  const response = await getObject(`pull${field}`, config, workspaceUrl),
+  const response = await getObject(`pull${field}`, config, objectUrl),
     content = response[0]?.[field];
   if (content === undefined) return;
   await writeFile(document.uri, content);
@@ -100,7 +108,7 @@ export const push = async () => {
     ...pushNo
   );
   if (answer !== "Push") return;
-  await putObject(config, workspaceUrl, payload);
+  await putObject(config, objectUrl, payload);
 };
 
 export const compare = async () => {

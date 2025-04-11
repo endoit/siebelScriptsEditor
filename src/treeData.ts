@@ -1,16 +1,27 @@
 import * as vscode from "vscode";
 import {
   openFileOverwriteCancel,
-  siebelObjectUrls,
+  objectUrlParts,
   yesNo,
   yesOnlyMethodNamesNo,
+  baseConfig,
 } from "./constants";
-import { checkmarkIcon, exists, getTreeData, isFileScript, isFileWebTemp, openFile, writeFile } from "./utils";
+import {
+  exists,
+  handleRestError,
+  isFileScript,
+  isFileWebTemp,
+  openFile,
+  writeFile,
+} from "./utils";
 import { settings } from "./settings";
-
-let timeoutId: NodeJS.Timeout | number | null = null;
+import { create } from "axios";
 
 export class TreeData {
+  private static readonly restApi = create(baseConfig);
+  static readonly checkmark = new vscode.ThemeIcon("check");
+  private static timeoutId: NodeJS.Timeout | number | null = null;
+  private static baseURL: string;
   private readonly urlParts;
   private readonly setTreeItems: (data: RestResponse) => Promise<void>;
   private readonly isFileValid: (ext: string) => ext is FileExtNoDot;
@@ -20,7 +31,7 @@ export class TreeData {
   private declare folderUri: vscode.Uri;
 
   constructor(type: Type) {
-    this.urlParts = siebelObjectUrls[type];
+    this.urlParts = objectUrlParts[type];
     [this.setTreeItems, this.isFileValid] =
       type !== "webtemp"
         ? [this.setTreeItemsScript, isFileScript]
@@ -56,17 +67,17 @@ export class TreeData {
   }
 
   async search(searchSpec: string) {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(async () => {
+    if (TreeData.timeoutId) clearTimeout(TreeData.timeoutId);
+    TreeData.timeoutId = setTimeout(async () => {
       this.treeItems = [];
       const params: QueryParams = {
           fields: "Name",
           searchspec: `Name LIKE '${searchSpec}*'`,
         },
-        data = await getTreeData(this.urlParts.parent, params);
+        data = await TreeData.getObject(this.urlParts.parent, params);
       await this.setTreeItems(data);
       this._onDidChangeTreeData.fire(null);
-      timeoutId = null;
+      TreeData.timeoutId = null;
     }, 300);
   }
 
@@ -110,6 +121,30 @@ export class TreeData {
     if (!didTreeChange) return;
     this._onDidChangeTreeData.fire(null);
   }
+
+  static getObject = async (
+    url: string,
+    params: QueryParams
+  ): Promise<RestResponse> => {
+    try {
+      const response = await this.restApi.get(url, { params });
+      return response?.data?.items ?? [];
+    } catch (err: any) {
+      return handleRestError(err, "treeData");
+    }
+  };
+
+  static set restDefaults({ url, username, password }: RestRequest) {
+    this.baseURL = url;
+    this.restApi.defaults.auth = { username, password };
+    this.restApi.defaults.params.PageSize = settings.maxPageSize;
+  }
+
+  static set workspaceUrl(workspace: string) {
+    this.restApi.defaults.baseURL = [this.baseURL, "workspace", workspace].join(
+      "/"
+    );
+  }
 }
 
 class TreeItemScript extends vscode.TreeItem {
@@ -130,7 +165,7 @@ class TreeItemScript extends vscode.TreeItem {
     this.url = url;
     this.onDisk = onDisk;
     this.folderUri = folderUri;
-    this.icon = checkmarkIcon;
+    this.icon = TreeData.checkmark;
   }
 
   get field(): Field {
@@ -162,7 +197,7 @@ class TreeItemScript extends vscode.TreeItem {
         params.fields = `Name,${this.field}`;
       case "Only method names":
         params.fields ??= "Name";
-        const data = await getTreeData(this.url, params);
+        const data = await TreeData.getObject(this.url, params);
         if (data.length === 0) return false;
         return await this.pull(data);
     }
@@ -186,7 +221,7 @@ class TreeItemScript extends vscode.TreeItem {
       case "Overwrite":
         if (text === undefined) return false;
         this.onDisk.set(this.label, this.ext);
-        this.iconPath = checkmarkIcon;
+        this.iconPath = TreeData.checkmark;
         await writeFile(fileUri, text);
       case "Open file":
         await openFile(fileUri);
@@ -233,7 +268,7 @@ class TreeItemObject extends TreeItemScript {
       if (Script === undefined) continue;
       await child.pull([item]);
     }
-    this.icon = checkmarkIcon;
+    this.icon = TreeData.checkmark;
     return true;
   }
 }

@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { paths, error, yesNo, success } from "./constants";
-import { workspaceUri, getObject, searchInstance } from "./utils";
+import { workspaceUri, getObject } from "./utils";
 import {
   configChange,
   getConfig,
@@ -22,13 +22,12 @@ const treeData = {
 let connection = "",
   workspace = "",
   type: Type = "service",
-  baseURL: string,
   dataSourceWebviewView: vscode.Webview,
   configWebviewPanel: vscode.WebviewPanel | undefined,
   configWebviewView: vscode.Webview;
 
 const setUrlAndFolder = () => {
-  searchInstance.defaults.baseURL = [baseURL, "workspace", workspace].join("/");
+  TreeData.workspaceUrl = workspace;
   for (const [objectType, treeDataProvider] of Object.entries(treeData)) {
     treeDataProvider.folder = vscode.Uri.joinPath(
       workspaceUri,
@@ -86,9 +85,7 @@ export const refreshConnections = async () => {
     : restWorkspaces || !workspaces.includes(defaultWorkspace)
     ? workspaces?.[0] ?? ""
     : defaultWorkspace;
-  searchInstance.defaults.auth = { username, password };
-  searchInstance.defaults.params.PageSize = settings.maxPageSize;
-  baseURL = url;
+  TreeData.restDefaults = { url, username, password };
   setUrlAndFolder();
   return await dataSourceWebviewView.postMessage({
     connections,
