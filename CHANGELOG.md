@@ -1,6 +1,6 @@
 **Changelog**
 
-# v2.1.0 - 2025-04-15
+# v2.1.0 - 2025-04-14
 
 - Changes when the Get Workspaces From The Siebel REST API setting is enabled:
   -  Now supports dynamic integration objects in Siebel versions 23.5 and above, eliminating the need for the Base Workspace integration object (still recommended for performance), [see documentation for more information](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)
