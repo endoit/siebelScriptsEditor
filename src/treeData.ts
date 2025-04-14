@@ -171,9 +171,11 @@ class TreeItemScript extends vscode.TreeItem {
   get field(): Field {
     return "Script";
   }
+
   get ext() {
     return this.onDisk.get(this.label) ?? settings.localFileExtension;
   }
+
   set icon(iconPath: vscode.ThemeIcon) {
     if (!this.onDisk.has(this.label)) return;
     this.iconPath = iconPath;
@@ -234,6 +236,7 @@ class TreeItemWebTemp extends TreeItemScript {
   override get field(): Field {
     return "Definition";
   }
+  
   override get ext(): FileExt {
     return ".html";
   }

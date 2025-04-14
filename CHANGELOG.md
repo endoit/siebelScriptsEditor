@@ -1,5 +1,17 @@
 **Changelog**
 
+# v2.1.0 - 2025-04-15
+
+- Changes when the Get Workspaces From The Siebel REST API setting is enabled:
+  -  Now supports dynamic integration objects in Siebel versions 23.5 and above, eliminating the need for the Base Workspace integration object (still recommended for performance), [see documentation for more information](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)
+  - If no editable workspace is found, the extension falls back to the Workspaces setting of the connection
+  - Added a Refresh Workspaces button to the Datasource panel (visible only if the setting is enabled), allowing the manual synchronization of the workspaces with Siebel - helpful when new workspaces were created, their status changed or a connection error occured
+  - When choosing a workspace to compare against, all Siebel workspaces are shown
+- The push button now is hidden for objects in the MAIN or integration worskapces, as well as for workspaces not created by the user specified in the connection
+- The MAIN workspace is now automatically created for each connection and cannot be deleted (for existing connections, adding any workspace will trigger the creation of MAIN if it does not exist already)
+- Instead of using a single .compare file, the extension now stores comparison data in separate files based on their extensions (.js, .ts, .html) within a dedicated compare folder
+- Minor bug fixes and optimizations
+
 # v2.0.0 - 2024-12-16
 
 - The code was completely refactored and many issues/bugs/typos were fixed

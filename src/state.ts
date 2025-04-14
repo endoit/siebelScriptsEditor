@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { paths, error, yesNo, success } from "./constants";
-import { workspaceUri, getObject } from "./utils";
+import { workspaceUri, getObject, setButtonVisiblity } from "./utils";
 import {
   configChange,
   getConfig,
@@ -70,7 +70,7 @@ export const refreshConnections = async () => {
     const data = await getObject(
       "editableWorkspaces",
       { url, username, password },
-      paths.restWorkspaces
+      paths.workspaces
     );
     while (data.length > 0) {
       const { Name, RepositoryWorkspace } = data.pop()!;
@@ -87,6 +87,7 @@ export const refreshConnections = async () => {
     : defaultWorkspace;
   TreeData.restDefaults = { url, username, password };
   setUrlAndFolder();
+  setButtonVisiblity("refresh", restWorkspaces);
   return await dataSourceWebviewView.postMessage({
     connections,
     connection,
@@ -175,13 +176,13 @@ const configHandler = async ({
       return await getObject(
         "testConnection",
         { url, username, password },
-        paths.testConnection
+        paths.describe
       );
     case "testRestWorkspaces":
       const response = await getObject(
           "allWorkspaces",
           { url, username, password },
-          paths.restWorkspaces
+          paths.workspaces
         ),
         uncheckRestWorkspaces = response?.[0] === undefined;
       if (!uncheckRestWorkspaces)

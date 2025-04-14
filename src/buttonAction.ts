@@ -15,8 +15,8 @@ import {
   isFileWebTemp,
   putObject,
   writeFile,
-  enableButtons,
   workspaceUri,
+  setButtonVisiblity,
 } from "./utils";
 
 const compareFileUris =
@@ -38,6 +38,7 @@ let document: vscode.TextDocument,
   objectUrl: string;
 
 export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
+  let pullEnabled, pushEnabled;
   try {
     if (!textEditor) throw buttonError;
     document = textEditor.document;
@@ -64,10 +65,14 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     config = getConfig(parts.pop()!);
     if (Object.keys(config).length === 0) throw buttonError;
     objectUrl = ["workspace", workspace, resourceUrl].join("/");
-    enableButtons(true, workspace, config.username);
+    pullEnabled = true;
+    pushEnabled = workspace.includes(`_${config.username.toLowerCase()}_`);
   } catch (err: any) {
-    enableButtons(false);
+    pullEnabled = false;
+    pushEnabled = false;
   }
+  setButtonVisiblity("pull", pullEnabled);
+  setButtonVisiblity("push", pushEnabled);
 };
 
 export const reparseFilePath = (event: vscode.FileRenameEvent) => {
@@ -120,7 +125,7 @@ export const compare = async () => {
       },
     ];
   if (restWorkspaces) {
-    const data = await getObject("allWorkspaces", config, paths.restWorkspaces);
+    const data = await getObject("allWorkspaces", config, paths.workspaces);
     while (data.length > 0) {
       const {
         Name: label,

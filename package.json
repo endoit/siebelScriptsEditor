@@ -80,8 +80,8 @@
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.refreshConnections",
-				"title": "Refresh Connections",
-				"when": "workspaceFolderCount > 0",
+				"title": "Refresh Workspaces",
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.refreshEnabled",
 				"icon": "$(refresh)"
 			},
 			{
@@ -124,7 +124,7 @@
 			"view/title": [
 				{
 					"command": "siebelscriptandwebtempeditor.refreshConnections",
-					"when": "workspaceFolderCount > 0 && view == extensionView",
+					"when": "workspaceFolderCount > 0 && view == extensionView && siebelscriptandwebtempeditor.refreshEnabled",
 					"group": "navigation"
 				},
 				{
@@ -236,7 +236,7 @@
 		"@types/webpack-env": "^1.18.0",
 		"@typescript-eslint/eslint-plugin": "^5.45.0",
 		"@typescript-eslint/parser": "^5.45.0",
-		"@vscode/test-electron": "^1.6.2",
+		"@vscode/test-electron": "^2.5.2",
 		"@vscode/test-web": "^0.0.68",
 		"assert": "^2.0.0",
 		"eslint": "^8.28.0",

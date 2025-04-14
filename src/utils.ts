@@ -9,7 +9,7 @@ import {
 import { create } from "axios";
 
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
- 
+
 const restApi = create(baseConfig);
 
 export const openSettings = () =>
@@ -18,24 +18,15 @@ export const openSettings = () =>
     "siebelScriptAndWebTempEditor"
   );
 
-const setButtonContext = (button: "pull" | "push", isEnabled: boolean) =>
+export const setButtonVisiblity = (
+  button: "pull" | "push" | "refresh",
+  isEnabled: boolean
+) =>
   vscode.commands.executeCommand(
     "setContext",
     `siebelscriptandwebtempeditor.${button}Enabled`,
     isEnabled
   );
-
-export const enableButtons = (
-  isEnabled: boolean,
-  workspace = "",
-  username = ""
-) => {
-  setButtonContext("pull", isEnabled);
-  setButtonContext(
-    "push",
-    isEnabled && workspace.includes(`_${username.toLowerCase()}_`)
-  );
-};
 
 export const handleRestError = (err: any, action: RestAction) => {
   vscode.window.showErrorMessage(

@@ -1,9 +1,10 @@
 .vscode/**
+src/**
+features/**
 .gitignore
 **/tsconfig.json
-webpack.config.js
-**/*.map
+**/webpack.config.js
 **/.eslintrc.json
-features/**
-src/**
-*.sif
+**/*.map
+**/*.sif
+**/*.vsix
