@@ -79,6 +79,12 @@
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
 			},
 			{
+				"command": "siebelscriptandwebtempeditor.search",
+				"title": "Pull missing and search in scripts",
+				"icon": "$(search-fuzzy)",
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
+			},
+			{
 				"command": "siebelscriptandwebtempeditor.refreshConnections",
 				"title": "Refresh Workspaces",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.refreshEnabled",
@@ -119,6 +125,11 @@
 					"command": "siebelscriptandwebtempeditor.compare",
 					"group": "navigation@2",
 					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.search",
+					"group": "navigation@3",
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
 				}
 			],
 			"view/title": [

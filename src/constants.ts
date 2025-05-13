@@ -22,13 +22,13 @@ export const objectUrlParts = {
     editableWorkspaces: {
       fields: "Name",
       searchspec:
-      "Status='Created' OR Status='Checkpointed' OR Status='Edit-In-Progress'",
+        "Status='Created' OR Status='Checkpointed' OR Status='Edit-In-Progress'",
     },
     allWorkspaces: {
       fields: "Name,Status",
       ViewMode: "Organization",
     },
-    pullScript: { fields: "Script" },
+    pullScript: { fields: "Name,Script" },
     pullDefinition: { fields: "Definition" },
     compareScript: { fields: "Script" },
     compareDefinition: { fields: "Definition" },
@@ -47,6 +47,13 @@ export const objectUrlParts = {
   openFileOverwriteCancel = ["Open file", "Overwrite", "Cancel"] as const,
   pullNo = ["Pull", "No"] as const,
   pushNo = ["Push", "No"] as const,
+  //config webview options:
+  configOptions = {
+    enableScripts: true,
+    retainContextWhenHidden: true,
+  } as const,
+  //datasource webview options
+  dataSourceOptions = { enableScripts: true } as const,
   //open file options
   openFileOptions = { preview: false } as const,
   //compare options
@@ -55,11 +62,18 @@ export const objectUrlParts = {
     placeHolder: "Workspace",
     canPickMany: false,
   } as const,
+  //find in files options
+  findInFilesOptions = {
+    triggerSearch: true,
+    isRegex: false,
+    isCaseSensitive: false,
+    matchWholeWord: false,
+  } as const,
   //constant success and error messages messages
   success = {
     testConnection: "Connection is working!",
     testRestWorkspaces:
-    "Getting workspaces from the Siebel REST API was successful!",
+      "Getting workspaces from the Siebel REST API was successful!",
     push: "Successfully pushed object to Siebel!",
     editableWorkspaces: "",
     allWorkspaces: "",
@@ -74,18 +88,18 @@ export const objectUrlParts = {
     pullScript: "Unable to pull, script was not found in Siebel!",
     pullDefinition: "Unable to pull, web template was not found in Siebel!",
     compareScript:
-    "Unable to compare, script does not exists in the selected workspace!",
+      "Unable to compare, script does not exists in the selected workspace!",
     compareDefinition:
-    "Unable to compare, web template does not exists in the selected workspace!",
+      "Unable to compare, web template does not exists in the selected workspace!",
     editableWorkspaces:
-    "No workspace with status Created, Checkpointed or Edit-In-Progress was found!",
+      "No workspace with status Created, Checkpointed or Edit-In-Progress was found!",
     allWorkspaces:
-    "Error getting workspaces from the Siebel REST API, [see documentation for more information!](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)",
+      "Error getting workspaces from the Siebel REST API, [see documentation for more information!](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)",
     noConnection:
-    "Please create at least one connection with the New Connection button!",
+      "Please create at least one connection with the New Connection button!",
     connectionExists: "Connection with the same name already exists!",
     nameDifferent:
-    "Unable to push script, name of the file and the function is not the same!",
+      "Unable to push script, name of the file and the function is not the same!",
     testRestWorkspaces: "",
     push: "",
     treeData: "",

@@ -7,8 +7,9 @@ import {
   pullNo,
   pushNo,
   objectUrlParts,
+  findInFilesOptions,
 } from "./constants";
-import { getConfig } from "./settings";
+import { getConfig, settings } from "./settings";
 import {
   getObject,
   isFileScript,
@@ -17,6 +18,8 @@ import {
   writeFile,
   workspaceUri,
   setButtonVisiblity,
+  getScriptsOnDisk,
+  joinWorkspace,
 } from "./utils";
 
 const compareFileUris =
@@ -27,21 +30,29 @@ const compareFileUris =
     html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
   } as const);
 
-let document: vscode.TextDocument,
+let editor: vscode.TextEditor | undefined,
+  document: vscode.TextDocument,
   name: string,
   ext: FileExtNoDot,
   field: Field,
+  parentUrl: string,
   resourceUrl: string,
+  searchUrl: string,
   message: string,
   workspace: string,
   config: Config,
-  objectUrl: string;
+  objectUrl: string,
+  folderUri: vscode.Uri;
 
 export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
-  let pullEnabled, pushEnabled;
+  let pullEnabled = true,
+    pushEnabled = true,
+    searchEnabled = true;
   try {
-    if (!textEditor) throw buttonError;
-    document = textEditor.document;
+    editor = textEditor;
+    if (!editor) throw buttonError;
+    document = editor.document;
+    folderUri = vscode.Uri.joinPath(document.uri, "..");
     const parts = document.uri.path.split("/");
     [name, ext] = <[string, FileExtNoDot]>parts.pop()!.split(".");
     switch (true) {
@@ -50,12 +61,13 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
           urlParts = objectUrlParts[<Type>parts.pop()];
         if (!urlParts) throw buttonError;
         field = "Script";
-        resourceUrl = [urlParts.parent, parent, urlParts.child, name].join("/");
+        parentUrl = [urlParts.parent, parent, urlParts.child].join("/");
         message = `script of the ${parent} ${urlParts.parent}`;
         break;
       case isFileWebTemp(ext) && parts.length > 3 && parts.pop() === "webtemp":
+        searchEnabled = false;
         field = "Definition";
-        resourceUrl = ["Web Template", name].join("/");
+        parentUrl = "Web Template";
         message = "web template definition";
         break;
       default:
@@ -64,15 +76,18 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     workspace = parts.pop()!;
     config = getConfig(parts.pop()!);
     if (Object.keys(config).length === 0) throw buttonError;
-    objectUrl = ["workspace", workspace, resourceUrl].join("/");
-    pullEnabled = true;
+    resourceUrl = [parentUrl, name].join("/");
+    objectUrl = joinWorkspace(workspace, resourceUrl);
+    searchUrl = joinWorkspace(workspace, parentUrl);
     pushEnabled = workspace.includes(`_${config.username.toLowerCase()}_`);
   } catch (err: any) {
     pullEnabled = false;
     pushEnabled = false;
+    searchEnabled = false;
   }
   setButtonVisiblity("pull", pullEnabled);
   setButtonVisiblity("push", pushEnabled);
+  setButtonVisiblity("search", searchEnabled);
 };
 
 export const reparseFilePath = (event: vscode.FileRenameEvent) => {
@@ -145,7 +160,7 @@ export const compare = async () => {
   const answer = await vscode.window.showQuickPick(options, compareOptions);
   if (!answer) return;
   const { label } = answer,
-    relativeUrl = ["workspace", label, resourceUrl].join("/"),
+    relativeUrl = joinWorkspace(label, resourceUrl),
     response = await getObject(`compare${field}`, config, relativeUrl),
     content = response[0]?.[field];
   if (content === undefined) return;
@@ -156,4 +171,27 @@ export const compare = async () => {
     document.uri,
     `Comparison of ${name} between ${label} and ${workspace} (downloaded)`
   );
+};
+
+export const search = async () => {
+  const selection = editor!.selection,
+    selected = selection.isEmpty
+      ? document.getWordRangeAtPosition(selection.active)
+      : selection,
+    query = selected ? document.getText(selected) : "",
+    response = await getObject(`pullScript`, config, searchUrl),
+    files = await getScriptsOnDisk(folderUri);
+  for (const { Name, Script } of response) {
+    if (files.has(Name) || !Script) continue;
+    const fileUri = vscode.Uri.joinPath(
+      folderUri,
+      `${Name}${settings.localFileExtension}`
+    );
+    await writeFile(fileUri, Script);
+  }
+  await vscode.commands.executeCommand("workbench.action.findInFiles", {
+    query,
+    filesToInclude: folderUri.fsPath,
+    ...findInFilesOptions,
+  });
 };

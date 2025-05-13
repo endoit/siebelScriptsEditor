@@ -91,10 +91,8 @@ type RestAction =
   | "pullDefinition"
   | "compareScript"
   | "compareDefinition"
-  |"treeData";
+  | "treeData";
 
-//Config webview type
-type WebviewType = "new" | "edit";
 
 //file extensions
 type FileExt = ".js" | ".ts" | ".html";

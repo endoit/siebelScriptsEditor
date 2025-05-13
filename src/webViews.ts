@@ -230,7 +230,7 @@ export const noWorkspaceFolderHTML = `<!doctype><html>
 </body>
 </html>`;
 
-export const configHTML = (
+export const createConfigHTML = (
   {
     name = "",
     url = "",

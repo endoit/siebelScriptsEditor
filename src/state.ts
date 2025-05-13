@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
-import { paths, error, yesNo, success } from "./constants";
+import {
+  paths,
+  error,
+  yesNo,
+  success,
+  configOptions,
+  dataSourceOptions,
+} from "./constants";
 import { workspaceUri, getObject, setButtonVisiblity } from "./utils";
 import {
   configChange,
@@ -8,7 +15,11 @@ import {
   setDefaultConnection,
   settings,
 } from "./settings";
-import { dataSourceHTML, configHTML, noWorkspaceFolderHTML } from "./webViews";
+import {
+  dataSourceHTML,
+  createConfigHTML,
+  noWorkspaceFolderHTML,
+} from "./webViews";
 import { TreeData } from "./treeData";
 
 const treeData = {
@@ -22,9 +33,9 @@ const treeData = {
 let connection = "",
   workspace = "",
   type: Type = "service",
-  dataSourceWebviewView: vscode.Webview,
-  configWebviewPanel: vscode.WebviewPanel | undefined,
-  configWebviewView: vscode.Webview;
+  dataSourceView: vscode.Webview,
+  configPanel: vscode.WebviewPanel | undefined,
+  configView: vscode.Webview;
 
 const setUrlAndFolder = () => {
   TreeData.workspaceUrl = workspace;
@@ -50,7 +61,7 @@ export const refreshConnections = async () => {
   }
   if (connections.length === 0) {
     vscode.window.showErrorMessage(error.noConnection);
-    return dataSourceWebviewView.postMessage({});
+    return dataSourceView.postMessage({});
   }
   connection = isConnection
     ? connection
@@ -88,7 +99,7 @@ export const refreshConnections = async () => {
   TreeData.restDefaults = { url, username, password };
   setUrlAndFolder();
   setButtonVisiblity("refresh", restWorkspaces);
-  return await dataSourceWebviewView.postMessage({
+  return await dataSourceView.postMessage({
     connections,
     connection,
     workspaces,
@@ -112,22 +123,22 @@ const dataSourceHandler = async ({ command, data }: DataSourceMessage) => {
   }
 };
 
-export const dataSourceWebview =
+export const createDataSource =
   (subscriptions: Subscriptions) =>
   async ({ webview }: { webview: vscode.Webview }) => {
     if (!workspaceUri) return void (webview.html = noWorkspaceFolderHTML);
-    if (!dataSourceWebviewView) dataSourceWebviewView = webview;
+    if (!dataSourceView) dataSourceView = webview;
     vscode.workspace.onDidChangeConfiguration(async (e) => {
       if (!configChange(e)) return;
       await refreshConnections();
     });
-    dataSourceWebviewView.options = { enableScripts: true };
-    dataSourceWebviewView.onDidReceiveMessage(
+    dataSourceView.options = dataSourceOptions;
+    dataSourceView.onDidReceiveMessage(
       dataSourceHandler,
       undefined,
       subscriptions
     );
-    dataSourceWebviewView.html = dataSourceHTML;
+    dataSourceView.html = dataSourceHTML;
     await refreshConnections();
   };
 
@@ -170,7 +181,7 @@ const configHandler = async ({
   switch (command) {
     case "workspace":
       workspaceHandler(action, workspace, config);
-      configWebviewView.html = configHTML(config);
+      configView.html = createConfigHTML(config);
       return await setConfigs(configs);
     case "testConnection":
       return await getObject(
@@ -187,7 +198,7 @@ const configHandler = async ({
         uncheckRestWorkspaces = response?.[0] === undefined;
       if (!uncheckRestWorkspaces)
         vscode.window.showInformationMessage(success.testRestWorkspaces);
-      return await configWebviewView.postMessage({
+      return await configView.postMessage({
         uncheckRestWorkspaces,
       });
     case "newConnection":
@@ -204,8 +215,8 @@ const configHandler = async ({
       config.restWorkspaces = restWorkspaces;
       if (isDefaultConnection) await setDefaultConnection(name);
       await setConfigs(configs);
-      if (command === "editConnection") return configWebviewPanel?.dispose();
-      return (configWebviewView.html = configHTML(config));
+      if (command === "editConnection") return configPanel?.dispose();
+      return (configView.html = createConfigHTML(config));
     case "deleteConnection":
       const answer = await vscode.window.showInformationMessage(
         `Do you want to delete the ${name} connection?`,
@@ -216,33 +227,29 @@ const configHandler = async ({
       if (index === -1) return;
       configs.splice(index, 1);
       await setConfigs(configs);
-      return configWebviewPanel?.dispose();
+      return configPanel?.dispose();
   }
 };
 
-export const configWebview =
-  (subscriptions: Subscriptions, webviewType: WebviewType) => async () => {
+export const createConfig =
+  (subscriptions: Subscriptions, configType: "new" | "edit") => async () => {
     const columnToShowIn = vscode.window.activeTextEditor?.viewColumn,
-      isPanel = configWebviewPanel !== undefined,
-      isNew = webviewType === "new" || settings.connections.length === 0,
+      isPanel = configPanel !== undefined,
+      isNew = configType === "new" || settings.connections.length === 0,
       config = isNew ? <Config>{} : getConfig(connection);
-    configWebviewPanel ??= vscode.window.createWebviewPanel(
+    configPanel ??= vscode.window.createWebviewPanel(
       "configureConnection",
       "Configure Connection",
       columnToShowIn ?? vscode.ViewColumn.One,
-      { enableScripts: true, retainContextWhenHidden: true }
+      configOptions
     );
-    configWebviewView = configWebviewPanel.webview;
-    configWebviewView.html = configHTML(config, isNew);
-    if (isPanel) return configWebviewPanel.reveal(columnToShowIn);
-    configWebviewPanel.onDidDispose(
-      () => (configWebviewPanel = undefined),
+    configView = configPanel.webview;
+    configView.html = createConfigHTML(config, isNew);
+    if (isPanel) return configPanel.reveal(columnToShowIn);
+    configPanel.onDidDispose(
+      () => (configPanel = undefined),
       null,
       subscriptions
     );
-    configWebviewView.onDidReceiveMessage(
-      configHandler,
-      undefined,
-      subscriptions
-    );
+    configView.onDidReceiveMessage(configHandler, undefined, subscriptions);
   };

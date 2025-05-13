@@ -7,10 +7,9 @@ import {
   baseConfig,
 } from "./constants";
 import {
-  exists,
+  getScriptsOnDisk,
+  getWebTempsOnDisk,
   handleRestError,
-  isFileScript,
-  isFileWebTemp,
   openFile,
   writeFile,
 } from "./utils";
@@ -24,7 +23,7 @@ export class TreeData {
   private static baseURL: string;
   private readonly urlParts;
   private readonly setTreeItems: (data: RestResponse) => Promise<void>;
-  private readonly isFileValid: (ext: string) => ext is FileExtNoDot;
+  private readonly getFilesOnDisk: (folderUri: vscode.Uri) => Promise<OnDisk>;
   private readonly _onDidChangeTreeData = new vscode.EventEmitter();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   private treeItems: (TreeItemObject | TreeItemWebTemp)[] = [];
@@ -32,10 +31,10 @@ export class TreeData {
 
   constructor(type: Type) {
     this.urlParts = objectUrlParts[type];
-    [this.setTreeItems, this.isFileValid] =
+    [this.getFilesOnDisk, this.setTreeItems] =
       type !== "webtemp"
-        ? [this.setTreeItemsScript, isFileScript]
-        : [this.setTreeItemsWebTemp, isFileWebTemp];
+        ? [getScriptsOnDisk, this.setTreeItemsScript]
+        : [getWebTempsOnDisk, this.setTreeItemsWebTemp];
     const treeView = vscode.window.createTreeView(type, {
       treeDataProvider: this,
       showCollapseAll: type !== "webtemp",
@@ -79,20 +78,6 @@ export class TreeData {
       this._onDidChangeTreeData.fire(null);
       TreeData.timeoutId = null;
     }, 300);
-  }
-
-  private async getFilesOnDisk(folderUri: vscode.Uri) {
-    const files: OnDisk = new Map(),
-      isFolder = await exists(folderUri);
-    if (!isFolder) return files;
-    const content = await vscode.workspace.fs.readDirectory(folderUri);
-    for (const [nameExt, fileType] of content) {
-      if (fileType !== 1) continue;
-      const [name, ext] = nameExt.split(".");
-      if (!this.isFileValid(ext)) continue;
-      files.set(name, `.${ext}`);
-    }
-    return files;
   }
 
   private async setTreeItemsScript(data: RestResponse) {
@@ -236,7 +221,7 @@ class TreeItemWebTemp extends TreeItemScript {
   override get field(): Field {
     return "Definition";
   }
-  
+
   override get ext(): FileExt {
     return ".html";
   }

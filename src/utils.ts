@@ -19,7 +19,7 @@ export const openSettings = () =>
   );
 
 export const setButtonVisiblity = (
-  button: "pull" | "push" | "refresh",
+  button: "pull" | "push" | "refresh" | "search",
   isEnabled: boolean
 ) =>
   vscode.commands.executeCommand(
@@ -27,6 +27,9 @@ export const setButtonVisiblity = (
     `siebelscriptandwebtempeditor.${button}Enabled`,
     isEnabled
   );
+
+export const joinWorkspace = (workspace: string, target: string) =>
+  ["workspace", workspace, target].join("/");
 
 export const handleRestError = (err: any, action: RestAction) => {
   vscode.window.showErrorMessage(
@@ -73,25 +76,44 @@ export const putObject = async (
   }
 };
 
+const exists = async (resourceUri: vscode.Uri) => {
+  try {
+    await vscode.workspace.fs.stat(resourceUri);
+    return true;
+  } catch (err: any) {
+    return false;
+  }
+};
+
 export const isFileScript = (ext: string): ext is "js" | "ts" =>
   ext === "js" || ext === "ts";
 
 export const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
+
+const createGetFilesOnDisk =
+  (isFileValid: (ext: string) => ext is FileExtNoDot) =>
+  async (folderUri: vscode.Uri) => {
+    const files: OnDisk = new Map(),
+      isFolder = await exists(folderUri);
+    if (!isFolder) return files;
+    const content = await vscode.workspace.fs.readDirectory(folderUri);
+    for (const [nameExt, fileType] of content) {
+      if (fileType !== 1) continue;
+      const [name, ext] = nameExt.split(".");
+      if (!isFileValid(ext)) continue;
+      files.set(name, `.${ext}`);
+    }
+    return files;
+  };
+
+export const getScriptsOnDisk = createGetFilesOnDisk(isFileScript);
+export const getWebTempsOnDisk = createGetFilesOnDisk(isFileWebTemp);
 
 export const openFile = async (fileUri: vscode.Uri) => {
   try {
     await vscode.window.showTextDocument(fileUri, openFileOptions);
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
-  }
-};
-
-export const exists = async (resourceUri: vscode.Uri) => {
-  try {
-    await vscode.workspace.fs.stat(resourceUri);
-    return true;
-  } catch (err: any) {
-    return false;
   }
 };
 

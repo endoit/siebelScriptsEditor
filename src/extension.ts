@@ -1,13 +1,14 @@
 import * as vscode from "vscode";
 import { moveDeprecatedSettings } from "./settings";
 import { openSettings, setupWorkspaceFolder } from "./utils";
-import { refreshConnections, dataSourceWebview, configWebview } from "./state";
+import { refreshConnections, createDataSource, createConfig } from "./state";
 import {
   compare,
   pull,
   push,
   parseFilePath,
   reparseFilePath,
+  search,
 } from "./buttonAction";
 
 export async function activate({
@@ -19,7 +20,7 @@ export async function activate({
     await setupWorkspaceFolder(extensionUri);
 
     vscode.window.registerWebviewViewProvider("extensionView", {
-      resolveWebviewView: dataSourceWebview(subscriptions),
+      resolveWebviewView: createDataSource(subscriptions),
     });
 
     vscode.window.onDidChangeActiveTextEditor(parseFilePath);
@@ -29,9 +30,10 @@ export async function activate({
       pull,
       push,
       compare,
+      search,
       refreshConnections,
-      newConnection: configWebview(subscriptions, "new"),
-      editConnection: configWebview(subscriptions, "edit"),
+      newConnection: createConfig(subscriptions, "new"),
+      editConnection: createConfig(subscriptions, "edit"),
       openSettings,
     } as const;
 
