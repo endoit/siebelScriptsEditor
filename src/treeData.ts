@@ -10,6 +10,7 @@ import {
   getScriptsOnDisk,
   getWebTempsOnDisk,
   handleRestError,
+  joinUrl,
   openFile,
   writeFile,
 } from "./utils";
@@ -84,7 +85,7 @@ export class TreeData {
     for (const { Name } of data) {
       const folderUri = vscode.Uri.joinPath(this.folderUri, Name),
         onDisk = await this.getFilesOnDisk(folderUri),
-        url = [this.urlParts.parent, Name, this.urlParts.child].join("/");
+        url = joinUrl(this.urlParts.parent, Name, this.urlParts.child);
       this.treeItems.push(new TreeItemObject(Name, url, onDisk, folderUri));
     }
   }
@@ -92,7 +93,7 @@ export class TreeData {
   private async setTreeItemsWebTemp(data: RestResponse) {
     const onDisk = await this.getFilesOnDisk(this.folderUri);
     for (const { Name } of data) {
-      const url = ["Web Template", Name].join("/");
+      const url = joinUrl("Web Template", Name);
       this.treeItems.push(
         new TreeItemWebTemp(Name, url, onDisk, this.folderUri)
       );
@@ -250,7 +251,7 @@ class TreeItemObject extends TreeItemScript {
     this.children = [];
     for (const item of data) {
       const { Name, Script } = item,
-        url = [this.url, Name].join("/"),
+        url = joinUrl(this.url, Name),
         child = new TreeItemScript(Name, url, this.onDisk, this.folderUri);
       this.children.push(child);
       if (Script === undefined) continue;

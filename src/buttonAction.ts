@@ -19,7 +19,7 @@ import {
   workspaceUri,
   setButtonVisiblity,
   getScriptsOnDisk,
-  joinWorkspace,
+  joinUrl,
 } from "./utils";
 
 const compareFileUris =
@@ -61,7 +61,7 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
           urlParts = objectUrlParts[<Type>parts.pop()];
         if (!urlParts) throw buttonError;
         field = "Script";
-        parentUrl = [urlParts.parent, parent, urlParts.child].join("/");
+        parentUrl = joinUrl(urlParts.parent, parent, urlParts.child);
         message = `script of the ${parent} ${urlParts.parent}`;
         break;
       case isFileWebTemp(ext) && parts.length > 3 && parts.pop() === "webtemp":
@@ -76,9 +76,9 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     workspace = parts.pop()!;
     config = getConfig(parts.pop()!);
     if (Object.keys(config).length === 0) throw buttonError;
-    resourceUrl = [parentUrl, name].join("/");
-    objectUrl = joinWorkspace(workspace, resourceUrl);
-    searchUrl = joinWorkspace(workspace, parentUrl);
+    resourceUrl = joinUrl(parentUrl, name);
+    objectUrl = joinUrl("workspace", workspace, resourceUrl);
+    searchUrl = joinUrl("workspace", workspace, parentUrl);
     pushEnabled = workspace.includes(`_${config.username.toLowerCase()}_`);
   } catch (err: any) {
     pullEnabled = false;
@@ -160,7 +160,7 @@ export const compare = async () => {
   const answer = await vscode.window.showQuickPick(options, compareOptions);
   if (!answer) return;
   const { label } = answer,
-    relativeUrl = joinWorkspace(label, resourceUrl),
+    relativeUrl = joinUrl("workspace", label, resourceUrl),
     response = await getObject(`compare${field}`, config, relativeUrl),
     content = response[0]?.[field];
   if (content === undefined) return;

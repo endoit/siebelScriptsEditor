@@ -28,8 +28,7 @@ export const setButtonVisiblity = (
     isEnabled
   );
 
-export const joinWorkspace = (workspace: string, target: string) =>
-  ["workspace", workspace, target].join("/");
+export const joinUrl = (...parts: string[]) => parts.join("/");
 
 export const handleRestError = (err: any, action: RestAction) => {
   vscode.window.showErrorMessage(
