@@ -1,5 +1,9 @@
 **Changelog**
 
+# v2.2.0 - 2025-05-14
+
+- Added a new action button, Pull missing and search in scripts, which fetches all missing scripts for the current Siebel parent object, and searches in them for the selected text or word in the Search view
+
 # v2.1.0 - 2025-04-14
 
 - Changes when the Get Workspaces From The Siebel REST API setting is enabled:
