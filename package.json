@@ -2,7 +2,7 @@
 	"name": "siebelscriptandwebtempeditor",
 	"displayName": "Siebel Script And Web Template Editor",
 	"description": "Enables the editing of Siebel object server scripts and web templates in VSCode and updating them in Siebel using the Siebel REST API",
-	"version": "2.1.0",
+	"version": "2.2.0",
 	"publisher": "endoIT",
 	"icon": "icon.png",
 	"engines": {
