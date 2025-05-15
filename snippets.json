@@ -46,11 +46,6 @@
 			"}"
 		]
 	},
-	"SetPositionName": {
-		"scope": "javascript",
-		"body": "SetPositionName(${1:})",
-		"prefix": "SetPositionName"
-	},
 	"GetChild": {
 		"scope": "javascript",
 		"body": "GetChild(${1:})",
@@ -61,135 +56,35 @@
 		"body": "GetUserProperty(${1:})",
 		"prefix": "GetUserProperty"
 	},
-	"LoginName": {
-		"scope": "javascript",
-		"body": "loginName()",
-		"prefix": "LoginName"
-	},
-	"SetProfileAttr": {
-		"scope": "javascript",
-		"body": "SetProfileAttr(${1:})",
-		"prefix": "SetProfileAttr"
-	},
 	"GetMultipleFieldValues": {
 		"scope": "javascript",
 		"body": "GetMultipleFieldValues(${1:})",
 		"prefix": "GetMultipleFieldValues"
-	},
-	"InputBox": {
-		"scope": "javascript",
-		"body": "InputBox()",
-		"prefix": "InputBox"
-	},
-	"TraceOff": {
-		"scope": "javascript",
-		"body": "TraceOff()",
-		"prefix": "TraceOff"
-	},
-	"GetProfileAttr": {
-		"scope": "javascript",
-		"body": "GetProfileAttr(${1:})",
-		"prefix": "GetProfileAttr"
-	},
-	"Drilldown": {
-		"scope": "javascript",
-		"body": "Drilldown()",
-		"prefix": "Drilldown"
-	},
-	"CurrencyCode": {
-		"scope": "javascript",
-		"body": "CurrencyCode()",
-		"prefix": "CurrencyCode"
 	},
 	"GetSearchExpr": {
 		"scope": "javascript",
 		"body": "GetSearchExpr()",
 		"prefix": "GetSearchExpr"
 	},
-	"toSystem": {
-		"scope": "javascript",
-		"body": "toSystem()",
-		"prefix": "toSystem"
-	},
 	"GetSearchSpec": {
 		"scope": "javascript",
 		"body": "GetSearchSpec(${1:})",
 		"prefix": "GetSearchSpec"
-	},
-	"GotoApplet": {
-		"scope": "javascript",
-		"body": "GotoApplet()",
-		"prefix": "GotoApplet"
-	},
-	"SuppressNotification": {
-		"scope": "javascript",
-		"body": "SuppressNotification()",
-		"prefix": "SuppressNotification"
 	},
 	"SetMultipleFieldValues": {
 		"scope": "javascript",
 		"body": "SetMultipleFieldValues(${1:})",
 		"prefix": "SetMultipleFieldValues"
 	},
-	"RaiseErrorText": {
-		"scope": "javascript",
-		"body": "RaiseErrorText(${1:})",
-		"prefix": "RaiseErrorText"
-	},
-	"FindApplet": {
-		"scope": "javascript",
-		"body": "FindApplet()",
-		"prefix": "FindApplet"
-	},
 	"RemoveChild": {
 		"scope": "javascript",
 		"body": "RemoveChild(${1:})",
 		"prefix": "RemoveChild"
 	},
-	"RefineQuery": {
-		"scope": "javascript",
-		"body": "RefineQuery()",
-		"prefix": "RefineQuery"
-	},
-	"SearchExpr": {
-		"scope": "javascript",
-		"body": "SearchExpr(${1:})",
-		"prefix": "SearchExpr"
-	},
-	"SetNamedSearch": {
-		"scope": "javascript",
-		"body": "SetNamedSearch(${1:})",
-		"prefix": "SetNamedSearch"
-	},
-	"ActiveControl": {
-		"scope": "javascript",
-		"body": "ActiveControl()",
-		"prefix": "ActiveControl"
-	},
-	"ShowStatus": {
-		"scope": "javascript",
-		"body": "ShowStatus()",
-		"prefix": "ShowStatus"
-	},
-	"GotoControl": {
-		"scope": "javascript",
-		"body": "GotoControl()",
-		"prefix": "GotoControl"
-	},
 	"NewRecord": {
 		"scope": "javascript",
 		"body": "NewRecord(${1|NewAfter,NewAfterCopy,NewBefore,NewBeforeCopy|})",
 		"prefix": "NewRecord"
-	},
-	"Trace": {
-		"scope": "javascript",
-		"body": "Trace(${1:})",
-		"prefix": "Trace"
-	},
-	"ActiveBusObject": {
-		"scope": "javascript",
-		"body": "ActiveBusObject()",
-		"prefix": "ActiveBusObject"
 	},
 	"GetFieldValue": {
 		"scope": "javascript",
@@ -231,11 +126,6 @@
 		"body": "BusComp()",
 		"prefix": "BusComp"
 	},
-	"ToBuffer": {
-		"scope": "javascript",
-		"body": "ToBuffer(${1:})",
-		"prefix": "ToBuffer"
-	},
 	"SetViewMode": {
 		"scope": "javascript",
 		"body": "SetViewMode(${1:AllView})",
@@ -260,21 +150,6 @@
 		"scope": "javascript",
 		"body": "SetSearchExpr(${1:})",
 		"prefix": "SetSearchExpr"
-	},
-	"ToString": {
-		"scope": "javascript",
-		"body": "ToString(${1:})",
-		"prefix": "ToString"
-	},
-	"GetNamedSearch": {
-		"scope": "javascript",
-		"body": "GetNamedSearch(${1:})",
-		"prefix": "GetNamedSearch"
-	},
-	"GotoView": {
-		"scope": "javascript",
-		"body": "GotoView(${1:})",
-		"prefix": "GotoView"
 	},
 	"BusObject": {
 		"scope": "javascript",
@@ -301,75 +176,25 @@
 		"body": "GetFirstProperty()",
 		"prefix": "GetFirstProperty"
 	},
-	"TraceOn": {
-		"scope": "javascript",
-		"body": "TraceOn(${1:})",
-		"prefix": "TraceOn"
-	},
-	"fromSystem": {
-		"scope": "javascript",
-		"body": "fromSystem()",
-		"prefix": "fromSystem"
-	},
-	"ActiveViewName": {
-		"scope": "javascript",
-		"body": "ActiveViewName()",
-		"prefix": "ActiveViewName"
-	},
 	"UndoRecord": {
 		"scope": "javascript",
 		"body": "UndoRecord()",
 		"prefix": "UndoRecord"
-	},
-	"MsgBox": {
-		"scope": "javascript",
-		"body": "MsgBox()",
-		"prefix": "MsgBox"
-	},
-	"PositionId": {
-		"scope": "javascript",
-		"body": "PositionId()",
-		"prefix": "PositionId"
-	},
-	"ToObject": {
-		"scope": "javascript",
-		"body": "ToObject(${1:})",
-		"prefix": "ToObject"
 	},
 	"GetType": {
 		"scope": "javascript",
 		"body": "GetType()",
 		"prefix": "GetType"
 	},
-	"SetSharedGlobal": {
-		"scope": "javascript",
-		"body": "SetSharedGlobal(${1:})",
-		"prefix": "SetSharedGlobal"
-	},
 	"GetPropertyCount": {
 		"scope": "javascript",
 		"body": "GetPropertyCount()",
 		"prefix": "GetPropertyCount"
 	},
-	"NewPropertySet": {
-		"scope": "javascript",
-		"body": "NewPropertySet()",
-		"prefix": "NewPropertySet"
-	},
 	"PropertyExists": {
 		"scope": "javascript",
 		"body": "PropertyExists(${1:})",
 		"prefix": "PropertyExists"
-	},
-	"LoginId": {
-		"scope": "javascript",
-		"body": "LoginId()",
-		"prefix": "LoginId"
-	},
-	"ToNumber": {
-		"scope": "javascript",
-		"body": "ToNumber(${1:})",
-		"prefix": "ToNumber"
 	},
 	"ExecuteQuery": {
 		"scope": "javascript",
@@ -381,11 +206,6 @@
 		"body": "WriteRecord()",
 		"prefix": "WriteRecord"
 	},
-	"ToInteger": {
-		"scope": "javascript",
-		"body": "ToInteger(${1:})",
-		"prefix": "ToInteger"
-	},
 	"GetChildCount": {
 		"scope": "javascript",
 		"body": "GetChildCount()",
@@ -395,11 +215,6 @@
 		"scope": "javascript",
 		"body": "CountRecords()",
 		"prefix": "CountRecords"
-	},
-	"AllowNotification": {
-		"scope": "javascript",
-		"body": "AllowNotification()",
-		"prefix": "AllowNotification"
 	},
 	"Name": {
 		"scope": "javascript",
@@ -426,35 +241,10 @@
 		"body": "SetUserProperty(${1:})",
 		"prefix": "SetUserProperty"
 	},
-	"GetBusObject": {
-		"scope": "javascript",
-		"body": "GetBusObject(${1:})",
-		"prefix": "GetBusObject"
-	},
-	"ToUint16": {
-		"scope": "javascript",
-		"body": "ToUint16(${1:})",
-		"prefix": "ToUint16"
-	},
-	"GetSharedGlobal": {
-		"scope": "javascript",
-		"body": "GetSharedGlobal(${1:})",
-		"prefix": "GetSharedGlobal"
-	},
-	"ActiveApplet": {
-		"scope": "javascript",
-		"body": "ActiveApplet()",
-		"prefix": "ActiveApplet"
-	},
 	"ParentBusComp": {
 		"scope": "javascript",
 		"body": "ParentBusComp()",
 		"prefix": "ParentBusComp"
-	},
-	"ToUint32": {
-		"scope": "javascript",
-		"body": "ToUint32(${1:})",
-		"prefix": "ToUint32"
 	},
 	"SetSearchSpec": {
 		"scope": "javascript",
@@ -466,11 +256,6 @@
 		"body": "Associate(${1:})",
 		"prefix": "Associate"
 	},
-	"Applet": {
-		"scope": "javascript",
-		"body": "Applet()",
-		"prefix": "Applet"
-	},
 	"GetFormattedFieldValue": {
 		"scope": "javascript",
 		"body": "GetFormattedFieldValue(${1:})",
@@ -481,35 +266,15 @@
 		"body": "GetViewMode()",
 		"prefix": "GetViewMode"
 	},
-	"LookupMessage": {
-		"scope": "javascript",
-		"body": "LookupMessage(${1:})",
-		"prefix": "LookupMessage"
-	},
 	"GetNextProperty": {
 		"scope": "javascript",
 		"body": "GetNextProperty()",
 		"prefix": "GetNextProperty"
 	},
-	"GetService": {
-		"scope": "javascript",
-		"body": "GetService(${1:})",
-		"prefix": "GetService"
-	},
 	"NextSelected": {
 		"scope": "javascript",
 		"body": "NextSelected()",
 		"prefix": "NextSelected"
-	},
-	"ToBytes": {
-		"scope": "javascript",
-		"body": "ToBytes(${1:})",
-		"prefix": "ToBytes"
-	},
-	"GetCTIService": {
-		"scope": "javascript",
-		"body": "GetCTIService()",
-		"prefix": "GetCTIService"
 	},
 	"FirstRecord": {
 		"scope": "javascript",
@@ -521,50 +286,20 @@
 		"body": "FirstSelected()",
 		"prefix": "FirstSelected"
 	},
-	"SetPositionId": {
-		"scope": "javascript",
-		"body": "SetPositionId(${1:})",
-		"prefix": "SetPositionId"
-	},
 	"SetFormattedFieldValue": {
 		"scope": "javascript",
 		"body": "SetFormattedFieldValue(${1:})",
 		"prefix": "SetFormattedFielValue"
-	},
-	"ToBoolean": {
-		"scope": "javascript",
-		"body": "ToBoolean(${1:})",
-		"prefix": "ToBoolean"
-	},
-	"RaiseError": {
-		"scope": "javascript",
-		"body": "RaiseError(${1:})",
-		"prefix": "RaiseError"
-	},
-	"PostChanges": {
-		"scope": "javascript",
-		"body": "PostChanges()",
-		"prefix": "PostChanges"
 	},
 	"SetProperty": {
 		"scope": "javascript",
 		"body": "SetProperty(${1:})",
 		"prefix": "SetProperty"
 	},
-	"TheApplication": {
-		"scope": "javascript",
-		"body": "TheApplication()",
-		"prefix": "TheApplication"
-	},
 	"Reset": {
 		"scope": "javascript",
 		"body": "Reset()",
 		"prefix": "Reset"
-	},
-	"ActiveBusComp": {
-		"scope": "javascript",
-		"body": "ActiveBusComp()",
-		"prefix": "ActiveBusComp"
 	},
 	"InvokeMethod": {
 		"scope": "javascript",
@@ -581,20 +316,10 @@
 		"body": "InsertChildAt(${1:})",
 		"prefix": "InsertChildAt"
 	},
-	"FindControl": {
-		"scope": "javascript",
-		"body": "FindControl()",
-		"prefix": "FindControl"
-	},
-	"Set${1:}": {
+	"SetValue": {
 		"scope": "javascript",
 		"body": "SetValue(${1:})",
 		"prefix": "SetValue"
-	},
-	"ToInt32": {
-		"scope": "javascript",
-		"body": "ToInt32(${1:})",
-		"prefix": "ToInt32"
 	},
 	"GetBusComp": {
 		"scope": "javascript",
@@ -605,11 +330,6 @@
 		"scope": "javascript",
 		"body": "ActivateMultipleFields(${1:})",
 		"prefix": "ActivateMultipleFields"
-	},
-	"PositionName": {
-		"scope": "javascript",
-		"body": "PositionName()",
-		"prefix": "PositionName"
 	},
 	"ActivateField": {
 		"scope": "javascript",
