@@ -3,7 +3,6 @@ import {
   paths,
   error,
   yesNo,
-  success,
   configOptions,
   dataSourceOptions,
 } from "./constants";
@@ -184,23 +183,26 @@ const configHandler = async ({
       configView.html = createConfigHTML(config);
       return await setConfigs(configs);
     case "testConnection":
-      return await getObject(
+      const testResponse = await getObject(
         "testConnection",
         { url, username, password },
-        paths.describe
+        paths.test
       );
+      if (testResponse.length > 0)
+        vscode.window.showInformationMessage("Connection is working!");
+      return;
     case "testRestWorkspaces":
       const response = await getObject(
           "allWorkspaces",
           { url, username, password },
           paths.workspaces
         ),
-        uncheckRestWorkspaces = response?.[0] === undefined;
-      if (!uncheckRestWorkspaces)
-        vscode.window.showInformationMessage(success.testRestWorkspaces);
-      return await configView.postMessage({
-        uncheckRestWorkspaces,
-      });
+        uncheck = response.length === 0;
+      if (!uncheck)
+        vscode.window.showInformationMessage(
+          "Getting workspaces from the Siebel REST API was successful!"
+        );
+      return await configView.postMessage({ uncheck });
     case "newConnection":
       const connectionExists = Object.keys(getConfig(name)).length > 0;
       if (connectionExists)

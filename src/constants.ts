@@ -32,13 +32,13 @@ export const objectUrlParts = {
     pullDefinition: { fields: "Definition" },
     compareScript: { fields: "Script" },
     compareDefinition: { fields: "Definition" },
+    testConnection: { fields: "Name" },
     push: {},
     treeData: {},
-    testConnection: {},
   } as const,
   //constant paths
   paths = {
-    describe: "workspace/MAIN/describe",
+    test: "workspace/MAIN/Application",
     workspaces: "data/Workspace/Repository Workspace",
   } as const,
   //constant for message box answers
@@ -47,6 +47,7 @@ export const objectUrlParts = {
   openFileOverwriteCancel = ["Open file", "Overwrite", "Cancel"] as const,
   pullNo = ["Pull", "No"] as const,
   pushNo = ["Push", "No"] as const,
+  pushAllNo = ["Push all", "No"] as const,
   //config webview options:
   configOptions = {
     enableScripts: true,
@@ -69,20 +70,7 @@ export const objectUrlParts = {
     isCaseSensitive: false,
     matchWholeWord: false,
   } as const,
-  //constant success and error messages messages
-  success = {
-    testConnection: "Connection is working!",
-    testRestWorkspaces:
-      "Getting workspaces from the Siebel REST API was successful!",
-    push: "Successfully pushed object to Siebel!",
-    editableWorkspaces: "",
-    allWorkspaces: "",
-    pullScript: "",
-    pullDefinition: "",
-    compareScript: "",
-    compareDefinition: "",
-    treeData: "",
-  } as const,
+  //constant error messages
   error = {
     testConnection: "Error in the Siebel REST API Base URI!",
     pullScript: "Unable to pull, script was not found in Siebel!",
@@ -100,7 +88,6 @@ export const objectUrlParts = {
     connectionExists: "Connection with the same name already exists!",
     nameDifferent:
       "Unable to push script, name of the file and the function is not the same!",
-    testRestWorkspaces: "",
     push: "",
     treeData: "",
   } as const,

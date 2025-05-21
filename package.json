@@ -85,6 +85,12 @@
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
 			},
 			{
+				"command": "siebelscriptandwebtempeditor.pushAll",
+				"title": "Push all scripts of the current parent object to Siebel",
+				"icon": "$(arrow-circle-up)",
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
+			},
+			{
 				"command": "siebelscriptandwebtempeditor.refreshConnections",
 				"title": "Refresh Workspaces",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.refreshEnabled",
@@ -130,6 +136,11 @@
 					"command": "siebelscriptandwebtempeditor.search",
 					"group": "navigation@3",
 					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.pushAll",
+					"group": "navigation@4",
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
 				}
 			],
 			"view/title": [

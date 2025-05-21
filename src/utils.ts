@@ -1,11 +1,5 @@
 import * as vscode from "vscode";
-import {
-  baseConfig,
-  error,
-  openFileOptions,
-  query,
-  success,
-} from "./constants";
+import { baseConfig, error, openFileOptions, query } from "./constants";
 import { create } from "axios";
 
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
@@ -19,7 +13,7 @@ export const openSettings = () =>
   );
 
 export const setButtonVisiblity = (
-  button: "pull" | "push" | "refresh" | "search",
+  button: "pull" | "push" | "refresh" | "search" | "pushAll",
   isEnabled: boolean
 ) =>
   vscode.commands.executeCommand(
@@ -54,7 +48,6 @@ export const getObject = async (
       },
       response = await restApi.get(relativeUrl, request),
       data = response?.data?.items ?? [];
-    vscode.window.showInformationMessage(success[action]);
     return data;
   } catch (err: any) {
     return handleRestError(err, action);
@@ -69,9 +62,10 @@ export const putObject = async (
   try {
     const request = { baseURL, auth: { username, password } };
     await restApi.put(relativeUrl, data, request);
-    vscode.window.showInformationMessage(success.push);
+    return true;
   } catch (err: any) {
     handleRestError(err, "push");
+    return false;
   }
 };
 
@@ -108,6 +102,10 @@ const createGetFilesOnDisk =
 export const getScriptsOnDisk = createGetFilesOnDisk(isFileScript);
 export const getWebTempsOnDisk = createGetFilesOnDisk(isFileWebTemp);
 
+export const isNameValid = (name: string, text: string) =>
+  new RegExp(`function\\s+${name}\\s*\\(`).test(text) ||
+  name === "(declarations)";
+
 export const openFile = async (fileUri: vscode.Uri) => {
   try {
     await vscode.window.showTextDocument(fileUri, openFileOptions);
@@ -118,10 +116,20 @@ export const openFile = async (fileUri: vscode.Uri) => {
 
 export const writeFile = async (fileUri: vscode.Uri, fileContent: string) => {
   try {
-    const contents = Buffer.from(fileContent, "utf8");
-    await vscode.workspace.fs.writeFile(fileUri, contents);
+    const content = Buffer.from(fileContent, "utf8");
+    await vscode.workspace.fs.writeFile(fileUri, content);
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
+  }
+};
+
+export const readFile = async (fileUri: vscode.Uri) => {
+  try {
+    const content = await vscode.workspace.fs.readFile(fileUri);
+    return Buffer.from(content).toString("utf8");
+  } catch (err: any) {
+    vscode.window.showErrorMessage(err.message);
+    return "";
   }
 };
 

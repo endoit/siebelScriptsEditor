@@ -396,8 +396,8 @@ export const createConfigHTML = (
 					if (restWorkspaces) restWorkspaces.disabled = isDisabled;
 				};
 				enableButtons();
-				window.addEventListener("message", ({ data: { uncheckRestWorkspaces } }) => {
-					if (uncheckRestWorkspaces) document.getElementById("rest-workspaces").checked = false;
+				window.addEventListener("message", ({ data: { uncheck } }) => {
+					if (uncheck) document.getElementById("rest-workspaces").checked = false;
 				});
 			</script>
 		</body>

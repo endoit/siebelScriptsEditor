@@ -9,6 +9,7 @@ import {
   parseFilePath,
   reparseFilePath,
   search,
+  pushAll,
 } from "./buttonAction";
 
 export async function activate({
@@ -31,6 +32,7 @@ export async function activate({
       push,
       compare,
       search,
+      pushAll,
       refreshConnections,
       newConnection: createConfig(subscriptions, "new"),
       editConnection: createConfig(subscriptions, "edit"),
