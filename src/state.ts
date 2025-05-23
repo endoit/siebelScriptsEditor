@@ -6,7 +6,7 @@ import {
   configOptions,
   dataSourceOptions,
 } from "./constants";
-import { workspaceUri, getObject, setButtonVisiblity } from "./utils";
+import { workspaceUri, getObject, setButtonVisibility } from "./utils";
 import {
   configChange,
   getConfig,
@@ -97,7 +97,7 @@ export const refreshConnections = async () => {
     : defaultWorkspace;
   TreeData.restDefaults = { url, username, password };
   setUrlAndFolder();
-  setButtonVisiblity("refresh", restWorkspaces);
+  setButtonVisibility("refresh", restWorkspaces);
   return await dataSourceView.postMessage({
     connections,
     connection,

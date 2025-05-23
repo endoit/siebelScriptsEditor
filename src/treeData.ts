@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import {
   openFileOverwriteCancel,
-  objectUrlParts,
+  objectPaths,
   yesNo,
   yesOnlyMethodNamesNo,
   baseConfig,
@@ -10,7 +10,7 @@ import {
   getScriptsOnDisk,
   getWebTempsOnDisk,
   handleRestError,
-  joinUrl,
+  joinPath,
   openFile,
   writeFile,
 } from "./utils";
@@ -22,7 +22,7 @@ export class TreeData {
   static readonly checkmark = new vscode.ThemeIcon("check");
   private static timeoutId: NodeJS.Timeout | number | null = null;
   private static baseURL: string;
-  private readonly urlParts;
+  private readonly pathParts;
   private readonly setTreeItems: (data: RestResponse) => Promise<void>;
   private readonly getFilesOnDisk: (folderUri: vscode.Uri) => Promise<OnDisk>;
   private readonly _onDidChangeTreeData = new vscode.EventEmitter();
@@ -31,7 +31,7 @@ export class TreeData {
   private declare folderUri: vscode.Uri;
 
   constructor(type: Type) {
-    this.urlParts = objectUrlParts[type];
+    this.pathParts = objectPaths[type];
     [this.getFilesOnDisk, this.setTreeItems] =
       type !== "webtemp"
         ? [getScriptsOnDisk, this.setTreeItemsScript]
@@ -74,7 +74,7 @@ export class TreeData {
           fields: "Name",
           searchspec: `Name LIKE '${searchSpec}*'`,
         },
-        data = await TreeData.getObject(this.urlParts.parent, params);
+        data = await TreeData.getObject(this.pathParts.parent, params);
       await this.setTreeItems(data);
       this._onDidChangeTreeData.fire(null);
       TreeData.timeoutId = null;
@@ -85,17 +85,17 @@ export class TreeData {
     for (const { Name } of data) {
       const folderUri = vscode.Uri.joinPath(this.folderUri, Name),
         onDisk = await this.getFilesOnDisk(folderUri),
-        url = joinUrl(this.urlParts.parent, Name, this.urlParts.child);
-      this.treeItems.push(new TreeItemObject(Name, url, onDisk, folderUri));
+        path = joinPath(this.pathParts.parent, Name, this.pathParts.child);
+      this.treeItems.push(new TreeItemObject(Name, path, onDisk, folderUri));
     }
   }
 
   private async setTreeItemsWebTemp(data: RestResponse) {
     const onDisk = await this.getFilesOnDisk(this.folderUri);
     for (const { Name } of data) {
-      const url = joinUrl("Web Template", Name);
+      const path = joinPath("Web Template", Name);
       this.treeItems.push(
-        new TreeItemWebTemp(Name, url, onDisk, this.folderUri)
+        new TreeItemWebTemp(Name, path, onDisk, this.folderUri)
       );
     }
   }
@@ -109,26 +109,28 @@ export class TreeData {
   }
 
   static getObject = async (
-    url: string,
+    path: string,
     params: QueryParams
   ): Promise<RestResponse> => {
     try {
-      const response = await this.restApi.get(url, { params });
+      const response = await this.restApi.get(path, { params });
       return response?.data?.items ?? [];
     } catch (err: any) {
       return handleRestError(err, "treeData");
     }
   };
 
-  static set restDefaults({ url, username, password }: RestRequest) {
+  static set restDefaults({ url, username, password }: RestConfig) {
     this.baseURL = url;
     this.restApi.defaults.auth = { username, password };
     this.restApi.defaults.params.PageSize = settings.maxPageSize;
   }
 
   static set workspaceUrl(workspace: string) {
-    this.restApi.defaults.baseURL = [this.baseURL, "workspace", workspace].join(
-      "/"
+    this.restApi.defaults.baseURL = joinPath(
+      this.baseURL,
+      "workspace",
+      workspace
     );
   }
 }
@@ -137,18 +139,18 @@ class TreeItemScript extends vscode.TreeItem {
   override readonly collapsibleState: vscode.TreeItemCollapsibleState =
     vscode.TreeItemCollapsibleState.None;
   declare readonly label: string;
-  readonly url: string;
+  readonly path: string;
   readonly onDisk;
   readonly folderUri;
 
   constructor(
     label: string,
-    url: string,
+    path: string,
     onDisk: OnDisk,
     folderUri: vscode.Uri
   ) {
     super(label);
-    this.url = url;
+    this.path = path;
     this.onDisk = onDisk;
     this.folderUri = folderUri;
     this.icon = TreeData.checkmark;
@@ -185,7 +187,7 @@ class TreeItemScript extends vscode.TreeItem {
         params.fields = `Name,${this.field}`;
       case "Only method names":
         params.fields ??= "Name";
-        const data = await TreeData.getObject(this.url, params);
+        const data = await TreeData.getObject(this.path, params);
         if (data.length === 0) return false;
         return await this.pull(data);
     }
@@ -251,8 +253,8 @@ class TreeItemObject extends TreeItemScript {
     this.children = [];
     for (const item of data) {
       const { Name, Script } = item,
-        url = joinUrl(this.url, Name),
-        child = new TreeItemScript(Name, url, this.onDisk, this.folderUri);
+        path = joinPath(this.path, Name),
+        child = new TreeItemScript(Name, path, this.onDisk, this.folderUri);
       this.children.push(child);
       if (Script === undefined) continue;
       await child.pull([item]);

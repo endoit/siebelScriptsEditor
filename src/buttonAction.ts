@@ -6,7 +6,7 @@ import {
   paths,
   pullNo,
   pushNo,
-  objectUrlParts,
+  objectPaths,
   findInFilesOptions,
   pushAllNo,
 } from "./constants";
@@ -19,9 +19,9 @@ import {
   readFile,
   writeFile,
   workspaceUri,
-  setButtonVisiblity,
+  setButtonVisibility,
   getScriptsOnDisk,
-  joinUrl,
+  joinPath,
   isNameValid,
 } from "./utils";
 
@@ -38,20 +38,23 @@ let editor: vscode.TextEditor | undefined,
   name: string,
   ext: FileExtNoDot,
   field: Field,
-  parentUrl: string,
-  resourceUrl: string,
-  searchUrl: string,
+  parentPath: string,
+  objectPath: string,
+  parentFullPath: string,
+  objectFullPath: string,
   message: string,
+  messageAll: string,
   workspace: string,
   config: Config,
-  objectUrl: string,
   folderUri: vscode.Uri;
 
 export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
-  let pullEnabled = true,
-    pushEnabled = true,
-    searchEnabled = true,
-    pushAllEnabled = true;
+  const visibility = {
+    pull: false,
+    push: false,
+    search: false,
+    pushAll: false,
+  };
 
   try {
     editor = textEditor;
@@ -63,17 +66,18 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     switch (true) {
       case isFileScript(ext) && parts.length > 4:
         const parent = parts.pop()!,
-          urlParts = objectUrlParts[<Type>parts.pop()];
-        if (!urlParts) throw buttonError;
+          pathParts = objectPaths[<Type>parts.pop()];
+        if (!pathParts) throw buttonError;
         field = "Script";
-        parentUrl = joinUrl(urlParts.parent, parent, urlParts.child);
-        message = `script of the ${parent} ${urlParts.parent}`;
+        parentPath = joinPath(pathParts.parent, parent, pathParts.child);
+        message = `script of the ${parent} ${pathParts.parent}`;
+        messageAll = `all scripts of the ${parent} ${pathParts.parent}`;
+        visibility.search = true;
         break;
       case isFileWebTemp(ext) && parts.length > 3 && parts.pop() === "webtemp":
-        searchEnabled = false;
         field = "Definition";
-        parentUrl = "Web Template";
-        message = "web template definition";
+        parentPath = "Web Template";
+        message = "Web Template definition";
         break;
       default:
         throw buttonError;
@@ -81,20 +85,20 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     workspace = parts.pop()!;
     config = getConfig(parts.pop()!);
     if (Object.keys(config).length === 0) throw buttonError;
-    resourceUrl = joinUrl(parentUrl, name);
-    objectUrl = joinUrl("workspace", workspace, resourceUrl);
-    searchUrl = joinUrl("workspace", workspace, parentUrl);
-    pushEnabled = workspace.includes(`_${config.username.toLowerCase()}_`);
-    pushAllEnabled = searchEnabled && pushAllEnabled;
+    objectPath = joinPath(parentPath, name);
+    parentFullPath = joinPath("workspace", workspace, parentPath);
+    objectFullPath = joinPath(parentFullPath, name);
+    visibility.pull = true;
+    visibility.push = workspace.includes(`_${config.username.toLowerCase()}_`);
+    visibility.pushAll = visibility.search && visibility.push;
+    for (const [button, visible] of Object.entries(visibility)) {
+      setButtonVisibility(<Button>button, visible);
+    }
   } catch (err: any) {
-    pullEnabled = false;
-    pushEnabled = false;
-    searchEnabled = false;
+    for (const button of Object.keys(visibility)) {
+      setButtonVisibility(<Button>button, false);
+    }
   }
-  setButtonVisiblity("pull", pullEnabled);
-  setButtonVisiblity("push", pushEnabled);
-  setButtonVisiblity("search", searchEnabled);
-  setButtonVisiblity("pushAll", pushAllEnabled);
 };
 
 export const reparseFilePath = (event: vscode.FileRenameEvent) => {
@@ -112,7 +116,7 @@ export const pull = async () => {
     ...pullNo
   );
   if (answer !== "Pull") return;
-  const response = await getObject(`pull${field}`, config, objectUrl),
+  const response = await getObject(`pull${field}`, config, objectFullPath),
     content = response[0]?.[field];
   if (content === undefined) return;
   await writeFile(document.uri, content);
@@ -132,7 +136,7 @@ export const push = async () => {
     ...pushNo
   );
   if (answer !== "Push") return;
-  const result = await putObject(config, objectUrl, payload);
+  const result = await putObject(config, objectFullPath, payload);
   if (!result) return;
   vscode.window.showInformationMessage(
     `Successfully pushed ${name} to Siebel!`
@@ -168,8 +172,8 @@ export const compare = async () => {
   const answer = await vscode.window.showQuickPick(options, compareOptions);
   if (!answer) return;
   const { label } = answer,
-    relativeUrl = joinUrl("workspace", label, resourceUrl),
-    response = await getObject(`compare${field}`, config, relativeUrl),
+    compareFullPath = joinPath("workspace", label, objectPath),
+    response = await getObject(`compare${field}`, config, compareFullPath),
     content = response[0]?.[field];
   if (content === undefined) return;
   await writeFile(compareFileUris[ext], content);
@@ -187,7 +191,7 @@ export const search = async () => {
       ? document.getWordRangeAtPosition(selection.active)
       : selection,
     query = selected ? document.getText(selected) : "",
-    response = await getObject(`pullScript`, config, searchUrl),
+    response = await getObject(`pullScript`, config, parentFullPath),
     files = await getScriptsOnDisk(folderUri);
   for (const { Name, Script } of response) {
     if (files.has(Name) || !Script) continue;
@@ -206,34 +210,38 @@ export const search = async () => {
 
 export const pushAll = async () => {
   const files = await getScriptsOnDisk(folderUri),
-    answer = await vscode.window.showInformationMessage(
-      `Do you want to push all scripts of the current parent object?`,
-      ...pushAllNo
-    ),
-    error = [];
-  if (answer !== "Push all") return;
+    payloads = [],
+    invalid = [];
   for (const [fileName, fileExt] of files) {
     const fileNameExt = `${fileName}${fileExt}`,
       fileUri = vscode.Uri.joinPath(folderUri, fileNameExt),
-      text = await readFile(fileUri);
-    if (!isNameValid(fileName, text)) {
-      error.push(fileNameExt);
-      continue;
-    }
-    const payload: Payload = {
+      text = await readFile(fileUri),
+      payload: Payload = {
         Name: fileName,
         Script: text,
         "Program Language": "JS",
-      },
-      relativeUrl = joinUrl(searchUrl, fileName),
-      result = await putObject(config, relativeUrl, payload);
-    if (!result) error.push(fileName);
+      };
+    payloads.push(payload);
+    if (isNameValid(fileName, text)) continue;
+    invalid.push(fileNameExt);
   }
-  if (error.length > 0)
+  if (invalid.length > 0)
     return vscode.window.showErrorMessage(
-      `Unsuccesful push for the following script(s): ${error.join(", ")}`
+      `Unable to push all, file and function names differ for the following script(s): ${invalid.join(
+        ", "
+      )}`
     );
+  const answer = await vscode.window.showInformationMessage(
+    `Do you want to push ${messageAll} to the ${workspace} workspace of the ${config.name} connection?`,
+    ...pushAllNo
+  );
+  if (answer !== "Push all") return;
+  for (const payload of payloads) {
+    const pushFullPath = joinPath(parentFullPath, payload.Name),
+      result = await putObject(config, pushFullPath, payload);
+    if (!result) return;
+  }
   vscode.window.showInformationMessage(
-    "Successfully pushed all scripts to Siebel!"
+    `Successfully pushed ${messageAll} to Siebel!`
   );
 };

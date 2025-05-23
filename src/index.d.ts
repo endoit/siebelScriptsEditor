@@ -1,7 +1,7 @@
 //Siebel object types
 type Type = "service" | "buscomp" | "applet" | "application" | "webtemp";
 
-//Settings
+//settings
 type ExtensionSettings = {
   connections: Config[];
   defaultConnectionName: string;
@@ -15,19 +15,19 @@ type ExtensionSettings = {
   defaultActionWhenFileExists: "None - always ask" | "Open file" | "Overwrite";
 };
 
-type RestRequest = { username: string; password: string; url: string };
+type RestConfig = { url: string; username: string; password: string };
 
 type Config = {
   name: string;
   workspaces: string[];
   defaultWorkspace: string;
   restWorkspaces: boolean;
-} & RestRequest;
+} & RestConfig;
 
-//Data field
+//rest data field
 type Field = "Script" | "Definition";
 
-//Query parameters
+//query parameters
 type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
@@ -79,9 +79,9 @@ type ConfigMessage = {
   workspace: string;
   isDefaultConnection: boolean;
   restWorkspaces: boolean;
-} & RestRequest;
+} & RestConfig;
 
-//Siebel rest api action
+//Siebel rest api actions
 type RestAction =
   | "testConnection"
   | "allWorkspaces"
@@ -93,18 +93,20 @@ type RestAction =
   | "compareDefinition"
   | "treeData";
 
-
 //file extensions
 type FileExt = ".js" | ".ts" | ".html";
 type FileExtNoDot = "js" | "ts" | "html";
 
-//On disk map for files
+//downloaded files
 type OnDisk = Map<string, FileExt>;
 
 //Answer options for tree item selection
 type Answer = "Only method names" | "All scripts" | "Yes" | "No" | undefined;
 
-//Deprecated settings
+//button actions
+type Button = "pull" | "push" | "search" | "pushAll" | "refresh";
+
+//deprecated settings
 type DeprecatedSettings = {
   "REST EndpointConfigurations"?: string[];
   workspaces?: string[];
@@ -112,7 +114,7 @@ type DeprecatedSettings = {
   getWorkspacesFromREST?: boolean;
 };
 
-//Union of all settings
+//union of all settings
 type AllSettings = ExtensionSettings & DeprecatedSettings;
 
 //type for subscriptions

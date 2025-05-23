@@ -1,5 +1,5 @@
-//Repository object urls
-export const objectUrlParts = {
+//Repository object paths
+export const objectPaths = {
     service: {
       parent: "Business Service",
       child: "Business Service Server Script",

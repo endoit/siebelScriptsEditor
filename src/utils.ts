@@ -12,17 +12,14 @@ export const openSettings = () =>
     "siebelScriptAndWebTempEditor"
   );
 
-export const setButtonVisiblity = (
-  button: "pull" | "push" | "refresh" | "search" | "pushAll",
-  isEnabled: boolean
-) =>
+export const setButtonVisibility = (button: Button, isEnabled: boolean) =>
   vscode.commands.executeCommand(
     "setContext",
     `siebelscriptandwebtempeditor.${button}Enabled`,
     isEnabled
   );
 
-export const joinUrl = (...parts: string[]) => parts.join("/");
+export const joinPath = (...parts: string[]) => parts.join("/");
 
 export const handleRestError = (err: any, action: RestAction) => {
   vscode.window.showErrorMessage(
@@ -37,8 +34,8 @@ export const handleRestError = (err: any, action: RestAction) => {
 
 export const getObject = async (
   action: RestAction,
-  { url: baseURL, username, password }: RestRequest,
-  relativeUrl: string
+  { url: baseURL, username, password }: RestConfig,
+  path: string
 ): Promise<RestResponse> => {
   try {
     const request = {
@@ -46,7 +43,7 @@ export const getObject = async (
         auth: { username, password },
         params: query[action],
       },
-      response = await restApi.get(relativeUrl, request),
+      response = await restApi.get(path, request),
       data = response?.data?.items ?? [];
     return data;
   } catch (err: any) {
@@ -56,12 +53,12 @@ export const getObject = async (
 
 export const putObject = async (
   { url: baseURL, username, password }: Config,
-  relativeUrl: string,
+  path: string,
   data: Payload
 ) => {
   try {
     const request = { baseURL, auth: { username, password } };
-    await restApi.put(relativeUrl, data, request);
+    await restApi.put(path, data, request);
     return true;
   } catch (err: any) {
     handleRestError(err, "push");
