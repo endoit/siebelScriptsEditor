@@ -19,22 +19,20 @@ export const objectPaths = {
   },
   //constant query params
   query = {
+    testConnection: { fields: "Name" },
+    allWorkspaces: {
+      fields: "Name,Status",
+      ViewMode: "Organization",
+    },
     editableWorkspaces: {
       fields: "Name",
       searchspec:
         "Status='Created' OR Status='Checkpointed' OR Status='Edit-In-Progress'",
     },
-    allWorkspaces: {
-      fields: "Name,Status",
-      ViewMode: "Organization",
-    },
     pullScript: { fields: "Name,Script" },
     pullDefinition: { fields: "Definition" },
     compareScript: { fields: "Script" },
     compareDefinition: { fields: "Definition" },
-    testConnection: { fields: "Name" },
-    push: {},
-    treeData: {},
   } as const,
   //constant paths
   paths = {
@@ -73,23 +71,21 @@ export const objectPaths = {
   //constant error messages
   error = {
     testConnection: "Error in the Siebel REST API Base URI!",
+    allWorkspaces:
+      "Error getting workspaces from the Siebel REST API, [see documentation for more information!](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)",
+    editableWorkspaces:
+      "No workspace with status Created, Checkpointed or Edit-In-Progress was found!",
     pullScript: "Unable to pull, script was not found in Siebel!",
     pullDefinition: "Unable to pull, web template was not found in Siebel!",
     compareScript:
       "Unable to compare, script does not exists in the selected workspace!",
     compareDefinition:
       "Unable to compare, web template does not exists in the selected workspace!",
-    editableWorkspaces:
-      "No workspace with status Created, Checkpointed or Edit-In-Progress was found!",
-    allWorkspaces:
-      "Error getting workspaces from the Siebel REST API, [see documentation for more information!](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)",
     noConnection:
       "Please create at least one connection with the New Connection button!",
     connectionExists: "Connection with the same name already exists!",
     nameDifferent:
       "Unable to push script, name of the file and the function is not the same!",
-    push: "",
-    treeData: "",
   } as const,
   //error when parsing active file
   buttonError = new Error();

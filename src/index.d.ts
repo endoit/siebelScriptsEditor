@@ -86,12 +86,10 @@ type RestAction =
   | "testConnection"
   | "allWorkspaces"
   | "editableWorkspaces"
-  | "push"
   | "pullScript"
   | "pullDefinition"
   | "compareScript"
-  | "compareDefinition"
-  | "treeData";
+  | "compareDefinition";
 
 //file extensions
 type FileExt = ".js" | ".ts" | ".html";

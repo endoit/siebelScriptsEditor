@@ -48,7 +48,9 @@ let editor: vscode.TextEditor | undefined,
   config: Config,
   folderUri: vscode.Uri;
 
-export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
+export const parseFilePath = async (
+  textEditor: vscode.TextEditor | undefined
+) => {
   const visibility = {
     pull: false,
     push: false,
@@ -63,6 +65,7 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     folderUri = vscode.Uri.joinPath(document.uri, "..");
     const parts = document.uri.path.split("/");
     [name, ext] = <[string, FileExtNoDot]>parts.pop()!.split(".");
+    if (!name) throw buttonError;
     switch (true) {
       case isFileScript(ext) && parts.length > 4:
         const parent = parts.pop()!,
@@ -90,10 +93,16 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
     objectFullPath = joinPath(parentFullPath, name);
     visibility.pull = true;
     visibility.push = workspace.includes(`_${config.username.toLowerCase()}_`);
-    visibility.pushAll = visibility.search && visibility.push;
+    visibility.pushAll = visibility.push && visibility.search;
     for (const [button, visible] of Object.entries(visibility)) {
       setButtonVisibility(<Button>button, visible);
     }
+    if (
+      document.getText() === "" &&
+      visibility.pushAll &&
+      name !== "(declarations)"
+    )
+      await writeFile(document.uri, `function ${name}(){\n\n}`);
   } catch (err: any) {
     for (const button of Object.keys(visibility)) {
       setButtonVisibility(<Button>button, false);
@@ -101,10 +110,10 @@ export const parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
   }
 };
 
-export const reparseFilePath = (event: vscode.FileRenameEvent) => {
+export const reparseFilePath = ({ files }: vscode.FileRenameEvent) => {
   const textEditor = vscode.window?.activeTextEditor;
   if (!textEditor) return;
-  for (const { newUri } of event.files) {
+  for (const { newUri } of files) {
     if (textEditor.document?.uri.path !== newUri.path) continue;
     return parseFilePath(textEditor);
   }
@@ -191,7 +200,7 @@ export const search = async () => {
       ? document.getWordRangeAtPosition(selection.active)
       : selection,
     query = selected ? document.getText(selected) : "",
-    response = await getObject(`pullScript`, config, parentFullPath),
+    response = await getObject("pullScript", config, parentFullPath),
     files = await getScriptsOnDisk(folderUri);
   for (const { Name, Script } of response) {
     if (files.has(Name) || !Script) continue;

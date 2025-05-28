@@ -1,5 +1,10 @@
 import * as vscode from "vscode";
-import { baseConfig, error, openFileOptions, query } from "./constants";
+import {
+  baseConfig,
+  error,
+  openFileOptions,
+  query,
+} from "./constants";
 import { create } from "axios";
 
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
@@ -21,9 +26,9 @@ export const setButtonVisibility = (button: Button, isEnabled: boolean) =>
 
 export const joinPath = (...parts: string[]) => parts.join("/");
 
-export const handleRestError = (err: any, action: RestAction) => {
+export const showRestError = (err: any, action?: RestAction) => {
   vscode.window.showErrorMessage(
-    err.response?.status === 404
+    action && err.response?.status === 404
       ? error[action]
       : `Error using the Siebel REST API: ${
           err.response?.data?.ERROR ?? err.message
@@ -47,7 +52,7 @@ export const getObject = async (
       data = response?.data?.items ?? [];
     return data;
   } catch (err: any) {
-    return handleRestError(err, action);
+    return showRestError(err, action);
   }
 };
 
@@ -61,7 +66,7 @@ export const putObject = async (
     await restApi.put(path, data, request);
     return true;
   } catch (err: any) {
-    handleRestError(err, "push");
+    showRestError(err);
     return false;
   }
 };

@@ -9,7 +9,7 @@ import {
 import {
   getScriptsOnDisk,
   getWebTempsOnDisk,
-  handleRestError,
+  showRestError,
   joinPath,
   openFile,
   writeFile,
@@ -116,7 +116,7 @@ export class TreeData {
       const response = await this.restApi.get(path, { params });
       return response?.data?.items ?? [];
     } catch (err: any) {
-      return handleRestError(err, "treeData");
+      return showRestError(err);
     }
   };
 
