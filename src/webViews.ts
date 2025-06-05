@@ -193,7 +193,6 @@ export const dataSourceHTML = `<!doctype><html>
         const searchString = document.getElementById("search-bar").value;
 				currentState.searchString = searchString;
 				vscode.setState(currentState);
-        if (!searchString) return;
 				vscode.postMessage({ command: "search", data: searchString });
       },
 			populate = () => {

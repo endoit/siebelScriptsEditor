@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import {
   baseConfig,
   error,
+  extNoDot,
+  metadata,
   openFileOptions,
   query,
 } from "./constants";
@@ -26,17 +28,6 @@ export const setButtonVisibility = (button: Button, isEnabled: boolean) =>
 
 export const joinPath = (...parts: string[]) => parts.join("/");
 
-export const showRestError = (err: any, action?: RestAction) => {
-  vscode.window.showErrorMessage(
-    action && err.response?.status === 404
-      ? error[action]
-      : `Error using the Siebel REST API: ${
-          err.response?.data?.ERROR ?? err.message
-        }`
-  );
-  return [];
-};
-
 export const getObject = async (
   action: RestAction,
   { url: baseURL, username, password }: RestConfig,
@@ -52,7 +43,14 @@ export const getObject = async (
       data = response?.data?.items ?? [];
     return data;
   } catch (err: any) {
-    return showRestError(err, action);
+    vscode.window.showErrorMessage(
+      err.response?.status === 404
+        ? error[action]
+        : `Error using the Siebel REST API: ${
+            err.response?.data?.ERROR ?? err.message
+          }`
+    );
+    return [];
   }
 };
 
@@ -66,12 +64,16 @@ export const putObject = async (
     await restApi.put(path, data, request);
     return true;
   } catch (err: any) {
-    showRestError(err);
+    vscode.window.showErrorMessage(
+      `Error using the Siebel REST API: ${
+        err.response?.data?.ERROR ?? err.message
+      }`
+    );
     return false;
   }
 };
 
-const exists = async (resourceUri: vscode.Uri) => {
+export const exists = async (resourceUri: vscode.Uri) => {
   try {
     await vscode.workspace.fs.stat(resourceUri);
     return true;
@@ -81,10 +83,11 @@ const exists = async (resourceUri: vscode.Uri) => {
 };
 
 export const isFileScript = (ext: string): ext is "js" | "ts" =>
-  ext === "js" || ext === "ts";
+  ext === extNoDot.js || ext === extNoDot.ts;
 
-export const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
-
+export const isFileWebTemp = (ext: string): ext is "html" =>
+  ext === extNoDot.html;
+//áttérni . nélküli kiterjesztésre
 const createGetFilesOnDisk =
   (isFileValid: (ext: string) => ext is FileExtNoDot) =>
   async (folderUri: vscode.Uri) => {
@@ -93,9 +96,8 @@ const createGetFilesOnDisk =
     if (!isFolder) return files;
     const content = await vscode.workspace.fs.readDirectory(folderUri);
     for (const [nameExt, fileType] of content) {
-      if (fileType !== 1) continue;
       const [name, ext] = nameExt.split(".");
-      if (!isFileValid(ext)) continue;
+      if (fileType !== 1 || !isFileValid(ext)) continue;
       files.set(name, `.${ext}`);
     }
     return files;
@@ -104,9 +106,37 @@ const createGetFilesOnDisk =
 export const getScriptsOnDisk = createGetFilesOnDisk(isFileScript);
 export const getWebTempsOnDisk = createGetFilesOnDisk(isFileWebTemp);
 
-export const isNameValid = (name: string, text: string) =>
+export const getScriptParentsOnDisk = async (folderUri: vscode.Uri) => {
+  const folders: RestResponse = [],
+    isFolder = await exists(folderUri);
+  if (!isFolder) return folders;
+  const content = await vscode.workspace.fs.readDirectory(folderUri);
+  for (const [Name, fileType] of content) {
+    if (fileType !== 2) continue;
+    folders.push({ Name });
+  }
+  return folders;
+};
+
+const isFileNameValid = (name: string) =>
+  /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) || name === "(declarations)";
+
+export const createValidateInput = (files: OnDisk) => (value: string) =>
+  isFileNameValid(value)
+    ? files.has(value)
+      ? "Script already exists!"
+      : ""
+    : "Invalid script name!";
+
+export const isScriptNameValid = (name: string, text: string) =>
   new RegExp(`function\\s+${name}\\s*\\(`).test(text) ||
   name === "(declarations)";
+
+export const getFileUri = (
+  folderUri: vscode.Uri,
+  fileName: string,
+  fileExt: FileExt
+) => vscode.Uri.joinPath(folderUri, `${fileName}${fileExt}`);
 
 export const openFile = async (fileUri: vscode.Uri) => {
   try {
@@ -130,8 +160,7 @@ export const readFile = async (fileUri: vscode.Uri) => {
     const content = await vscode.workspace.fs.readFile(fileUri);
     return Buffer.from(content).toString("utf8");
   } catch (err: any) {
-    vscode.window.showErrorMessage(err.message);
-    return "";
+    return undefined;
   }
 };
 

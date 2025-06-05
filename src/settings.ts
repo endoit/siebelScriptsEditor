@@ -43,8 +43,15 @@ export const configChange = (e: vscode.ConfigurationChangeEvent) => {
   }
 };
 
-export const moveDeprecatedSettings = async () => {
+export const manageDeprecatedSettings = async () => {
   try {
+    const oldSettings = [
+      "defaultScriptFetching",
+      "singleFileAutoDownload",
+    ] as const;
+    for (const settingName of oldSettings) {
+      if (get(settingName) !== undefined) await set(settingName, undefined);
+    }
     const oldConnections = get("REST EndpointConfigurations"),
       configs = settings.connections;
     if (!oldConnections || configs.length !== 0) return;

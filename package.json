@@ -91,6 +91,12 @@
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
 			},
 			{
+				"command": "siebelscriptandwebtempeditor.newScript",
+				"title": "Create a new script for the current parent object",
+				"icon": "$(new-file)",
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
+			},
+			{
 				"command": "siebelscriptandwebtempeditor.refreshConnections",
 				"title": "Refresh Workspaces",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.refreshEnabled",
@@ -113,6 +119,21 @@
 				"title": "Open Settings",
 				"when": "workspaceFolderCount > 0",
 				"icon": "$(settings-gear)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.pullAllTreeScript",
+				"title": "Pull All",
+				"icon": "$(arrow-circle-down)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.refreshTreeScript",
+				"title": "Refresh",
+				"icon": "$(refresh)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.newTreeScript",
+				"title": "New Script",
+				"icon": "$(new-file)"
 			}
 		],
 		"menus": {
@@ -141,6 +162,11 @@
 					"command": "siebelscriptandwebtempeditor.pushAll",
 					"group": "navigation@4",
 					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.newScript",
+					"group": "navigation@5",
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
 				}
 			],
 			"view/title": [
@@ -164,6 +190,23 @@
 					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@3"
 				}
+			],
+			"view/item/context": [
+				{
+					"command": "siebelscriptandwebtempeditor.pullAllTreeScript",
+					"when": "viewItem == objectItem",
+					"group": "inline"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.refreshTreeScript",
+					"when": "viewItem == objectItem",
+					"group": "inline@1"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.newTreeScript",
+					"when": "viewItem == objectItem",
+					"group": "inline@2"
+				}
 			]
 		},
 		"configuration": {
@@ -180,21 +223,6 @@
 				"siebelScriptAndWebTempEditor.defaultConnectionName": {
 					"type": "string",
 					"markdownDescription": "Do not modify here, use the Default Connection checkbox in the Edit Connection panel!"
-				},
-				"siebelScriptAndWebTempEditor.defaultScriptFetching": {
-					"type": "string",
-					"enum": [
-						"None - always ask",
-						"Only method names",
-						"All scripts"
-					],
-					"default": "None - always ask",
-					"markdownDescription": "Default method for fetching server scripts in the tree views when clicking on a Siebel object:  \n - None - always ask: always asks how to fetch.  \n - Only method names: fetches only the method names of the Siebel object.  \n - All scripts: always downloads all scripts of the Siebel object."
-				},
-				"siebelScriptAndWebTempEditor.singleFileAutoDownload": {
-					"type": "boolean",
-					"default": false,
-					"markdownDescription": "If you set this to true, scripts and web templates will be downloaded when clicking on one, without asking for permission."
 				},
 				"siebelScriptAndWebTempEditor.localFileExtension": {
 					"type": "string",

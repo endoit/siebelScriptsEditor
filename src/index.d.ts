@@ -5,12 +5,7 @@ type Type = "service" | "buscomp" | "applet" | "application" | "webtemp";
 type ExtensionSettings = {
   connections: Config[];
   defaultConnectionName: string;
-  singleFileAutoDownload: boolean;
   localFileExtension: ".js" | ".ts";
-  defaultScriptFetching:
-    | "Only method names"
-    | "All scripts"
-    | "None - always ask";
   maxPageSize: 10 | 20 | 50 | 100 | 200 | 500;
   defaultActionWhenFileExists: "None - always ask" | "Open file" | "Overwrite";
 };
@@ -31,7 +26,7 @@ type Field = "Script" | "Definition";
 type QueryParams = {
   searchspec?: string;
   workspace?: "MAIN";
-  fields?: "Name" | Field | `Name,${Field}` | "Name,Status";
+  fields?: "Name" | `Name,${Field}` | "Name,Status";
   PageSize?: ExtensionSettings["maxPageSize"];
 };
 
@@ -98,6 +93,9 @@ type FileExtNoDot = "js" | "ts" | "html";
 //downloaded files
 type OnDisk = Map<string, FileExt>;
 
+//tree item state
+type TreeItemState = "disk" | "siebel" | "same" | "differ"
+
 //Answer options for tree item selection
 type Answer = "Only method names" | "All scripts" | "Yes" | "No" | undefined;
 
@@ -106,6 +104,11 @@ type Button = "pull" | "push" | "search" | "pushAll" | "refresh";
 
 //deprecated settings
 type DeprecatedSettings = {
+  singleFileAutoDownload?: boolean;
+  defaultScriptFetching?:
+    | "Only method names"
+    | "All scripts"
+    | "None - always ask";
   "REST EndpointConfigurations"?: string[];
   workspaces?: string[];
   defaultConnection?: string;

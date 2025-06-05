@@ -19,14 +19,14 @@ import {
   createConfigHTML,
   noWorkspaceFolderHTML,
 } from "./webViews";
-import { TreeData } from "./treeData";
+import { TreeData, TreeDataWebTemp } from "./treeData";
 
 const treeData = {
   service: new TreeData("service"),
   buscomp: new TreeData("buscomp"),
   applet: new TreeData("applet"),
   application: new TreeData("application"),
-  webtemp: new TreeData("webtemp"),
+  webtemp: new TreeDataWebTemp(),
 } as const;
 
 let connection = "",
@@ -36,15 +36,16 @@ let connection = "",
   configPanel: vscode.WebviewPanel | undefined,
   configView: vscode.Webview;
 
-const setUrlAndFolder = () => {
+const setUrlAndFolder = async () => {
   TreeData.workspaceUrl = workspace;
   for (const [objectType, treeDataProvider] of Object.entries(treeData)) {
-    treeDataProvider.folder = vscode.Uri.joinPath(
+    treeDataProvider.folderUri = vscode.Uri.joinPath(
       workspaceUri,
       connection,
       workspace,
       objectType
     );
+    await treeDataProvider.search();
   }
 };
 
@@ -96,7 +97,7 @@ export const refreshConnections = async () => {
     ? workspaces?.[0] ?? ""
     : defaultWorkspace;
   TreeData.restDefaults = { url, username, password };
-  setUrlAndFolder();
+  await setUrlAndFolder();
   setButtonVisibility("refresh", restWorkspaces);
   return await dataSourceView.postMessage({
     connections,
@@ -114,7 +115,7 @@ const dataSourceHandler = async ({ command, data }: DataSourceMessage) => {
       return await refreshConnections();
     case "workspace":
       workspace = data;
-      return setUrlAndFolder();
+      return await setUrlAndFolder();
     case "type":
       return (type = data);
     case "search":

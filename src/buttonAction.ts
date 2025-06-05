@@ -6,9 +6,12 @@ import {
   paths,
   pullNo,
   pushNo,
-  objectPaths,
+  metadata,
   findInFilesOptions,
   pushAllNo,
+  baseScripts,
+  fields,
+  extDot,
 } from "./constants";
 import { getConfig, settings } from "./settings";
 import {
@@ -22,22 +25,32 @@ import {
   setButtonVisibility,
   getScriptsOnDisk,
   joinPath,
-  isNameValid,
+  isScriptNameValid,
+  openFile,
+  createValidateInput,
+  getFileUri,
 } from "./utils";
 
-const compareFileUris =
-  workspaceUri &&
-  ({
-    js: vscode.Uri.joinPath(workspaceUri, "compare", "compare.js"),
-    ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
-    html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
-  } as const);
+const compareFolderUri =
+    workspaceUri && vscode.Uri.joinPath(workspaceUri, "compare"),
+  compareFileUris =
+    compareFolderUri &&
+    ({
+      js: getFileUri(compareFolderUri, "compare", extDot.js),
+      ts: getFileUri(compareFolderUri, "compare", extDot.ts),
+      html: getFileUri(compareFolderUri, "compare", extDot.html),
+    } as const);
 
 let editor: vscode.TextEditor | undefined,
   document: vscode.TextDocument,
   name: string,
   ext: FileExtNoDot,
   field: Field,
+  meta: {
+    parent: string;
+    child: string;
+    baseScriptItems: vscode.QuickPickItem[];
+  },
   parentPath: string,
   objectPath: string,
   parentFullPath: string,
@@ -69,16 +82,16 @@ export const parseFilePath = async (
     switch (true) {
       case isFileScript(ext) && parts.length > 4:
         const parent = parts.pop()!,
-          pathParts = objectPaths[<Type>parts.pop()];
-        if (!pathParts) throw buttonError;
-        field = "Script";
-        parentPath = joinPath(pathParts.parent, parent, pathParts.child);
-        message = `script of the ${parent} ${pathParts.parent}`;
-        messageAll = `all scripts of the ${parent} ${pathParts.parent}`;
+          meta = metadata[<Type>parts.pop()];
+        if (!meta) throw buttonError;
+        field = fields.script;
+        parentPath = joinPath(meta.parent, parent, meta.child);
+        message = `script of the ${parent} ${meta.parent}`;
+        messageAll = `all scripts of the ${parent} ${meta.parent}`;
         visibility.search = true;
         break;
       case isFileWebTemp(ext) && parts.length > 3 && parts.pop() === "webtemp":
-        field = "Definition";
+        field = fields.definition;
         parentPath = "Web Template";
         message = "Web Template definition";
         break;
@@ -97,12 +110,6 @@ export const parseFilePath = async (
     for (const [button, visible] of Object.entries(visibility)) {
       setButtonVisibility(<Button>button, visible);
     }
-    if (
-      document.getText() === "" &&
-      visibility.pushAll &&
-      name !== "(declarations)"
-    )
-      await writeFile(document.uri, `function ${name}(){\n\n}`);
   } catch (err: any) {
     for (const button of Object.keys(visibility)) {
       setButtonVisibility(<Button>button, false);
@@ -136,7 +143,7 @@ export const push = async () => {
   const text = document.getText(),
     payload = { Name: name, [field]: text };
   if (isFileScript(ext)) {
-    if (!isNameValid(name, text))
+    if (!isScriptNameValid(name, text))
       return vscode.window.showErrorMessage(error.nameDifferent);
     payload["Program Language"] = "JS";
   }
@@ -154,7 +161,7 @@ export const push = async () => {
 
 export const compare = async () => {
   const { workspaces, restWorkspaces } = config,
-    options: vscode.QuickPickItem[] = [
+    items: vscode.QuickPickItem[] = [
       {
         label: workspace,
         description: "Compare in the same workspace",
@@ -170,15 +177,15 @@ export const compare = async () => {
       } = data.pop()!;
       if (RepositoryWorkspace) data.push(...RepositoryWorkspace);
       if (label === workspace) continue;
-      options.push({ label, description });
+      items.push({ label, description });
     }
   } else {
     for (const label of workspaces) {
       if (label === workspace) continue;
-      options.push({ label });
+      items.push({ label });
     }
   }
-  const answer = await vscode.window.showQuickPick(options, compareOptions);
+  const answer = await vscode.window.showQuickPick(items, compareOptions);
   if (!answer) return;
   const { label } = answer,
     compareFullPath = joinPath("workspace", label, objectPath),
@@ -204,10 +211,7 @@ export const search = async () => {
     files = await getScriptsOnDisk(folderUri);
   for (const { Name, Script } of response) {
     if (files.has(Name) || !Script) continue;
-    const fileUri = vscode.Uri.joinPath(
-      folderUri,
-      `${Name}${settings.localFileExtension}`
-    );
+    const fileUri = getFileUri(folderUri, Name, settings.localFileExtension);
     await writeFile(fileUri, Script);
   }
   await vscode.commands.executeCommand("workbench.action.findInFiles", {
@@ -222,8 +226,7 @@ export const pushAll = async () => {
     payloads = [],
     invalid = [];
   for (const [fileName, fileExt] of files) {
-    const fileNameExt = `${fileName}${fileExt}`,
-      fileUri = vscode.Uri.joinPath(folderUri, fileNameExt),
+    const fileUri = getFileUri(folderUri, fileName, fileExt),
       text = await readFile(fileUri),
       payload: Payload = {
         Name: fileName,
@@ -231,8 +234,8 @@ export const pushAll = async () => {
         "Program Language": "JS",
       };
     payloads.push(payload);
-    if (isNameValid(fileName, text)) continue;
-    invalid.push(fileNameExt);
+    if (text && isScriptNameValid(fileName, text)) continue;
+    invalid.push(fileName);
   }
   if (invalid.length > 0)
     return vscode.window.showErrorMessage(
@@ -253,4 +256,37 @@ export const pushAll = async () => {
   vscode.window.showInformationMessage(
     `Successfully pushed ${messageAll} to Siebel!`
   );
+};
+
+export const newScript = async () => {
+  const files = await getScriptsOnDisk(folderUri),
+    items: vscode.QuickPickItem[] = [
+      {
+        label: "Custom",
+        description: "Create a custom server script",
+      },
+      ...meta!.baseScriptItems,
+    ];
+  const options: vscode.QuickPickOptions = {
+    title:
+      "Choose the server script to be created or select Custom and enter its name",
+    placeHolder: "Script",
+    canPickMany: false,
+  };
+  const answer = await vscode.window.showQuickPick(items, options);
+  if (!answer) return;
+  let { label } = answer,
+    content: string | undefined = baseScripts[<keyof typeof baseScripts>label];
+  if (label === "Custom") {
+    const validateInput = createValidateInput(files),
+      label = await vscode.window.showInputBox({
+        placeHolder: "Enter server script name",
+        validateInput,
+      });
+    if (!label) return;
+    content = `function ${label}(){\n\n}`;
+  }
+  const fileUri = getFileUri(folderUri, label, settings.localFileExtension);
+  await writeFile(fileUri, content);
+  await openFile(fileUri);
 };

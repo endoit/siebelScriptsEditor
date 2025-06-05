@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { moveDeprecatedSettings } from "./settings";
+import { manageDeprecatedSettings } from "./settings";
 import { openSettings, setupWorkspaceFolder } from "./utils";
 import { refreshConnections, createDataSource, createConfig } from "./state";
 import {
@@ -10,6 +10,7 @@ import {
   reparseFilePath,
   search,
   pushAll,
+  newScript,
 } from "./buttonAction";
 
 export async function activate({
@@ -17,7 +18,7 @@ export async function activate({
   subscriptions,
 }: vscode.ExtensionContext) {
   try {
-    await moveDeprecatedSettings();
+    await manageDeprecatedSettings();
     await setupWorkspaceFolder(extensionUri);
 
     vscode.window.registerWebviewViewProvider("extensionView", {
@@ -33,10 +34,17 @@ export async function activate({
       compare,
       search,
       pushAll,
+      newScript,
       refreshConnections,
       newConnection: createConfig(subscriptions, "new"),
       editConnection: createConfig(subscriptions, "edit"),
       openSettings,
+      pullAllTreeScript: (item) => console.log(item.path),
+      refreshTreeScript: (item) => console.log(item.path),
+      newTreeScript: async (treeItem) => {
+        if (!treeItem) return;
+        await treeItem.newScript();
+      },
     } as const;
 
     for (const [command, callback] of Object.entries(commands)) {
