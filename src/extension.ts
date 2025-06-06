@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { manageDeprecatedSettings } from "./settings";
 import { openSettings, setupWorkspaceFolder } from "./utils";
 import { refreshConnections, createDataSource, createConfig } from "./state";
 import {
@@ -24,7 +23,6 @@ export async function activate({
   subscriptions,
 }: vscode.ExtensionContext) {
   try {
-    await manageDeprecatedSettings();
     await setupWorkspaceFolder(extensionUri);
 
     vscode.window.registerWebviewViewProvider("extensionView", {

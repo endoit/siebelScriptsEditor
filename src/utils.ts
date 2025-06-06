@@ -2,9 +2,9 @@ import * as vscode from "vscode";
 import {
   baseConfig,
   baseScripts,
+  customScriptItem,
   error,
-  extNoDot,
-  metadata,
+  newScriptOptions,
   openFileOptions,
   query,
 } from "./constants";
@@ -13,7 +13,14 @@ import { settings } from "./settings";
 
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
 
-const restApi = create(baseConfig);
+const compareFileUris =
+    workspaceUri &&
+    ({
+      js: vscode.Uri.joinPath(workspaceUri, "compare", "compare.js"),
+      ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
+      html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
+    } as const),
+  restApi = create(baseConfig);
 
 export const openSettings = () =>
   vscode.commands.executeCommand(
@@ -85,13 +92,12 @@ export const exists = async (resourceUri: vscode.Uri) => {
 };
 
 export const isFileScript = (ext: string): ext is "js" | "ts" =>
-  ext === extNoDot.js || ext === extNoDot.ts;
+  ext === "js" || ext === "ts";
 
-export const isFileWebTemp = (ext: string): ext is "html" =>
-  ext === extNoDot.html;
-//áttérni . nélküli kiterjesztésre
+export const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
+
 const createGetFilesOnDisk =
-  (isFileValid: (ext: string) => ext is FileExtNoDot) =>
+  (isFileValid: (ext: string) => ext is FileExt) =>
   async (folderUri: vscode.Uri) => {
     const files: OnDisk = new Map(),
       isFolder = await exists(folderUri);
@@ -100,7 +106,7 @@ const createGetFilesOnDisk =
     for (const [nameExt, fileType] of content) {
       const [name, ext] = nameExt.split(".");
       if (!name || fileType !== 1 || !isFileValid(ext)) continue;
-      files.set(name, `.${ext}`);
+      files.set(name, ext);
     }
     return files;
   };
@@ -134,11 +140,8 @@ export const isScriptNameValid = (name: string, text: string) =>
   new RegExp(`function\\s+${name}\\s*\\(`).test(text) ||
   name === "(declarations)";
 
-export const getFileUri = (
-  folderUri: vscode.Uri,
-  fileName: string,
-  fileExt: FileExt
-) => vscode.Uri.joinPath(folderUri, `${fileName}${fileExt}`);
+export const getFileUri = (folderUri: vscode.Uri, name: string, ext: FileExt) =>
+  vscode.Uri.joinPath(folderUri, `${name}.${ext}`);
 
 export const openFile = async (fileUri: vscode.Uri) => {
   try {
@@ -168,41 +171,62 @@ export const readFile = async (fileUri: vscode.Uri) => {
   }
 };
 
-export const createNewScript =
-  (buttonState) => async () => {
-    const {folderUri, baseScriptItems} = buttonState;
-    const files = await getScriptsOnDisk(folderUri),
-      items: vscode.QuickPickItem[] = [
-        {
-          label: "Custom",
-          description: "Create a custom server script",
-        },
-        ...baseScriptItems.filter(({ label }) => !files.has(label)),
-      ];
-    const options: vscode.QuickPickOptions = {
-      title:
-        "Choose the server script to be created or select Custom and enter its name",
-      placeHolder: "Script",
-      canPickMany: false,
-    };
-    const answer = await vscode.window.showQuickPick(items, options);
-    if (!answer) return;
-    let { label } = answer,
-      content: string | undefined =
-        baseScripts[<keyof typeof baseScripts>label];
-    if (label === "Custom") {
-      const validateInput = createValidateInput(files),
-        label = await vscode.window.showInputBox({
+export const createNewScript = async (
+  folderUri: vscode.Uri,
+  baseScriptItems: readonly vscode.QuickPickItem[]
+) => {
+  const files = await getScriptsOnDisk(folderUri),
+    items: vscode.QuickPickItem[] = [
+      customScriptItem,
+      ...baseScriptItems.filter(({ label }) => !files.has(label)),
+    ] as const,
+    answer = await vscode.window.showQuickPick(items, newScriptOptions);
+  if (!answer) return;
+  const isCustom = answer.label === "Custom",
+    label = isCustom
+      ? await vscode.window.showInputBox({
           placeHolder: "Enter server script name",
-          validateInput,
-        });
-      if (!label) return;
-      content = `function ${label}(){\n\n}`;
-    }
-    const fileUri = getFileUri(folderUri, label, settings.localFileExtension);
-    await writeFile(fileUri, content);
-    await openFile(fileUri);
-  };
+          validateInput: createValidateInput(files),
+        })
+      : answer.label;
+  if (!label) return;
+  const content = isCustom
+    ? `function ${label}(){\n\n}`
+    : baseScripts[<keyof typeof baseScripts>label];
+  const fileUri = getFileUri(folderUri, label, settings.fileExtension);
+  await writeFile(fileUri, content);
+  await openFile(fileUri);
+};
+
+export const compareObjects = async (
+  response: RestResponse,
+  field: Field,
+  ext: FileExt,
+  fileUri: vscode.Uri,
+  compareMessage: string
+) => {
+  const content = response[0]?.[field];
+  if (content === undefined) return;
+  await writeFile(compareFileUris[ext], content);
+  await vscode.commands.executeCommand(
+    "vscode.diff",
+    compareFileUris[ext],
+    fileUri,
+    compareMessage
+  );
+};
+
+export const pullMissing = async (
+  response: RestResponse,
+  folderUri: vscode.Uri
+) => {
+  const onDisk = await getScriptsOnDisk(folderUri);
+  for (const { Name: label, Script: text } of response) {
+    if (onDisk.has(label) || !text) continue;
+    const fileUri = getFileUri(folderUri, label, settings.fileExtension);
+    await writeFile(fileUri, text);
+  }
+};
 
 export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   try {

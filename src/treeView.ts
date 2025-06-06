@@ -1,15 +1,7 @@
 import * as vscode from "vscode";
-import {
-  metadata,
-  baseConfig,
-  baseScripts,
-  query,
-  fields,
-  extDot,
-} from "./constants";
+import { metadata, baseConfig, query, fields } from "./constants";
 import {
   workspaceUri,
-  createValidateInput,
   getScriptsOnDisk,
   getWebTempsOnDisk,
   joinPath,
@@ -19,10 +11,11 @@ import {
   getScriptParentsOnDisk,
   getFileUri,
   createNewScript,
+  compareObjects,
+  pullMissing,
 } from "./utils";
 import { settings } from "./settings";
 import { create } from "axios";
-import { compareFileUris } from "./buttonAction";
 
 const icons = {
     none: undefined,
@@ -60,15 +53,14 @@ export const compareTree = async (treeItem: ScriptItem | WebTempItem) =>
   await treeItem.compare();
 
 export class TreeView {
-  private static instance: TreeView;
   private static readonly restApi = create(baseConfig);
+  private static instance: TreeView;
   private static baseURL: string;
   static timeoutId: NodeJS.Timeout | number | null = null;
   static refresh: (
     treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
   ) => void;
-  protected readonly _onDidChangeTreeData = new vscode.EventEmitter();
-  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  private readonly _onDidChangeTreeData = new vscode.EventEmitter();
   private readonly treeData = {
     service: new BaseItem("service"),
     buscomp: new BaseItem("buscomp"),
@@ -77,6 +69,7 @@ export class TreeView {
     webtemp: new BaseItemWebTemp(),
   };
   private readonly treeItems = Object.values(this.treeData);
+  readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private constructor() {
     const treeView = vscode.window.createTreeView("objectsView", {
@@ -108,23 +101,6 @@ export class TreeView {
     });
   }
 
-  static getInstance() {
-    TreeView.instance ??= new TreeView();
-    return TreeView.instance;
-  }
-
-  async setFolder(connection: string, workspace: string) {
-    for (const [type, treeItem] of Object.entries(this.treeData)) {
-      treeItem.folderUri = vscode.Uri.joinPath(
-        workspaceUri,
-        connection,
-        workspace,
-        type
-      );
-      await treeItem.search();
-    }
-  }
-
   getTreeItem(
     treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
   ) {
@@ -141,8 +117,25 @@ export class TreeView {
       : this.treeItems;
   }
 
+  async setFolder(connection: string, workspace: string) {
+    for (const [type, treeItem] of Object.entries(this.treeData)) {
+      treeItem.folderUri = vscode.Uri.joinPath(
+        workspaceUri,
+        connection,
+        workspace,
+        type
+      );
+      await treeItem.search();
+    }
+  }
+
   async search(type: Type, searchSpec?: string) {
     await this.treeData[type].search(searchSpec);
+  }
+
+  static getInstance() {
+    TreeView.instance ??= new TreeView();
+    return TreeView.instance;
   }
 
   static async getObject(
@@ -204,8 +197,8 @@ class BaseItem extends vscode.TreeItem {
     vscode.TreeItemCollapsibleState.Expanded;
   protected readonly parentSegment;
   protected readonly childSegment;
-  protected readonly searchFields: "Name" | "Name,Definition" = fields.name;
-  readonly baseScriptItems;
+  protected readonly searchFields: QueryParams["fields"] = fields.name;
+  readonly baseScriptItems: readonly vscode.QuickPickItem[];
   declare folderUri: vscode.Uri;
   declare readonly label: string;
   treeItems: (ObjectItem | WebTempItem)[] = [];
@@ -319,7 +312,7 @@ class ScriptItem extends vscode.TreeItem {
   }
 
   get ext(): FileExt {
-    return this.onDisk.get(this.label) ?? settings.localFileExtension;
+    return this.onDisk.get(this.label) ?? settings.fileExtension;
   }
 
   get field(): Field {
@@ -351,24 +344,20 @@ class ScriptItem extends vscode.TreeItem {
 
   async compare() {
     const response = await TreeView.getObject(this.path, this.params),
-      content = response[0]?.[this.field];
-    if (content === undefined) return;
-    await writeFile(
-      compareFileUris[<FileExtNoDot>this.ext.substring(1)],
-      content
-    );
-    await vscode.commands.executeCommand(
-      "vscode.diff",
-      compareFileUris[<FileExtNoDot>this.ext.substring(1)],
+      compareMessage = `Comparison of ${this.label} in Siebel and on disk`;
+    await compareObjects(
+      response,
+      this.field,
+      this.ext,
       this.fileUri,
-      `Comparison of ${this.label} between Siebel and downloaded`
+      compareMessage
     );
   }
 }
 
 class WebTempItem extends ScriptItem {
-  override get ext() {
-    return extDot.html;
+  override get ext(): FileExt {
+    return "html";
   }
 
   override get field(): Field {
@@ -431,13 +420,8 @@ class ObjectItem extends ScriptItem {
   }
 
   async pullAll() {
-    this.onDisk = await getScriptsOnDisk(this.folderUri);
-    const data = await TreeView.getObject(this.path, this.params);
-    for (const { Name: label, Script: text } of data) {
-      if (this.onDisk.has(label) || !text) continue;
-      const fileUri = getFileUri(this.folderUri, label, this.ext);
-      await writeFile(fileUri, text);
-    }
+    const response = await TreeView.getObject(this.path, this.params);
+    await pullMissing(response, this.folderUri);
     await this.refresh();
   }
 
@@ -447,45 +431,7 @@ class ObjectItem extends ScriptItem {
   }
 
   async newScript() {
-    await createNewScript({
-      folderUri: this.folderUri,
-      baseScriptItems: this.parent.baseScriptItems,
-    })();
-    /*const files = await getScriptsOnDisk(this.folderUri),
-      items: vscode.QuickPickItem[] = [
-        {
-          label: "Custom",
-          description: "Create a custom server script",
-        },
-        ...this.parent.baseScriptItems.filter(({ label }) => !files.has(label)),
-      ];
-    const options: vscode.QuickPickOptions = {
-      title:
-        "Choose the server script to be created or select Custom and enter its name",
-      placeHolder: "Script",
-      canPickMany: false,
-    };
-    const answer = await vscode.window.showQuickPick(items, options);
-    if (!answer) return;
-    let { label } = answer,
-      content: string | undefined =
-        baseScripts[<keyof typeof baseScripts>label];
-    if (label === "Custom") {
-      const validateInput = createValidateInput(files),
-        label = await vscode.window.showInputBox({
-          placeHolder: "Enter server script name",
-          validateInput,
-        });
-      if (!label) return;
-      content = `function ${label}(){\n\n}`;
-    }
-    const fileUri = getFileUri(
-      this.folderUri,
-      label,
-      settings.localFileExtension
-    );
-    await writeFile(fileUri, content);
-    await openFile(fileUri);*/
+    await createNewScript(this.folderUri, this.parent.baseScriptItems);
     await this.refresh();
   }
 }

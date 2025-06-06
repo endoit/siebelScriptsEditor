@@ -1,13 +1,13 @@
 import * as vscode from "vscode";
 
-const get = <T extends keyof AllSettings>(name: T) =>
-  <AllSettings[T]>(
+const get = <T extends keyof ExtensionSettings>(name: T) =>
+  <ExtensionSettings[T]>(
     vscode.workspace.getConfiguration("siebelScriptAndWebTempEditor").get(name)
   );
 
-const set = async <T extends keyof AllSettings>(
+const set = async <T extends keyof ExtensionSettings>(
   name: T,
-  value: AllSettings[T]
+  value: ExtensionSettings[T]
 ) =>
   await vscode.workspace
     .getConfiguration("siebelScriptAndWebTempEditor")
@@ -40,58 +40,5 @@ export const configChange = (e: vscode.ConfigurationChangeEvent) => {
   for (const name of <(keyof ExtensionSettings)[]>Object.keys(settings)) {
     if (e.affectsConfiguration(`siebelScriptAndWebTempEditor.${name}`))
       return refresh(name);
-  }
-};
-
-export const manageDeprecatedSettings = async () => {
-  try {
-    const oldSettings = [
-      "defaultScriptFetching",
-      "singleFileAutoDownload",
-    ] as const;
-    for (const settingName of oldSettings) {
-      if (get(settingName) !== undefined) await set(settingName, undefined);
-    }
-    const oldConnections = get("REST EndpointConfigurations"),
-      configs = settings.connections;
-    if (!oldConnections || configs.length !== 0) return;
-    const workspaces = get("workspaces") ?? [],
-      workspaceObject: Record<string, string[]> = {},
-      [defaultConnectionName = "", defaultWorkspace = ""] =
-        get("defaultConnection")?.split(":") ?? [];
-    let defaultConnection: string | undefined;
-    for (const workspace of workspaces) {
-      const [name, workspaceString] = workspace.split(":");
-      workspaceObject[name] = workspaceString ? workspaceString.split(",") : [];
-    }
-    for (const config of oldConnections) {
-      const [connUserPwString, url] = config.split("@"),
-        [name, username, password] = connUserPwString?.split("/"),
-        connection = {
-          name,
-          username,
-          password,
-          url,
-          workspaces: workspaceObject[name] ?? [],
-          restWorkspaces: false,
-          defaultWorkspace: workspaceObject[name]?.[0] ?? "",
-        };
-      configs.push(connection);
-      if (name !== defaultConnectionName) continue;
-      if (!workspaceObject[name].includes(defaultWorkspace)) continue;
-      connection.defaultWorkspace = defaultWorkspace;
-      defaultConnection = name;
-    }
-    defaultConnection ??= configs[0]?.name ?? "";
-    await setConfigs(configs);
-    await setDefaultConnection(defaultConnection);
-    await set("REST EndpointConfigurations", undefined);
-    await set("workspaces", undefined);
-    await set("defaultConnection", undefined);
-    await set("getWorkspacesFromREST", undefined);
-  } catch (err: any) {
-    vscode.window.showErrorMessage(
-      `An error occured when moving the deprecated parameters to the new settings: ${err.message}, please create connections manually!`
-    );
   }
 };

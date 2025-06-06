@@ -71,9 +71,6 @@ export const metadata = {
       childlinks: "None",
     },
   },
-  //file extesnions
-  extDot = { js: ".js", ts: ".ts", html: ".html" } as const,
-  extNoDot = { js: "js", ts: "ts", html: "html" } as const,
   //fields
   fields = {
     name: "Name",
@@ -104,7 +101,6 @@ export const metadata = {
   } as const,
   //constant for message box answers
   yesNo = ["Yes", "No"] as const,
-  openFileOverwriteCancel = ["Open file", "Overwrite", "Cancel"] as const,
   pullNo = ["Pull", "No"] as const,
   pushNo = ["Push", "No"] as const,
   pushAllNo = ["Push all", "No"] as const,
@@ -121,6 +117,18 @@ export const metadata = {
   compareOptions = {
     title: "Choose a workspace to compare against",
     placeHolder: "Workspace",
+    canPickMany: false,
+  } as const,
+  //new custom script quickpick item
+  customScriptItem = {
+    label: "Custom",
+    description: "Create a custom server script",
+  } as const,
+  //new script options
+  newScriptOptions = {
+    title:
+      "Choose the server script to be created or select Custom and enter its name",
+    placeHolder: "Script",
     canPickMany: false,
   } as const,
   //find in files options
@@ -151,6 +159,7 @@ export const metadata = {
   } as const,
   //error when parsing active file
   buttonError = new Error(),
+  //base scripts for new scripts
   baseScripts = {
     "(declarations)": "",
     Service_PreInvokeMethod: `function Service_PreInvokeMethod (MethodName, Inputs, Outputs)\n{\n\treturn (ContinueOperation);\n}`,

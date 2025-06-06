@@ -9,9 +9,7 @@ import {
   metadata,
   findInFilesOptions,
   pushAllNo,
-  baseScripts,
   fields,
-  extDot,
 } from "./constants";
 import { getConfig, settings } from "./settings";
 import {
@@ -21,38 +19,22 @@ import {
   putObject,
   readFile,
   writeFile,
-  workspaceUri,
   setButtonVisibility,
   getScriptsOnDisk,
   joinPath,
   isScriptNameValid,
-  openFile,
-  createValidateInput,
   getFileUri,
   createNewScript,
+  compareObjects,
+  pullMissing,
 } from "./utils";
-
-export const compareFolderUri =
-    workspaceUri && vscode.Uri.joinPath(workspaceUri, "compare"),
-  compareFileUris =
-    compareFolderUri &&
-    ({
-      js: getFileUri(compareFolderUri, "compare", extDot.js),
-      ts: getFileUri(compareFolderUri, "compare", extDot.ts),
-      html: getFileUri(compareFolderUri, "compare", extDot.html),
-    } as const);
 
 let editor: vscode.TextEditor | undefined,
   document: vscode.TextDocument,
   name: string,
-  ext: FileExtNoDot,
+  ext: FileExt,
   field: Field,
-  /* meta: {
-    parent: string;
-    child: string;
-    baseScriptItems: vscode.QuickPickItem[];
-  },*/
-  baseScriptItems: vscode.QuickPickItem[],
+  baseScriptItems: readonly vscode.QuickPickItem[],
   parentPath: string,
   objectPath: string,
   parentFullPath: string,
@@ -62,8 +44,6 @@ let editor: vscode.TextEditor | undefined,
   workspace: string,
   config: Config,
   folderUri: vscode.Uri;
-
-const buttonState = { folderUri: {}, baseScriptItems: {} };
 
 export const parseFilePath = async (
   textEditor: vscode.TextEditor | undefined
@@ -80,9 +60,8 @@ export const parseFilePath = async (
     if (!editor) throw buttonError;
     document = editor.document;
     folderUri = vscode.Uri.joinPath(document.uri, "..");
-    buttonState.folderUri = folderUri;
     const parts = document.uri.path.split("/");
-    [name, ext] = <[string, FileExtNoDot]>parts.pop()!.split(".");
+    [name, ext] = <[string, FileExt]>parts.pop()!.split(".");
     if (!name) throw buttonError;
     switch (true) {
       case isFileScript(ext) && parts.length > 4:
@@ -90,7 +69,7 @@ export const parseFilePath = async (
           type = <Type>parts.pop(),
           meta = metadata[type];
         if (!meta) throw buttonError;
-        buttonState.baseScriptItems = meta.baseScriptItems;
+        baseScriptItems = meta.baseScriptItems;
         field = fields.script;
         parentPath = joinPath(meta.parent, parent, meta.child);
         message = `script of the ${parent} ${meta.parent}`;
@@ -197,15 +176,8 @@ export const compare = async () => {
   const { label } = answer,
     compareFullPath = joinPath("workspace", label, objectPath),
     response = await getObject(`compare${field}`, config, compareFullPath),
-    content = response[0]?.[field];
-  if (content === undefined) return;
-  await writeFile(compareFileUris[ext], content);
-  await vscode.commands.executeCommand(
-    "vscode.diff",
-    compareFileUris[ext],
-    document.uri,
-    `Comparison of ${name} between ${label} and ${workspace} (downloaded)`
-  );
+    compareMessage = `Comparison of ${name} between ${label} and ${workspace} (on disk)`;
+  await compareObjects(response, field, ext, document.uri, compareMessage);
 };
 
 export const search = async () => {
@@ -214,13 +186,8 @@ export const search = async () => {
       ? document.getWordRangeAtPosition(selection.active)
       : selection,
     query = selected ? document.getText(selected) : "",
-    response = await getObject("pullScript", config, parentFullPath),
-    files = await getScriptsOnDisk(folderUri);
-  for (const { Name, Script } of response) {
-    if (files.has(Name) || !Script) continue;
-    const fileUri = getFileUri(folderUri, Name, settings.localFileExtension);
-    await writeFile(fileUri, Script);
-  }
+    response = await getObject("pullScript", config, parentFullPath);
+  await pullMissing(response, folderUri);
   await vscode.commands.executeCommand("workbench.action.findInFiles", {
     query,
     filesToInclude: folderUri.fsPath,
@@ -265,35 +232,5 @@ export const pushAll = async () => {
   );
 };
 
-export const newScript = createNewScript(buttonState); /*async () => {
-  const files = await getScriptsOnDisk(folderUri),
-    items: vscode.QuickPickItem[] = [
-      {
-        label: "Custom",
-        description: "Create a custom server script",
-      },
-      ...baseScriptItems.filter(({ label }) => !files.has(label)),
-    ];
-  const options: vscode.QuickPickOptions = {
-    title:
-      "Choose the server script to be created or select Custom and enter its name",
-    placeHolder: "Script",
-    canPickMany: false,
-  };
-  const answer = await vscode.window.showQuickPick(items, options);
-  if (!answer) return;
-  let { label } = answer,
-    content: string | undefined = baseScripts[<keyof typeof baseScripts>label];
-  if (label === "Custom") {
-    const validateInput = createValidateInput(files),
-      label = await vscode.window.showInputBox({
-        placeHolder: "Enter server script name",
-        validateInput,
-      });
-    if (!label) return;
-    content = `function ${label}(){\n\n}`;
-  }
-  const fileUri = getFileUri(folderUri, label, settings.localFileExtension);
-  await writeFile(fileUri, content);
-  await openFile(fileUri);
-};*/
+export const newScript = async () =>
+  await createNewScript(folderUri, baseScriptItems);

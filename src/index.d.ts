@@ -5,9 +5,8 @@ type Type = "service" | "buscomp" | "applet" | "application" | "webtemp";
 type ExtensionSettings = {
   connections: Config[];
   defaultConnectionName: string;
-  localFileExtension: ".js" | ".ts";
+  fileExtension: "js" | "ts";
   maxPageSize: 10 | 20 | 50 | 100 | 200 | 500;
-  defaultActionWhenFileExists: "None - always ask" | "Open file" | "Overwrite";
 };
 
 type RestConfig = { url: string; username: string; password: string };
@@ -87,36 +86,19 @@ type RestAction =
   | "compareDefinition";
 
 //file extensions
-type FileExt = ".js" | ".ts" | ".html";
-type FileExtNoDot = "js" | "ts" | "html";
+type FileExt = "js" | "ts" | "html";
 
 //downloaded files
 type OnDisk = Map<string, FileExt>;
 
 //tree item state
-type TreeItemState = "disk" | "siebel" | "same" | "differ"
+type TreeItemState = "disk" | "siebel" | "same" | "differ";
 
 //Answer options for tree item selection
 type Answer = "Only method names" | "All scripts" | "Yes" | "No" | undefined;
 
 //button actions
 type Button = "pull" | "push" | "search" | "pushAll" | "refresh";
-
-//deprecated settings
-type DeprecatedSettings = {
-  singleFileAutoDownload?: boolean;
-  defaultScriptFetching?:
-    | "Only method names"
-    | "All scripts"
-    | "None - always ask";
-  "REST EndpointConfigurations"?: string[];
-  workspaces?: string[];
-  defaultConnection?: string;
-  getWorkspacesFromREST?: boolean;
-};
-
-//union of all settings
-type AllSettings = ExtensionSettings & DeprecatedSettings;
 
 //type for subscriptions
 type Subscriptions = { dispose(): any }[];
