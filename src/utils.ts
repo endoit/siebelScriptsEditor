@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import {
   baseConfig,
+  baseScripts,
   error,
   extNoDot,
   metadata,
@@ -8,6 +9,7 @@ import {
   query,
 } from "./constants";
 import { create } from "axios";
+import { settings } from "./settings";
 
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
 
@@ -97,7 +99,7 @@ const createGetFilesOnDisk =
     const content = await vscode.workspace.fs.readDirectory(folderUri);
     for (const [nameExt, fileType] of content) {
       const [name, ext] = nameExt.split(".");
-      if (fileType !== 1 || !isFileValid(ext)) continue;
+      if (!name || fileType !== 1 || !isFileValid(ext)) continue;
       files.set(name, `.${ext}`);
     }
     return files;
@@ -142,7 +144,9 @@ export const openFile = async (fileUri: vscode.Uri) => {
   try {
     await vscode.window.showTextDocument(fileUri, openFileOptions);
   } catch (err: any) {
-    vscode.window.showErrorMessage(err.message);
+    vscode.window.showErrorMessage(
+      `Unable to open ${fileUri.fsPath}, file does not exist!`
+    );
   }
 };
 
@@ -163,6 +167,42 @@ export const readFile = async (fileUri: vscode.Uri) => {
     return undefined;
   }
 };
+
+export const createNewScript =
+  (buttonState) => async () => {
+    const {folderUri, baseScriptItems} = buttonState;
+    const files = await getScriptsOnDisk(folderUri),
+      items: vscode.QuickPickItem[] = [
+        {
+          label: "Custom",
+          description: "Create a custom server script",
+        },
+        ...baseScriptItems.filter(({ label }) => !files.has(label)),
+      ];
+    const options: vscode.QuickPickOptions = {
+      title:
+        "Choose the server script to be created or select Custom and enter its name",
+      placeHolder: "Script",
+      canPickMany: false,
+    };
+    const answer = await vscode.window.showQuickPick(items, options);
+    if (!answer) return;
+    let { label } = answer,
+      content: string | undefined =
+        baseScripts[<keyof typeof baseScripts>label];
+    if (label === "Custom") {
+      const validateInput = createValidateInput(files),
+        label = await vscode.window.showInputBox({
+          placeHolder: "Enter server script name",
+          validateInput,
+        });
+      if (!label) return;
+      content = `function ${label}(){\n\n}`;
+    }
+    const fileUri = getFileUri(folderUri, label, settings.localFileExtension);
+    await writeFile(fileUri, content);
+    await openFile(fileUri);
+  };
 
 export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   try {

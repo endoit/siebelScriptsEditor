@@ -12,6 +12,12 @@ import {
   pushAll,
   newScript,
 } from "./buttonAction";
+import {
+  compareTree,
+  newScriptTree,
+  pullAllTree,
+  refreshTree,
+} from "./treeView";
 
 export async function activate({
   extensionUri,
@@ -39,12 +45,10 @@ export async function activate({
       newConnection: createConfig(subscriptions, "new"),
       editConnection: createConfig(subscriptions, "edit"),
       openSettings,
-      pullAllTreeScript: (item) => console.log(item.path),
-      refreshTreeScript: (item) => console.log(item.path),
-      newTreeScript: async (treeItem) => {
-        if (!treeItem) return;
-        await treeItem.newScript();
-      },
+      pullAllTree,
+      refreshTree,
+      newScriptTree,
+      compareTree,
     } as const;
 
     for (const [command, callback] of Object.entries(commands)) {

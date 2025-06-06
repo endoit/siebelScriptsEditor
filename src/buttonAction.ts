@@ -29,9 +29,10 @@ import {
   openFile,
   createValidateInput,
   getFileUri,
+  createNewScript,
 } from "./utils";
 
-const compareFolderUri =
+export const compareFolderUri =
     workspaceUri && vscode.Uri.joinPath(workspaceUri, "compare"),
   compareFileUris =
     compareFolderUri &&
@@ -46,11 +47,12 @@ let editor: vscode.TextEditor | undefined,
   name: string,
   ext: FileExtNoDot,
   field: Field,
-  meta: {
+  /* meta: {
     parent: string;
     child: string;
     baseScriptItems: vscode.QuickPickItem[];
-  },
+  },*/
+  baseScriptItems: vscode.QuickPickItem[],
   parentPath: string,
   objectPath: string,
   parentFullPath: string,
@@ -60,6 +62,8 @@ let editor: vscode.TextEditor | undefined,
   workspace: string,
   config: Config,
   folderUri: vscode.Uri;
+
+const buttonState = { folderUri: {}, baseScriptItems: {} };
 
 export const parseFilePath = async (
   textEditor: vscode.TextEditor | undefined
@@ -76,14 +80,17 @@ export const parseFilePath = async (
     if (!editor) throw buttonError;
     document = editor.document;
     folderUri = vscode.Uri.joinPath(document.uri, "..");
+    buttonState.folderUri = folderUri;
     const parts = document.uri.path.split("/");
     [name, ext] = <[string, FileExtNoDot]>parts.pop()!.split(".");
     if (!name) throw buttonError;
     switch (true) {
       case isFileScript(ext) && parts.length > 4:
         const parent = parts.pop()!,
-          meta = metadata[<Type>parts.pop()];
+          type = <Type>parts.pop(),
+          meta = metadata[type];
         if (!meta) throw buttonError;
+        buttonState.baseScriptItems = meta.baseScriptItems;
         field = fields.script;
         parentPath = joinPath(meta.parent, parent, meta.child);
         message = `script of the ${parent} ${meta.parent}`;
@@ -258,14 +265,14 @@ export const pushAll = async () => {
   );
 };
 
-export const newScript = async () => {
+export const newScript = createNewScript(buttonState); /*async () => {
   const files = await getScriptsOnDisk(folderUri),
     items: vscode.QuickPickItem[] = [
       {
         label: "Custom",
         description: "Create a custom server script",
       },
-      ...meta!.baseScriptItems,
+      ...baseScriptItems.filter(({ label }) => !files.has(label)),
     ];
   const options: vscode.QuickPickOptions = {
     title:
@@ -289,4 +296,4 @@ export const newScript = async () => {
   const fileUri = getFileUri(folderUri, label, settings.localFileExtension);
   await writeFile(fileUri, content);
   await openFile(fileUri);
-};
+};*/
