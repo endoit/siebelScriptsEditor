@@ -126,10 +126,42 @@ export const getScriptParentsOnDisk = async (folderUri: vscode.Uri) => {
   return folders;
 };
 
+export const createFolder = async (...parts: string[]) => {
+  const folderUri = vscode.Uri.joinPath(workspaceUri, ...parts),
+    isFolder = await exists(folderUri);
+  if (!isFolder) await vscode.workspace.fs.createDirectory(folderUri);
+};
+
+export const getLocalWorkspaces = async (connection: string) => {
+  const workspaces: string[] = [],
+    folderUri = vscode.Uri.joinPath(workspaceUri, connection);
+  await createFolder(connection, "MAIN");
+  const content = await vscode.workspace.fs.readDirectory(folderUri);
+  for (const [workspace, fileType] of content) {
+    if (fileType !== 2) continue;
+    workspaces.push(workspace);
+  }
+  return workspaces;
+};
+
+export const createValidateWorkspaceName =
+  (workspaces: string[]) => (value: string) => {
+    const parts = value.split("_");
+    if (
+      !value ||
+      !/^[A-Za-z0-9_-]+$/.test(value) ||
+      parts.length === 1 ||
+      (parts.length === 2 && parts[1] === "")
+    )
+      return "Invalid workspace name!";
+    if (workspaces.includes(value)) return "Workspace already exists!";
+    return "";
+  };
+
 const isFileNameValid = (name: string) =>
   /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) || name === "(declarations)";
 
-export const createValidateInput = (files: OnDisk) => (value: string) =>
+export const createValidateScriptName = (files: OnDisk) => (value: string) =>
   isFileNameValid(value)
     ? files.has(value)
       ? "Script already exists!"
@@ -186,7 +218,7 @@ export const createNewScript = async (
     label = isCustom
       ? await vscode.window.showInputBox({
           placeHolder: "Enter server script name",
-          validateInput: createValidateInput(files),
+          validateInput: createValidateScriptName(files),
         })
       : answer.label;
   if (!label) return;

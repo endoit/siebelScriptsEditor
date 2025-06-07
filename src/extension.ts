@@ -1,6 +1,12 @@
 import * as vscode from "vscode";
 import { openSettings, setupWorkspaceFolder } from "./utils";
-import { refreshConnections, createDataSource, createConfig } from "./state";
+import {
+  refreshConnections,
+  createDataSource,
+  createConfig,
+  newWorkspace,
+  refreshConfig,
+} from "./state";
 import {
   compare,
   pull,
@@ -12,6 +18,7 @@ import {
   newScript,
 } from "./buttonAction";
 import {
+  newService,
   compareTree,
   newScriptTree,
   pullAllTree,
@@ -31,6 +38,7 @@ export async function activate({
 
     vscode.window.onDidChangeActiveTextEditor(parseFilePath);
     vscode.workspace.onDidRenameFiles(reparseFilePath);
+    vscode.workspace.onDidChangeConfiguration(refreshConfig);
 
     const commands = {
       pull,
@@ -39,10 +47,12 @@ export async function activate({
       search,
       pushAll,
       newScript,
+      newWorkspace,
       refreshConnections,
       newConnection: createConfig(subscriptions, "new"),
       editConnection: createConfig(subscriptions, "edit"),
       openSettings,
+      newService,
       pullAllTree,
       refreshTree,
       newScriptTree,

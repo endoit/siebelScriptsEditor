@@ -27,6 +27,7 @@ import {
   createNewScript,
   compareObjects,
   pullMissing,
+  getLocalWorkspaces,
 } from "./utils";
 
 let editor: vscode.TextEditor | undefined,
@@ -42,6 +43,7 @@ let editor: vscode.TextEditor | undefined,
   message: string,
   messageAll: string,
   workspace: string,
+  connection: string,
   config: Config,
   folderUri: vscode.Uri;
 
@@ -85,7 +87,8 @@ export const parseFilePath = async (
         throw buttonError;
     }
     workspace = parts.pop()!;
-    config = getConfig(parts.pop()!);
+    connection = parts.pop()!;
+    config = getConfig(connection);
     if (Object.keys(config).length === 0) throw buttonError;
     objectPath = joinPath(parentPath, name);
     parentFullPath = joinPath("workspace", workspace, parentPath);
@@ -146,7 +149,8 @@ export const push = async () => {
 };
 
 export const compare = async () => {
-  const { workspaces, restWorkspaces } = config,
+  const { restWorkspaces } = config,
+    workspaces = await getLocalWorkspaces(connection),
     items: vscode.QuickPickItem[] = [
       {
         label: workspace,

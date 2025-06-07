@@ -6,22 +6,21 @@ import {
   configOptions,
   dataSourceOptions,
 } from "./constants";
-import { workspaceUri, getObject, setButtonVisibility } from "./utils";
 import {
-  configChange,
-  getConfig,
-  setConfigs,
-  setDefaultConnection,
-  settings,
-} from "./settings";
+  workspaceUri,
+  getObject,
+  setButtonVisibility,
+  getLocalWorkspaces,
+  createValidateWorkspaceName,
+  createFolder,
+} from "./utils";
+import { configChange, getConfig, setConfigs, settings } from "./settings";
 import {
   dataSourceHTML,
   createConfigHTML,
   noWorkspaceFolderHTML,
 } from "./webViews";
-import { TreeView } from "./treeView";
-
-const treeView = TreeView.getInstance();
+import { treeView } from "./treeView";
 
 let connection = "",
   workspace = "",
@@ -30,39 +29,21 @@ let connection = "",
   configPanel: vscode.WebviewPanel | undefined,
   configView: vscode.Webview;
 
-const setUrlAndFolder = async () => {
-  TreeView.workspaceUrl = workspace;
-  await treeView.setFolder(connection, workspace);
-};
-
 export const refreshConnections = async () => {
   const connections: string[] = [];
   let isConnection = false,
-    isDefault = false,
-    workspaces: string[] = [];
-  for (const { name } of settings.connections) {
+    defaultConnection;
+  for (const { name, isDefault } of settings.connections) {
     connections.push(name);
     isConnection ||= connection === name;
-    isDefault ||= settings.defaultConnectionName === name;
+    if (isDefault) defaultConnection = name;
   }
   if (connections.length === 0) {
     vscode.window.showErrorMessage(error.noConnection);
     return dataSourceView.postMessage({});
   }
-  connection = isConnection
-    ? connection
-    : isDefault
-    ? settings.defaultConnectionName
-    : connections[0];
-  const {
-    url,
-    username,
-    password,
-    workspaces: workspaceList,
-    defaultWorkspace,
-    restWorkspaces,
-  } = getConfig(connection);
-  workspaces = [];
+  connection = isConnection ? connection : defaultConnection ?? connections[0];
+  const { url, username, password, restWorkspaces } = getConfig(connection);
   if (restWorkspaces) {
     const data = await getObject(
       "editableWorkspaces",
@@ -73,17 +54,13 @@ export const refreshConnections = async () => {
       const { Name, RepositoryWorkspace } = data.pop()!;
       if (RepositoryWorkspace) data.push(...RepositoryWorkspace);
       if (!Name.includes(username.toLowerCase())) continue;
-      workspaces.push(Name);
+      await createFolder(connection, Name);
     }
   }
-  workspaces = workspaces.length > 0 ? workspaces : workspaceList;
-  workspace = workspaces.includes(workspace)
-    ? workspace
-    : restWorkspaces || !workspaces.includes(defaultWorkspace)
-    ? workspaces?.[0] ?? ""
-    : defaultWorkspace;
-  TreeView.restDefaults = { url, username, password };
-  await setUrlAndFolder();
+  const workspaces = await getLocalWorkspaces(connection);
+  workspace = workspaces.includes(workspace) ? workspace : workspaces[0];
+  treeView.restDefaults = { url, username, password };
+  await treeView.reset(connection, workspace);
   setButtonVisibility("refresh", restWorkspaces);
   return await dataSourceView.postMessage({
     connections,
@@ -94,6 +71,24 @@ export const refreshConnections = async () => {
   });
 };
 
+export const refreshConfig = async (event: vscode.ConfigurationChangeEvent) => {
+  if (!configChange(event)) return;
+  await refreshConnections();
+};
+
+export const newWorkspace = async () => {
+  const workspaces = await getLocalWorkspaces(connection),
+    answer = await vscode.window.showInputBox({
+      placeHolder: "Enter new workspace name",
+      validateInput: createValidateWorkspaceName(workspaces),
+    });
+  if (!answer) return;
+  workspace = answer;
+  const folderUri = vscode.Uri.joinPath(workspaceUri, connection, workspace);
+  await vscode.workspace.fs.createDirectory(folderUri);
+  await refreshConnections();
+};
+
 const dataSourceHandler = async ({ command, data }: DataSourceMessage) => {
   switch (command) {
     case "connection":
@@ -101,7 +96,7 @@ const dataSourceHandler = async ({ command, data }: DataSourceMessage) => {
       return await refreshConnections();
     case "workspace":
       workspace = data;
-      return await setUrlAndFolder();
+      return await treeView.reset(connection, workspace);
     case "type":
       return (type = data);
     case "search":
@@ -115,10 +110,6 @@ export const createDataSource =
   async ({ webview }: { webview: vscode.Webview }) => {
     if (!workspaceUri) return void (webview.html = noWorkspaceFolderHTML);
     if (!dataSourceView) dataSourceView = webview;
-    vscode.workspace.onDidChangeConfiguration(async (e) => {
-      if (!configChange(e)) return;
-      await refreshConnections();
-    });
     dataSourceView.options = dataSourceOptions;
     dataSourceView.onDidReceiveMessage(
       dataSourceHandler,
@@ -129,47 +120,18 @@ export const createDataSource =
     await refreshConnections();
   };
 
-const workspaceHandler = async (
-  action: WorkspaceAction,
-  workspaceName: string,
-  config: Config
-) => {
-  switch (action) {
-    case "add":
-      config.workspaces.unshift(workspaceName);
-      if (!config.workspaces.includes("MAIN")) config.workspaces.push("MAIN");
-    case "default":
-      config.defaultWorkspace = workspaceName;
-      if (config.name === connection) workspace = workspaceName;
-      return await refreshConnections();
-    case "delete":
-      const index = config.workspaces.indexOf(workspaceName);
-      if (index === -1) return;
-      config.workspaces.splice(index, 1);
-      if (config.defaultWorkspace === workspaceName)
-        config.defaultWorkspace = config.workspaces[0] ?? "";
-      return;
-  }
-};
-
 const configHandler = async ({
   command,
-  action,
-  workspace,
   name,
   url,
   username,
   password,
   restWorkspaces,
-  isDefaultConnection,
+  isDefault,
 }: ConfigMessage) => {
   const configs = settings.connections,
     config = getConfig(name);
   switch (command) {
-    case "workspace":
-      workspaceHandler(action, workspace, config);
-      configView.html = createConfigHTML(config);
-      return await setConfigs(configs);
     case "testConnection":
       const testResponse = await getObject(
         "testConnection",
@@ -196,14 +158,18 @@ const configHandler = async ({
       if (connectionExists)
         return vscode.window.showErrorMessage(error.connectionExists);
       config.name = name;
-      config.workspaces = ["MAIN"];
       configs.unshift(config);
     case "editConnection":
       config.url = url;
       config.username = username;
       config.password = password;
       config.restWorkspaces = restWorkspaces;
-      if (isDefaultConnection) await setDefaultConnection(name);
+      if (isDefault)
+        configs.forEach((configItem) => {
+          console.log({ a: config === configItem, b: configItem.name });
+          configItem.isDefault = config === configItem;
+        });
+      console.log(config.isDefault);
       await setConfigs(configs);
       if (command === "editConnection") return configPanel?.dispose();
       return (configView.html = createConfigHTML(config));

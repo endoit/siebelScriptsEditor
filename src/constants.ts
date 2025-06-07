@@ -96,8 +96,9 @@ export const metadata = {
   } as const,
   //constant paths
   paths = {
-    test: "workspace/MAIN/Application",
     workspaces: "data/Workspace/Repository Workspace",
+    test: "workspace/MAIN/Application",
+    project: "workspace/MAIN/Project",
   } as const,
   //constant for message box answers
   yesNo = ["Yes", "No"] as const,
@@ -129,6 +130,12 @@ export const metadata = {
     title:
       "Choose the server script to be created or select Custom and enter its name",
     placeHolder: "Script",
+    canPickMany: false,
+  } as const,
+  //new service options
+  projectOptions = {
+    title: "Choose a project for the new business service",
+    placeHolder: "Project name",
     canPickMany: false,
   } as const,
   //find in files options

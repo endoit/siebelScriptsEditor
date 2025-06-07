@@ -1,5 +1,12 @@
 import * as vscode from "vscode";
-import { metadata, baseConfig, query, fields } from "./constants";
+import {
+  metadata,
+  baseConfig,
+  query,
+  fields,
+  paths,
+  projectOptions,
+} from "./constants";
 import {
   workspaceUri,
   getScriptsOnDisk,
@@ -13,6 +20,7 @@ import {
   createNewScript,
   compareObjects,
   pullMissing,
+  getObject,
 } from "./utils";
 import { settings } from "./settings";
 import { create } from "axios";
@@ -51,15 +59,12 @@ export const newScriptTree = async (treeItem: ObjectItem) =>
   await treeItem.newScript();
 export const compareTree = async (treeItem: ScriptItem | WebTempItem) =>
   await treeItem.compare();
+export const newService = async (treeItem: BaseItem) =>
+  await treeItem.newService();
 
-export class TreeView {
-  private static readonly restApi = create(baseConfig);
+class TreeView {
   private static instance: TreeView;
-  private static baseURL: string;
-  static timeoutId: NodeJS.Timeout | number | null = null;
-  static refresh: (
-    treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
-  ) => void;
+  private readonly restApi = create(baseConfig);
   private readonly _onDidChangeTreeData = new vscode.EventEmitter();
   private readonly treeData = {
     service: new BaseItem("service"),
@@ -70,20 +75,17 @@ export class TreeView {
   };
   private readonly treeItems = Object.values(this.treeData);
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+  readonly refresh = (
+    treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
+  ) => this._onDidChangeTreeData.fire(treeItem);
+  timeoutId: NodeJS.Timeout | number | null = null;
+  private declare baseURL: string;
 
   private constructor() {
     const treeView = vscode.window.createTreeView("objectsView", {
       treeDataProvider: this,
       showCollapseAll: true,
     });
-    TreeView.refresh = (
-      treeItem:
-        | BaseItem
-        | BaseItemWebTemp
-        | ObjectItem
-        | ScriptItem
-        | WebTempItem
-    ) => this._onDidChangeTreeData.fire(treeItem);
     treeView.onDidChangeSelection(async ({ selection: [treeItem] }) => {
       if (
         treeItem === undefined ||
@@ -99,6 +101,34 @@ export class TreeView {
         return;
       await (<ObjectItem>element).select();
     });
+  }
+
+  static getInstance() {
+    TreeView.instance ??= new TreeView();
+    return TreeView.instance;
+  }
+
+  set restDefaults({ url, username, password }: RestConfig) {
+    this.baseURL = url;
+    this.restApi.defaults.auth = { username, password };
+    this.restApi.defaults.params.PageSize = settings.maxPageSize;
+  }
+
+  async reset(connection: string, workspace: string) {
+    this.restApi.defaults.baseURL = joinPath(
+      this.baseURL,
+      "workspace",
+      workspace
+    );
+    for (const [type, treeItem] of Object.entries(this.treeData)) {
+      treeItem.folderUri = vscode.Uri.joinPath(
+        workspaceUri,
+        connection,
+        workspace,
+        type
+      );
+      await treeItem.search();
+    }
   }
 
   getTreeItem(
@@ -117,31 +147,11 @@ export class TreeView {
       : this.treeItems;
   }
 
-  async setFolder(connection: string, workspace: string) {
-    for (const [type, treeItem] of Object.entries(this.treeData)) {
-      treeItem.folderUri = vscode.Uri.joinPath(
-        workspaceUri,
-        connection,
-        workspace,
-        type
-      );
-      await treeItem.search();
-    }
+  async search(type: Type, searchString?: string) {
+    await this.treeData[type].search(searchString);
   }
 
-  async search(type: Type, searchSpec?: string) {
-    await this.treeData[type].search(searchSpec);
-  }
-
-  static getInstance() {
-    TreeView.instance ??= new TreeView();
-    return TreeView.instance;
-  }
-
-  static async getObject(
-    path: string,
-    params: QueryParams
-  ): Promise<RestResponse> {
+  async getObject(path: string, params: QueryParams): Promise<RestResponse> {
     try {
       const response = await this.restApi.get(path, { params });
       return response?.data?.items ?? [];
@@ -156,21 +166,7 @@ export class TreeView {
     }
   }
 
-  static set restDefaults({ url, username, password }: RestConfig) {
-    this.baseURL = url;
-    this.restApi.defaults.auth = { username, password };
-    this.restApi.defaults.params.PageSize = settings.maxPageSize;
-  }
-
-  static set workspaceUrl(workspace: string) {
-    this.restApi.defaults.baseURL = joinPath(
-      this.baseURL,
-      "workspace",
-      workspace
-    );
-  }
-
-  static getParentIcon(diskOnly: boolean, onDisk: OnDisk) {
+  getParentIcon(diskOnly: boolean, onDisk: OnDisk) {
     return diskOnly
       ? icons.none
       : onDisk.size === 0
@@ -178,7 +174,7 @@ export class TreeView {
       : icons.same;
   }
 
-  static async getIcon(
+  async getIcon(
     label: string,
     text: string | undefined,
     onDisk: OnDisk,
@@ -205,6 +201,7 @@ class BaseItem extends vscode.TreeItem {
 
   constructor(type: Type) {
     super(metadata[type].parent);
+    this.contextValue = type;
     this.parentSegment = metadata[type].parent;
     this.childSegment = metadata[type].child;
     this.baseScriptItems = metadata[type].baseScriptItems;
@@ -220,25 +217,52 @@ class BaseItem extends vscode.TreeItem {
         const path = joinPath(this.parentSegment, label, this.childSegment),
           folderUri = vscode.Uri.joinPath(this.folderUri, label),
           onDisk = await getScriptsOnDisk(folderUri),
-          iconPath = TreeView.getParentIcon(diskOnly, onDisk);
+          iconPath = treeView.getParentIcon(diskOnly, onDisk);
         return new ObjectItem(label, path, onDisk, folderUri, iconPath, this);
       })
     );
-    TreeView.refresh(this);
+    treeView.refresh(this);
   }
 
-  async search(searchSpec?: string) {
-    if (TreeView.timeoutId) clearTimeout(TreeView.timeoutId);
-    if (!searchSpec) return await this.setTreeItems();
-    TreeView.timeoutId = setTimeout(async () => {
-      const params = {
-          fields: this.searchFields,
-          searchSpec: `Name LIKE '${searchSpec}*'`,
-        },
-        data = await TreeView.getObject(this.parentSegment, params);
+  private getParams = (searchString: string) => ({
+    fields: this.searchFields,
+    searchSpec: `Name LIKE '${searchString}*'`,
+  });
+
+  async search(searchString?: string) {
+    if (treeView.timeoutId) clearTimeout(treeView.timeoutId);
+    if (!searchString) return await this.setTreeItems();
+    treeView.timeoutId = setTimeout(async () => {
+      const params = this.getParams(searchString),
+        data = await treeView.getObject(this.parentSegment, params);
       await this.setTreeItems(data);
-      TreeView.timeoutId = null;
+      treeView.timeoutId = null;
     }, 300);
+  }
+
+  async newService() {
+    const searchString = await vscode.window.showInputBox({
+      placeHolder: "Enter search string for project",
+      //validateInput: validateProjectName,
+    });
+    if (!searchString) return;
+    const params = this.getParams(searchString),
+      projectResponse = await treeView.getObject("Project", params),
+      items = projectResponse.map(({ Name }) => ({ label: Name }));
+    if (items.length === 0)
+      return vscode.window.showErrorMessage(
+        `No project name starts with the specified string "${searchString}"!`
+      );
+    const project = await vscode.window.showQuickPick(items, projectOptions);
+    if (!project) return;
+    const serviceName = await vscode.window.showInputBox({
+      placeHolder: "Enter business service name",
+      //validateInput: validateServiceName,
+    });
+    if (!serviceName) return;
+    const payload = { Name: serviceName, "Project Name": project.label };
+    //treeView.putObject()
+    console.log(payload);
   }
 }
 
@@ -260,7 +284,7 @@ class BaseItemWebTemp extends BaseItem {
     this.treeItems = await Promise.all(
       source.map(async ({ Name: label, Definition: text }) => {
         const path = joinPath(this.parentSegment, label),
-          iconPath = await TreeView.getIcon(
+          iconPath = await treeView.getIcon(
             label,
             text,
             onDisk,
@@ -276,7 +300,7 @@ class BaseItemWebTemp extends BaseItem {
         );
       })
     );
-    TreeView.refresh(this);
+    treeView.refresh(this);
   }
 }
 
@@ -329,7 +353,7 @@ class ScriptItem extends vscode.TreeItem {
 
   async select() {
     if (this.iconPath === icons.siebel) {
-      const data = await TreeView.getObject(this.path, this.params);
+      const data = await treeView.getObject(this.path, this.params);
       if (data.length === 0) return;
       const { [this.field]: text } = data[0];
       if (text === undefined) return;
@@ -337,13 +361,13 @@ class ScriptItem extends vscode.TreeItem {
       this.onDisk.set(this.label, this.ext);
       this.icon = icons.same;
       if (this.parent) this.parent.iconPath = icons.same;
-      TreeView.refresh(this.parent ? this.parent : this);
+      treeView.refresh(this.parent ? this.parent : this);
     }
     await openFile(this.fileUri);
   }
 
   async compare() {
-    const response = await TreeView.getObject(this.path, this.params),
+    const response = await treeView.getObject(this.path, this.params),
       compareMessage = `Comparison of ${this.label} in Siebel and on disk`;
     await compareObjects(
       response,
@@ -394,11 +418,11 @@ class ObjectItem extends ScriptItem {
 
   override async select() {
     const diskOnly = this.iconPath === icons.none,
-      data = diskOnly ? [] : await TreeView.getObject(this.path, this.params),
+      data = diskOnly ? [] : await treeView.getObject(this.path, this.params),
       inSiebel = new Set<string>(),
       siebel = await Promise.all(
         data.map(async ({ Name: label, Script: text }) => {
-          const iconPath = await TreeView.getIcon(
+          const iconPath = await treeView.getIcon(
             label,
             text,
             this.onDisk,
@@ -415,12 +439,12 @@ class ObjectItem extends ScriptItem {
     this.treeItems = [...siebel, ...disk].sort(({ label: a }, { label: b }) =>
       a.localeCompare(b)
     );
-    this.icon = TreeView.getParentIcon(diskOnly, this.onDisk);
-    TreeView.refresh(this);
+    this.icon = treeView.getParentIcon(diskOnly, this.onDisk);
+    treeView.refresh(this);
   }
 
   async pullAll() {
-    const response = await TreeView.getObject(this.path, this.params);
+    const response = await treeView.getObject(this.path, this.params);
     await pullMissing(response, this.folderUri);
     await this.refresh();
   }
@@ -435,3 +459,5 @@ class ObjectItem extends ScriptItem {
     await this.refresh();
   }
 }
+
+export const treeView = TreeView.getInstance();

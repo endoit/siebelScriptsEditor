@@ -1,4 +1,15 @@
 import { settings } from "./settings";
+/*
+function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri): string {
+  const htmlPath = vscode.Uri.joinPath(extensionUri, "webview-ui", "index.html");
+  const htmlContent = fs.readFileSync(htmlPath.fsPath, "utf-8");
+
+  // Replace any local resource URIs (CSS/JS) with webview URIs
+  return htmlContent.replace(/(["'])\.\/(.*?)\1/g, (_, quote, file) => {
+    const uri = webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, "webview-ui", file));
+    return `${quote}${uri}${quote}`;
+  });
+}*/
 
 const head = `<head>
 	<style>
@@ -238,6 +249,7 @@ export const createConfigHTML = (
     workspaces = [],
     restWorkspaces = false,
     defaultWorkspace = "",
+    isDefault = false,
   }: Config,
   isNew = false
 ) => `<!doctype><html>
@@ -312,7 +324,7 @@ export const createConfigHTML = (
 			</div>
 			<div class="grid-item grid-1 checkbox-container"> 
 			<input type="checkbox" class="checkbox" name="default-connection" id="default-connection" ${
-        settings.defaultConnectionName === name ? "checked" : ""
+        isDefault ? "checked" : ""
       }>				
 			</div>
 			<div class="grid-item grid-2"> 
@@ -374,10 +386,10 @@ export const createConfigHTML = (
 					const name = document.getElementById("connection-name").value,
 						{ url, username, password } = getBaseParameters(),
 						restWorkspaces = !!document.getElementById("rest-workspaces")?.checked,
-						isDefaultConnection = !!document.getElementById("default-connection")?.checked;
+						isDefault = !!document.getElementById("default-connection")?.checked;
 					vscode.postMessage({command: "${
             isNew ? "newConnection" : "editConnection"
-          }", name, url, username, password, restWorkspaces, isDefaultConnection});
+          }", name, url, username, password, restWorkspaces, isDefault});
 				},
 				deleteConnection = () => {
 					const name = document.getElementById("connection-name").value;

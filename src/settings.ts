@@ -32,9 +32,6 @@ export const getConfig = (name: string) => {
 export const setConfigs = async (configs: Config[]) =>
   await set("connections", configs);
 
-export const setDefaultConnection = async (name: string) =>
-  await set("defaultConnectionName", name);
-
 export const configChange = (e: vscode.ConfigurationChangeEvent) => {
   if (!e.affectsConfiguration("siebelScriptAndWebTempEditor")) return false;
   for (const name of <(keyof ExtensionSettings)[]>Object.keys(settings)) {

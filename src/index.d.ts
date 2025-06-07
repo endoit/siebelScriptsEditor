@@ -4,7 +4,6 @@ type Type = "service" | "buscomp" | "applet" | "application" | "webtemp";
 //settings
 type ExtensionSettings = {
   connections: Config[];
-  defaultConnectionName: string;
   fileExtension: "js" | "ts";
   maxPageSize: 10 | 20 | 50 | 100 | 200 | 500;
 };
@@ -13,8 +12,7 @@ type RestConfig = { url: string; username: string; password: string };
 
 type Config = {
   name: string;
-  workspaces: string[];
-  defaultWorkspace: string;
+  isDefault: boolean;
   restWorkspaces: boolean;
 } & RestConfig;
 
@@ -35,6 +33,7 @@ type Payload = {
   Script?: string;
   "Program Language"?: "JS";
   Definition?: string;
+  "Project Name"?: string
 };
 
 //Siebel REST response
@@ -57,21 +56,15 @@ type DataSourceMessage =
       data: Type;
     };
 
-//message received from the configuration webview
-type WorkspaceAction = "add" | "default" | "delete";
-
 type ConfigMessage = {
   command:
-    | "workspace"
     | "testRestWorkspaces"
     | "testConnection"
     | "newConnection"
     | "editConnection"
     | "deleteConnection";
-  action: WorkspaceAction;
   name: string;
-  workspace: string;
-  isDefaultConnection: boolean;
+  isDefault: boolean;
   restWorkspaces: boolean;
 } & RestConfig;
 
