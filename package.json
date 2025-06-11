@@ -38,24 +38,8 @@
 					"name": "Datasource"
 				},
 				{
-					"id": "service",
-					"name": "Business Services"
-				},
-				{
-					"id": "buscomp",
-					"name": "Business Components"
-				},
-				{
-					"id": "applet",
-					"name": "Applets"
-				},
-				{
-					"id": "application",
-					"name": "Applications"
-				},
-				{
-					"id": "webtemp",
-					"name": "Web Templates"
+					"id": "objectsView",
+					"name": "Siebel objects"
 				}
 			]
 		},
@@ -63,13 +47,13 @@
 			{
 				"command": "siebelscriptandwebtempeditor.pull",
 				"title": "Pull script/web template from Siebel",
-				"icon": "$(fold-down)",
+				"icon": "$(repo-pull)",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.push",
 				"title": "Push script/web template to Siebel",
-				"icon": "$(fold-up)",
+				"icon": "$(repo-push)",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushEnabled && !isInDiffEditor"
 			},
 			{
@@ -87,7 +71,7 @@
 			{
 				"command": "siebelscriptandwebtempeditor.pushAll",
 				"title": "Push all scripts of the current parent object to Siebel",
-				"icon": "$(arrow-circle-up)",
+				"icon": "$(repo-force-push)",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
 			},
 			{
@@ -97,9 +81,15 @@
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.refreshConnections",
-				"title": "Refresh Workspaces",
-				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.refreshEnabled",
+				"command": "siebelscriptandwebtempeditor.newWorkspace",
+				"title": "New Siebel Workspace",
+				"when": "workspaceFolderCount > 0",
+				"icon": "$(new-folder)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.refreshState",
+				"title": "Refresh",
+				"when": "workspaceFolderCount > 0",
 				"icon": "$(refresh)"
 			},
 			{
@@ -121,19 +111,39 @@
 				"icon": "$(settings-gear)"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.pullAllTreeScript",
-				"title": "Pull All",
-				"icon": "$(arrow-circle-down)"
+				"command": "siebelscriptandwebtempeditor.selectTreeItem",
+				"title": "Select",
+				"when": "workspaceFolderCount > 0"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.refreshTreeScript",
+				"command": "siebelscriptandwebtempeditor.showFilesOnDisk",
+				"title": "Show Files On Disk",
+				"icon": "$(device-desktop)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.newService",
+				"title": "New Business Service",
+				"icon": "$(new-folder)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.pullAllTree",
+				"title": "Pull All",
+				"icon": "$(git-fetch)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.refreshTree",
 				"title": "Refresh",
 				"icon": "$(refresh)"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.newTreeScript",
+				"command": "siebelscriptandwebtempeditor.newScriptTree",
 				"title": "New Script",
 				"icon": "$(new-file)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.compareTree",
+				"title": "Compare",
+				"icon": "$(symbol-boolean)"
 			}
 		],
 		"menus": {
@@ -171,41 +181,61 @@
 			],
 			"view/title": [
 				{
-					"command": "siebelscriptandwebtempeditor.refreshConnections",
-					"when": "workspaceFolderCount > 0 && view == extensionView && siebelscriptandwebtempeditor.refreshEnabled",
+					"command": "siebelscriptandwebtempeditor.newWorkspace",
+					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.newConnection",
+					"command": "siebelscriptandwebtempeditor.refreshState",
 					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@1"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.editConnection",
+					"command": "siebelscriptandwebtempeditor.newConnection",
 					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@2"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.openSettings",
+					"command": "siebelscriptandwebtempeditor.editConnection",
 					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@3"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.openSettings",
+					"when": "workspaceFolderCount > 0 && view == extensionView",
+					"group": "navigation@4"
 				}
 			],
 			"view/item/context": [
 				{
-					"command": "siebelscriptandwebtempeditor.pullAllTreeScript",
+					"command": "siebelscriptandwebtempeditor.showFilesOnDisk",
+					"when": "viewItem == service || viewItem == buscomp || viewItem == applet || viewItem == application || viewItem == webtemp",
+					"group": "inline"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.newService",
+					"when": "viewItem == service",
+					"group": "inline@1"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.pullAllTree",
 					"when": "viewItem == objectItem",
 					"group": "inline"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.refreshTreeScript",
+					"command": "siebelscriptandwebtempeditor.refreshTree",
 					"when": "viewItem == objectItem",
 					"group": "inline@1"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.newTreeScript",
+					"command": "siebelscriptandwebtempeditor.newScriptTree",
 					"when": "viewItem == objectItem",
 					"group": "inline@2"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.compareTree",
+					"when": "viewItem == compareTree",
+					"group": "inline"
 				}
 			]
 		},
@@ -220,18 +250,14 @@
 					},
 					"default": []
 				},
-				"siebelScriptAndWebTempEditor.defaultConnectionName": {
-					"type": "string",
-					"markdownDescription": "Do not modify here, use the Default Connection checkbox in the Edit Connection panel!"
-				},
-				"siebelScriptAndWebTempEditor.localFileExtension": {
+				"siebelScriptAndWebTempEditor.fileExtension": {
 					"type": "string",
 					"enum": [
-						".js",
-						".ts"
+						"js",
+						"ts"
 					],
-					"default": ".js",
-					"markdownDescription": "The default file extension for the downloaded server scripts. If you use type definitons in eScript, it is recommended to save the files as .ts."
+					"default": "js",
+					"markdownDescription": "The file extension for the downloaded server scripts. If you use type definitons in eScript, it is recommended to save the files as .ts."
 				},
 				"siebelScriptAndWebTempEditor.maxPageSize": {
 					"type": "integer",
@@ -245,16 +271,6 @@
 					],
 					"default": 100,
 					"markdownDescription": "Number of records to fetch from the Siebel REST API. Can not be greater than the value of the MaximumPageSize parameter of the component EAI Object Manager (default is 100)!"
-				},
-				"siebelScriptAndWebTempEditor.defaultActionWhenFileExists": {
-					"type": "string",
-					"enum": [
-						"None - always ask",
-						"Open file",
-						"Overwrite"
-					],
-					"default": "None - always ask",
-					"markdownDescription": "The default action when selecting an already downloaded script or web template from the tree views:   \n - None - always ask: always asks what to do.  \n - Open file: opens the file from the disk, which can be refeshed manually with the pull button.   \n - Overwrite: pull the content from Siebel before opening it. __WARNING__: this overwrites files which are already downloaded!"
 				}
 			}
 		},
