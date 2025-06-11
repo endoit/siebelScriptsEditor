@@ -51,15 +51,14 @@ class TreeView {
   private static instance: TreeView;
   private readonly restApi = create(baseConfig);
   private readonly _onDidChangeTreeData = new vscode.EventEmitter();
-  private readonly treeData = {
-    service: new BaseItem("service"),
-    buscomp: new BaseItem("buscomp"),
-    applet: new BaseItem("applet"),
-    application: new BaseItem("application"),
-    webtemp: new BaseItemWebTemp(),
-  };
-  private readonly treeItems = Object.values(this.treeData);
-  private readonly treeObject;
+  private readonly treeData = new Map([
+    ["service", new BaseItem("service")],
+    ["buscomp", new BaseItem("buscomp")],
+    ["applet", new BaseItem("applet")],
+    ["application", new BaseItem("application")],
+    ["webtemp", new BaseItemWebTemp()],
+  ]);
+  readonly treeObject;
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   readonly refresh = (
     treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
@@ -83,13 +82,17 @@ class TreeView {
     return TreeView.instance;
   }
 
+  private get treeItems() {
+    return [...this.treeData.values()];
+  }
+
   async setWorkspace(connection: string, workspace: string) {
     this.restApi.defaults.baseURL = joinPath(
       this.baseURL,
       "workspace",
       workspace
     );
-    for (const [type, treeItem] of Object.entries(this.treeData)) {
+    for (const [type, treeItem] of this.treeData) {
       treeItem.folderUri = vscode.Uri.joinPath(
         workspaceUri,
         connection,
@@ -117,14 +120,8 @@ class TreeView {
     return treeItem;
   }
 
-  getChildren(
-    treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
-  ) {
-    return treeItem instanceof BaseItem ||
-      treeItem instanceof BaseItemWebTemp ||
-      treeItem instanceof ObjectItem
-      ? treeItem.treeItems
-      : this.treeItems;
+  getChildren(treeItem?: BaseItem | BaseItemWebTemp | ObjectItem) {
+    return treeItem ? treeItem.treeItems : this.treeItems;
   }
 
   getParent(
@@ -134,7 +131,7 @@ class TreeView {
   }
 
   async search(type: Type, searchString?: string) {
-    await this.treeData[type].search(searchString);
+    await this.treeData.get(type)?.search(searchString);
   }
 
   async getObject(path: string, params: QueryParams): Promise<RestResponse> {
@@ -186,6 +183,10 @@ class TreeView {
       fileContent = await readFile(fileUri);
     return fileContent === text ? icons.same : icons.differ;
   }
+
+  setTreeItemIconToSame(type: Type, name: string, folderUri: vscode.Uri) {
+    this.treeData.get(type)?.setTreeItemIconToSame(name, folderUri);
+  }
 }
 
 class BaseItem extends vscode.TreeItem {
@@ -198,7 +199,7 @@ class BaseItem extends vscode.TreeItem {
     vscode.TreeItemCollapsibleState.Expanded;
   declare folderUri: vscode.Uri;
   declare readonly label: string;
-  treeItems: (ObjectItem | WebTempItem)[] = [];
+  readonly treeData = new Map<string, ObjectItem | WebTempItem>();
 
   constructor(type: Type) {
     super(metadata[type].parent);
@@ -208,12 +209,24 @@ class BaseItem extends vscode.TreeItem {
     this.baseScriptItems = metadata[type].baseScriptItems;
   }
 
+  get treeItems() {
+    return [...this.treeData.values()];
+  }
+
+  protected resetTreeData(items: (ObjectItem | WebTempItem)[]) {
+    this.treeData.clear();
+    for (const treeItem of items) {
+      this.treeData.set(treeItem.folderUri.path, treeItem);
+    }
+    treeView.refresh(this);
+  }
+
   protected async setTreeItems(data?: RestResponse) {
     const diskOnly = !data,
       source = diskOnly ? await getScriptParentsOnDisk(this.folderUri) : data;
     this.iconPath = diskOnly ? icons.none : icons.online;
     this.tooltip = tooltips.get(this.iconPath);
-    this.treeItems = await Promise.all(
+    const items = await Promise.all(
       source.map(async ({ Name: label }) => {
         const path = joinPath(this.parentSegment, label, this.childSegment),
           folderUri = vscode.Uri.joinPath(this.folderUri, label),
@@ -222,7 +235,7 @@ class BaseItem extends vscode.TreeItem {
         return new ObjectItem(label, path, onDisk, folderUri, iconPath, this);
       })
     );
-    treeView.refresh(this);
+    this.resetTreeData(items);
   }
 
   private getParams = (searchString: string) => ({
@@ -275,6 +288,15 @@ class BaseItem extends vscode.TreeItem {
     await writeFile(fileUri, baseScripts.Service_PreInvokeMethod);
     await this.search();
   }
+
+  setTreeItemIconToSame(name: string, folderUri: vscode.Uri) {
+    const treeItem = (<Map<string, ObjectItem>>this.treeData)
+      .get(folderUri.path)
+      ?.treeData.get(name);
+    if (!treeItem || !treeItem.iconPath) return;
+    treeItem.iconPath = icons.same;
+    treeView.refresh(treeItem);
+  }
 }
 
 class BaseItemWebTemp extends BaseItem {
@@ -292,7 +314,7 @@ class BaseItemWebTemp extends BaseItem {
         : data;
     this.iconPath = diskOnly ? icons.none : icons.online;
     this.tooltip = tooltips.get(this.iconPath);
-    this.treeItems = await Promise.all(
+    const items = await Promise.all(
       source.map(async ({ Name: label, Definition: text }) => {
         const path = joinPath(this.parentSegment, label),
           iconPath = await treeView.getIcon(
@@ -311,7 +333,14 @@ class BaseItemWebTemp extends BaseItem {
         );
       })
     );
-    treeView.refresh(this);
+    this.resetTreeData(items);
+  }
+
+  override setTreeItemIconToSame(name: string) {
+    const treeItem = this.treeData.get(name);
+    if (!treeItem || !treeItem.iconPath) return;
+    treeItem.iconPath = icons.same;
+    treeView.refresh(treeItem);
   }
 }
 
@@ -338,7 +367,8 @@ class ScriptItem extends vscode.TreeItem {
     this.folderUri = folderUri;
     this.icon = iconPath;
     this.parent = parent;
-    this.setCommand();
+    if (new.target !== ObjectItem)
+      this.command = { ...selectCommand, arguments: [this] };
   }
 
   set icon(iconPath: vscode.ThemeIcon | undefined) {
@@ -363,10 +393,6 @@ class ScriptItem extends vscode.TreeItem {
     return getFileUri(this.folderUri, this.label, this.ext);
   }
 
-  setCommand() {
-    this.command = { ...selectCommand, arguments: [this] };
-  }
-
   async select() {
     if (this.iconPath === icons.siebel) {
       const data = await treeView.getObject(this.path, this.params);
@@ -379,7 +405,6 @@ class ScriptItem extends vscode.TreeItem {
       if (this.parent) this.parent.iconPath = icons.same;
       treeView.refresh(this.parent ? this.parent : this);
     }
-    treeView.focused = this;
     await openFile(this.fileUri);
   }
 
@@ -415,13 +440,15 @@ class ObjectItem extends ScriptItem {
     vscode.TreeItemCollapsibleState.Collapsed;
   override readonly contextValue = "objectItem";
   declare parent: BaseItem;
-  treeItems: ScriptItem[] = [];
+  treeData = new Map<string, ScriptItem>();
+
+  get treeItems() {
+    return [...this.treeData.values()];
+  }
 
   override set icon(iconPath: vscode.ThemeIcon | undefined) {
     this.iconPath = iconPath;
   }
-
-  override setCommand() {}
 
   private createItem(label: string, iconPath: vscode.ThemeIcon | undefined) {
     const path = joinPath(this.path, label);
@@ -433,6 +460,14 @@ class ObjectItem extends ScriptItem {
       iconPath,
       this
     );
+  }
+
+  private resetTreeData(items: ScriptItem[]) {
+    this.treeData.clear();
+    for (const treeItem of items) {
+      this.treeData.set(treeItem.label, treeItem);
+    }
+    treeView.refresh(this);
   }
 
   override async select() {
@@ -455,11 +490,11 @@ class ObjectItem extends ScriptItem {
       disk = [...this.onDisk.keys()]
         .filter((label) => !inSiebel.has(label))
         .map((label) => this.createItem(label, iconPath));
-    this.treeItems = [...siebel, ...disk].sort(({ label: a }, { label: b }) =>
+    const items = [...siebel, ...disk].sort(({ label: a }, { label: b }) =>
       a.localeCompare(b)
     );
     this.icon = treeView.getParentIcon(diskOnly, this.onDisk);
-    treeView.refresh(this);
+    this.resetTreeData(items);
   }
 
   async pullAll() {

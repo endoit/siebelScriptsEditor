@@ -12,6 +12,7 @@ import {
 } from "./constants";
 import { create } from "axios";
 import { settings } from "./settings";
+import { treeView } from "./treeView";
 
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
 
@@ -252,13 +253,15 @@ export const compareObjects = async (
 
 export const pullMissing = async (
   response: RestResponse,
-  folderUri: vscode.Uri
+  folderUri: vscode.Uri,
+  type?: Type
 ) => {
   const onDisk = await getScriptsOnDisk(folderUri);
   for (const { Name: label, Script: text } of response) {
     if (onDisk.has(label) || !text) continue;
     const fileUri = getFileUri(folderUri, label, settings.fileExtension);
     await writeFile(fileUri, text);
+    if (type) treeView.setTreeItemIconToSame(type, label, folderUri);
   }
 };
 

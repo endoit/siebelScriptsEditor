@@ -36,6 +36,7 @@ let editor: vscode.TextEditor | undefined,
   document: vscode.TextDocument,
   name: string,
   ext: FileExt,
+  type: Type,
   field: Field,
   baseScriptItems: readonly vscode.QuickPickItem[],
   parentPath: string,
@@ -69,9 +70,9 @@ export const parseFilePath = async (
     if (!name) throw buttonError;
     switch (true) {
       case isFileScript(ext) && parts.length > 4:
-        const parent = parts.pop()!,
-          type = <Type>parts.pop(),
-          meta = metadata[type];
+        const parent = parts.pop()!;
+        type = <Type>parts.pop();
+        const meta = metadata[type];
         if (!meta) throw buttonError;
         baseScriptItems = meta.baseScriptItems;
         field = fields.script;
@@ -81,6 +82,7 @@ export const parseFilePath = async (
         visibility.search = true;
         break;
       case isFileWebTemp(ext) && parts.length > 3 && parts.pop() === "webtemp":
+        type = "webtemp";
         field = fields.definition;
         parentPath = "Web Template";
         message = "Web Template definition";
@@ -127,6 +129,7 @@ export const pull = async () => {
     content = response[0]?.[field];
   if (content === undefined) return;
   await writeFile(document.uri, content);
+  treeView.setTreeItemIconToSame(type, name, folderUri);
 };
 
 export const push = async () => {
@@ -148,6 +151,7 @@ export const push = async () => {
   vscode.window.showInformationMessage(
     `Successfully pushed ${name} to Siebel!`
   );
+  treeView.setTreeItemIconToSame(type, name, folderUri);
 };
 
 export const compare = async () => {
@@ -193,7 +197,7 @@ export const search = async () => {
       : selection,
     query = selected ? document.getText(selected) : "",
     response = await getObject("pullScript", config, parentFullPath);
-  await pullMissing(response, folderUri);
+  await pullMissing(response, folderUri, type);
   await vscode.commands.executeCommand("workbench.action.findInFiles", {
     query,
     filesToInclude: folderUri.fsPath,
@@ -232,6 +236,7 @@ export const pushAll = async () => {
     const pushFullPath = joinPath(parentFullPath, payload.Name),
       result = await putObject(config, pushFullPath, payload);
     if (!result) return;
+    treeView.setTreeItemIconToSame(type, payload.Name, folderUri);
   }
   vscode.window.showInformationMessage(
     `Successfully pushed ${messageAll} to Siebel!`
