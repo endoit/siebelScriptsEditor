@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+  <h2>Open a Visual Studio Code workspace folder to use the extension!</h2>
+  <Button class="button" onclick="openWorkspace()">Select Workspace Folder</Button>
+</body>
+<script>
+  const vscode = acquireVsCodeApi(),
+    openWorkspace = () => vscode.postMessage({})
+</script>
+
+</html>

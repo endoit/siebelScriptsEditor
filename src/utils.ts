@@ -3,10 +3,12 @@ import {
   baseConfig,
   baseScripts,
   customScriptItem,
+  dataSourceOptions,
   error,
   newScriptOptions,
   openFileOptions,
   query,
+  workspaceDialogOptions,
 } from "./constants";
 import { create } from "axios";
 import { settings } from "./settings";
@@ -145,7 +147,7 @@ export const getLocalWorkspaces = async (connection: string) => {
 };
 
 export const createValidateWorkspaceName =
-  (workspaces: string[]) => (value: string) => {
+  (workspaces: string[]) => async (value: string) => {
     const parts = value.split("_");
     if (
       !value ||
@@ -258,6 +260,43 @@ export const pullMissing = async (
     const fileUri = getFileUri(folderUri, label, settings.fileExtension);
     await writeFile(fileUri, text);
   }
+};
+
+export const getHTML = async (
+  extensionUri: vscode.Uri,
+  webview: vscode.Webview,
+  fileName: "dataSource" | "config" | "openWorkspace"
+) => {
+  const fileUri = vscode.Uri.joinPath(
+      extensionUri,
+      "webview",
+      `${fileName}.html`
+    ),
+    fileContent = await readFile(fileUri),
+    styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, "webview", "style.css")
+    ),
+    replacedHTML = fileContent!.replace("./style.css", styleUri.toString());
+  return replacedHTML;
+};
+
+export const openWorkspace = async (
+  extensionUri: vscode.Uri,
+  subscriptions: Subscriptions,
+  webview: vscode.Webview
+) => {
+  webview.options = dataSourceOptions;
+  webview.onDidReceiveMessage(
+    async () => {
+      const folder = await vscode.window.showOpenDialog(workspaceDialogOptions);
+      if (!folder || folder.length === 0) return;
+      await vscode.commands.executeCommand("vscode.openFolder", folder[0]);
+    },
+    undefined,
+    subscriptions
+  );
+  webview.html = await getHTML(extensionUri, webview, "openWorkspace");
+  return;
 };
 
 export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {

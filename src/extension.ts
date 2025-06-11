@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { openSettings, setupWorkspaceFolder } from "./utils";
 import {
-  refreshConnections,
+  refreshState,
   createDataSource,
   createConfig,
   newWorkspace,
@@ -23,6 +23,8 @@ import {
   newScriptTree,
   pullAllTree,
   refreshTree,
+  selectTreeItem,
+  showFilesOnDisk,
 } from "./treeView";
 
 export async function activate({
@@ -33,7 +35,7 @@ export async function activate({
     await setupWorkspaceFolder(extensionUri);
 
     vscode.window.registerWebviewViewProvider("extensionView", {
-      resolveWebviewView: createDataSource(subscriptions),
+      resolveWebviewView: createDataSource(extensionUri, subscriptions),
     });
 
     vscode.window.onDidChangeActiveTextEditor(parseFilePath);
@@ -48,10 +50,12 @@ export async function activate({
       pushAll,
       newScript,
       newWorkspace,
-      refreshConnections,
-      newConnection: createConfig(subscriptions, "new"),
-      editConnection: createConfig(subscriptions, "edit"),
+      refreshState,
+      newConnection: createConfig(extensionUri, subscriptions, "new"),
+      editConnection: createConfig(extensionUri, subscriptions, "edit"),
       openSettings,
+      selectTreeItem,
+      showFilesOnDisk,
       newService,
       pullAllTree,
       refreshTree,

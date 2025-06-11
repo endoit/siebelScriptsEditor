@@ -1,3 +1,5 @@
+import * as vscode from "vscode";
+
 //Repository object paths adn scripts
 export const metadata = {
     service: {
@@ -80,6 +82,7 @@ export const metadata = {
   //constant query params
   query = {
     testConnection: { fields: "Name" },
+    testWorkspace: { fields: "Name" },
     allWorkspaces: {
       fields: "Name,Status",
       ViewMode: "Organization",
@@ -105,6 +108,35 @@ export const metadata = {
   pullNo = ["Pull", "No"] as const,
   pushNo = ["Push", "No"] as const,
   pushAllNo = ["Push all", "No"] as const,
+  icons = {
+    none: undefined,
+    disk: new vscode.ThemeIcon(
+      "device-desktop",
+      new vscode.ThemeColor("charts.blue")
+    ),
+    siebel: new vscode.ThemeIcon(
+      "cloud",
+      new vscode.ThemeColor("charts.yellow")
+    ),
+    same: new vscode.ThemeIcon("check", new vscode.ThemeColor("charts.green")),
+    differ: new vscode.ThemeIcon(
+      "request-changes",
+      new vscode.ThemeColor("charts.red")
+    ),
+    online: new vscode.ThemeIcon("plug", new vscode.ThemeColor("charts.green")),
+  } as const,
+  tooltips = new Map([
+    [icons.none, undefined],
+    [icons.disk, "Only on disk"],
+    [icons.siebel, "Only in Siebel"],
+    [icons.same, "Identical in Siebel and on disk"],
+    [icons.differ, "Differs between Siebel and disk"],
+    [icons.online, "Showing data from Siebel"],
+  ]),
+  selectCommand = {
+    command: "siebelscriptandwebtempeditor.selectTreeItem",
+    title: "Select",
+  } as const,
   //config webview options:
   configOptions = {
     enableScripts: true,
@@ -145,9 +177,24 @@ export const metadata = {
     isCaseSensitive: false,
     matchWholeWord: false,
   } as const,
+  projectInput = {
+    placeHolder: "Enter search string for project",
+  } as const,
+  serviceInput = {
+    placeHolder: "Enter business service name",
+  } as const,
+  //html to show when there is no workspace folder open
+  workspaceDialogOptions = {
+    canSelectFiles: false,
+    canSelectFolders: true,
+    canSelectMany: false,
+    title:
+      "Select a workspace folder for the Siebel Script And Web Template Editor extension",
+  } as const,
   //constant error messages
   error = {
     testConnection: "Error in the Siebel REST API Base URI!",
+    testWorkspace: "Error checking the workspace",
     allWorkspaces:
       "Error getting workspaces from the Siebel REST API, [see documentation for more information!](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)",
     editableWorkspaces:

@@ -6,6 +6,12 @@ import {
   fields,
   paths,
   projectOptions,
+  projectInput,
+  serviceInput,
+  baseScripts,
+  icons,
+  tooltips,
+  selectCommand,
 } from "./constants";
 import {
   workspaceUri,
@@ -21,36 +27,17 @@ import {
   compareObjects,
   pullMissing,
   getObject,
+  createFolder,
 } from "./utils";
 import { settings } from "./settings";
 import { create } from "axios";
 
-const icons = {
-    none: undefined,
-    disk: new vscode.ThemeIcon(
-      "device-desktop",
-      new vscode.ThemeColor("charts.blue")
-    ),
-    siebel: new vscode.ThemeIcon(
-      "cloud",
-      new vscode.ThemeColor("charts.yellow")
-    ),
-    same: new vscode.ThemeIcon("check", new vscode.ThemeColor("charts.green")),
-    differ: new vscode.ThemeIcon(
-      "request-changes",
-      new vscode.ThemeColor("charts.red")
-    ),
-    online: new vscode.ThemeIcon("plug", new vscode.ThemeColor("charts.green")),
-  } as const,
-  tooltips = new Map([
-    [icons.none, undefined],
-    [icons.disk, "Only on disk"],
-    [icons.siebel, "Only in Siebel"],
-    [icons.same, "Identical in Siebel and on disk"],
-    [icons.differ, "Differs between Siebel and disk"],
-    [icons.online, "Showing data from Siebel"],
-  ]);
-
+export const selectTreeItem = async (treeItem: ScriptItem | WebTempItem) =>
+  await treeItem.select();
+export const showFilesOnDisk = async (treeItem: BaseItem | BaseItemWebTemp) =>
+  await treeItem.search();
+export const newService = async (treeItem: BaseItem) =>
+  await treeItem.newService();
 export const pullAllTree = async (treeItem: ObjectItem) =>
   await treeItem.pullAll();
 export const refreshTree = async (treeItem: ObjectItem) =>
@@ -59,8 +46,6 @@ export const newScriptTree = async (treeItem: ObjectItem) =>
   await treeItem.newScript();
 export const compareTree = async (treeItem: ScriptItem | WebTempItem) =>
   await treeItem.compare();
-export const newService = async (treeItem: BaseItem) =>
-  await treeItem.newService();
 
 class TreeView {
   private static instance: TreeView;
@@ -74,32 +59,22 @@ class TreeView {
     webtemp: new BaseItemWebTemp(),
   };
   private readonly treeItems = Object.values(this.treeData);
+  private readonly treeObject;
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   readonly refresh = (
     treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
   ) => this._onDidChangeTreeData.fire(treeItem);
   timeoutId: NodeJS.Timeout | number | null = null;
   private declare baseURL: string;
+  declare focused: ScriptItem | WebTempItem;
 
   private constructor() {
-    const treeView = vscode.window.createTreeView("objectsView", {
+    this.treeObject = vscode.window.createTreeView("objectsView", {
       treeDataProvider: this,
       showCollapseAll: true,
     });
-    treeView.onDidChangeSelection(async ({ selection: [treeItem] }) => {
-      if (
-        treeItem === undefined ||
-        treeItem instanceof BaseItem ||
-        treeItem instanceof BaseItemWebTemp ||
-        treeItem instanceof ObjectItem
-      )
-        return;
-      await (<ScriptItem | WebTempItem>treeItem).select();
-    });
-    treeView.onDidExpandElement(async ({ element }) => {
-      if (element instanceof BaseItem || element instanceof BaseItemWebTemp)
-        return;
-      await (<ObjectItem>element).select();
+    this.treeObject.onDidExpandElement(async ({ element }) => {
+      if (element instanceof ObjectItem) await element.select();
     });
   }
 
@@ -108,13 +83,7 @@ class TreeView {
     return TreeView.instance;
   }
 
-  set restDefaults({ url, username, password }: RestConfig) {
-    this.baseURL = url;
-    this.restApi.defaults.auth = { username, password };
-    this.restApi.defaults.params.PageSize = settings.maxPageSize;
-  }
-
-  async reset(connection: string, workspace: string) {
+  async setWorkspace(connection: string, workspace: string) {
     this.restApi.defaults.baseURL = joinPath(
       this.baseURL,
       "workspace",
@@ -129,6 +98,17 @@ class TreeView {
       );
       await treeItem.search();
     }
+  }
+
+  async setConfig(
+    { url, username, password }: RestConfig,
+    connection: string,
+    workspace: string
+  ) {
+    this.baseURL = url;
+    this.restApi.defaults.auth = { username, password };
+    this.restApi.defaults.params.PageSize = settings.maxPageSize;
+    await this.setWorkspace(connection, workspace);
   }
 
   getTreeItem(
@@ -147,6 +127,12 @@ class TreeView {
       : this.treeItems;
   }
 
+  getParent(
+    treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
+  ) {
+    return treeItem.parent;
+  }
+
   async search(type: Type, searchString?: string) {
     await this.treeData[type].search(searchString);
   }
@@ -163,6 +149,20 @@ class TreeView {
           }`
         );
       return [];
+    }
+  }
+
+  async putObject(path: string, data: Payload) {
+    try {
+      await this.restApi.put(path, data);
+      return true;
+    } catch (err: any) {
+      vscode.window.showErrorMessage(
+        `Error using the Siebel REST API: ${
+          err.response?.data?.ERROR ?? err.message
+        }`
+      );
+      return false;
     }
   }
 
@@ -189,12 +189,13 @@ class TreeView {
 }
 
 class BaseItem extends vscode.TreeItem {
-  override collapsibleState: vscode.TreeItemCollapsibleState =
-    vscode.TreeItemCollapsibleState.Expanded;
   protected readonly parentSegment;
   protected readonly childSegment;
   protected readonly searchFields: QueryParams["fields"] = fields.name;
   readonly baseScriptItems: readonly vscode.QuickPickItem[];
+  readonly parent: undefined;
+  override collapsibleState: vscode.TreeItemCollapsibleState =
+    vscode.TreeItemCollapsibleState.Expanded;
   declare folderUri: vscode.Uri;
   declare readonly label: string;
   treeItems: (ObjectItem | WebTempItem)[] = [];
@@ -241,10 +242,7 @@ class BaseItem extends vscode.TreeItem {
   }
 
   async newService() {
-    const searchString = await vscode.window.showInputBox({
-      placeHolder: "Enter search string for project",
-      //validateInput: validateProjectName,
-    });
+    const searchString = await vscode.window.showInputBox(projectInput);
     if (!searchString) return;
     const params = this.getParams(searchString),
       projectResponse = await treeView.getObject("Project", params),
@@ -255,14 +253,27 @@ class BaseItem extends vscode.TreeItem {
       );
     const project = await vscode.window.showQuickPick(items, projectOptions);
     if (!project) return;
-    const serviceName = await vscode.window.showInputBox({
-      placeHolder: "Enter business service name",
-      //validateInput: validateServiceName,
-    });
-    if (!serviceName) return;
-    const payload = { Name: serviceName, "Project Name": project.label };
-    //treeView.putObject()
-    console.log(payload);
+    const serviceName = await vscode.window.showInputBox(serviceInput),
+      serviceNameTrimmed = serviceName && serviceName.trim();
+    if (!serviceNameTrimmed) return;
+    const path = joinPath(this.parentSegment, serviceNameTrimmed),
+      serviceResponse = await treeView.getObject(path, query.testConnection),
+      isService = serviceResponse.length !== 0;
+    if (isService)
+      return vscode.window.showErrorMessage(
+        `Busines service ${serviceNameTrimmed} already exists!`
+      );
+    const payload = { Name: serviceNameTrimmed, "Project Name": project.label },
+      isSuccess = await treeView.putObject(path, payload);
+    if (!isSuccess) return;
+    const folderUri = vscode.Uri.joinPath(this.folderUri, serviceNameTrimmed),
+      fileUri = getFileUri(
+        folderUri,
+        "Service_PreInvokeMethod",
+        settings.fileExtension
+      );
+    await writeFile(fileUri, baseScripts.Service_PreInvokeMethod);
+    await this.search();
   }
 }
 
@@ -327,6 +338,7 @@ class ScriptItem extends vscode.TreeItem {
     this.folderUri = folderUri;
     this.icon = iconPath;
     this.parent = parent;
+    this.setCommand();
   }
 
   set icon(iconPath: vscode.ThemeIcon | undefined) {
@@ -351,6 +363,10 @@ class ScriptItem extends vscode.TreeItem {
     return getFileUri(this.folderUri, this.label, this.ext);
   }
 
+  setCommand() {
+    this.command = { ...selectCommand, arguments: [this] };
+  }
+
   async select() {
     if (this.iconPath === icons.siebel) {
       const data = await treeView.getObject(this.path, this.params);
@@ -363,6 +379,7 @@ class ScriptItem extends vscode.TreeItem {
       if (this.parent) this.parent.iconPath = icons.same;
       treeView.refresh(this.parent ? this.parent : this);
     }
+    treeView.focused = this;
     await openFile(this.fileUri);
   }
 
@@ -403,6 +420,8 @@ class ObjectItem extends ScriptItem {
   override set icon(iconPath: vscode.ThemeIcon | undefined) {
     this.iconPath = iconPath;
   }
+
+  override setCommand() {}
 
   private createItem(label: string, iconPath: vscode.ThemeIcon | undefined) {
     const path = joinPath(this.path, label);

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+  <div class="datasource">
+    <div class="grid-item grid-1">
+      <label for="connection">Connection</label>
+    </div>
+    <div class="grid-item grid-2">
+      <select name="connection" class="input select" id="connection" onchange="selectConnection()"></select>
+    </div>
+    <div class="grid-item grid-1">
+      <label for="workspace">Workspace</label>
+    </div>
+    <div class="grid-item grid-2">
+      <select name="workspace" class="input select" id="workspace" onchange="selectWorkspace()"></select>
+    </div>
+    <div class="grid-item grid-1">
+      <label for="type">Object type</label>
+    </div>
+    <div class="grid-item grid-2">
+      <select name="type" class="input select" id="type" onchange="selectType()"></select>
+    </div>
+    <div class="grid-item grid-12">
+      <input type="search" name="search-bar" class="input" id="search-bar" oninput="handleSearch()"
+        placeholder="Type here to search">
+    </div>
+  </div>
+  <script>
+    const vscode = acquireVsCodeApi(),
+      state = vscode.getState() ?? {},
+      objectNames = {
+        service: "Business Service",
+        buscomp: "Business Component",
+        applet: "Applet",
+        application: "Application",
+        webtemp: "Web Template"
+      },
+      createOptions = (items = [], selected, isObject = false) =>
+        items.map((item) => `<option class="option" value="${item}" ${item === selected ? "selected" : ""}>
+        ${isObject ? objectNames[item] : item}</option>`).join(""),
+      selectConnection = () => {
+        const connection = document.getElementById("connection").value;
+        state.connection = connection;
+        vscode.setState(state);
+        vscode.postMessage({ command: "connection", data: connection });
+      },
+      selectWorkspace = () => {
+        const workspace = document.getElementById("workspace").value;
+        state.workspace = workspace;
+        vscode.setState(state);
+        vscode.postMessage({ command: "workspace", data: workspace });
+      },
+      selectType = () => {
+        const type = document.getElementById("type").value;
+        state.type = type;
+        vscode.setState(state);
+        vscode.postMessage({ command: "type", data: type });
+      },
+      handleSearch = () => {
+        const searchString = document.getElementById("search-bar").value;
+        state.searchString = searchString;
+        vscode.setState(state);
+        vscode.postMessage({ command: "search", data: searchString });
+      },
+      populate = () => {
+        const { connections = [], connection = "", workspaces = [], workspace = "", type = "service", searchString = "" } = state,
+          noConnection = connections.length === 0,
+          noWorkspaces = noConnection || workspaces.length === 0;
+        document.getElementById("connection").innerHTML = createOptions(connections, connection);
+        document.getElementById("connection").disabled = noConnection;
+        document.getElementById("workspace").innerHTML = createOptions(workspaces, workspace);
+        document.getElementById("workspace").disabled = noWorkspaces;
+        document.getElementById("type").innerHTML = createOptions(["service", "buscomp", "applet", "application", "webtemp"], type, true);
+        document.getElementById("type").disabled = noWorkspaces;
+        document.getElementById("search-bar").value = searchString;
+        document.getElementById("search-bar").readOnly = noWorkspaces;
+      };
+    populate();
+    window.addEventListener("message", ({ data:
+      { connections = [], connection = "", workspaces = [], workspace = "", type = "service" }
+    }) => {
+      state.connections = connections;
+      state.connection = connection;
+      state.workspaces = workspaces;
+      state.workspace = workspace;
+      state.type = type;
+      state.searchString = "";
+      vscode.setState(state);
+      populate();
+    });
+  </script>
+</body>
+
+</html>

@@ -10,6 +10,7 @@ import {
   findInFilesOptions,
   pushAllNo,
   fields,
+  icons,
 } from "./constants";
 import { getConfig, settings } from "./settings";
 import {
@@ -29,6 +30,7 @@ import {
   pullMissing,
   getLocalWorkspaces,
 } from "./utils";
+import { treeView } from "./treeView";
 
 let editor: vscode.TextEditor | undefined,
   document: vscode.TextDocument,

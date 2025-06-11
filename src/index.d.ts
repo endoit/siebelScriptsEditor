@@ -91,7 +91,7 @@ type TreeItemState = "disk" | "siebel" | "same" | "differ";
 type Answer = "Only method names" | "All scripts" | "Yes" | "No" | undefined;
 
 //button actions
-type Button = "pull" | "push" | "search" | "pushAll" | "refresh";
+type Button = "pull" | "push" | "search" | "pushAll";
 
 //type for subscriptions
 type Subscriptions = { dispose(): any }[];
