@@ -184,8 +184,15 @@ class TreeView {
     return fileContent === text ? icons.same : icons.differ;
   }
 
-  setTreeItemIconToSame(type: Type, name: string, folderUri: vscode.Uri) {
-    this.treeData.get(type)?.setTreeItemIconToSame(name, folderUri);
+  setTreeItemIcon(
+    type: Type,
+    name: string,
+    folderUri: vscode.Uri,
+    icon: vscode.ThemeIcon,
+    parent?: string
+  ) {
+    if (this.treeData.get(type)!.folderUri.path !== folderUri.path) return;
+    this.treeData.get(type)?.setTreeItemIcon(name, icon, parent);
   }
 }
 
@@ -216,7 +223,7 @@ class BaseItem extends vscode.TreeItem {
   protected resetTreeData(items: (ObjectItem | WebTempItem)[]) {
     this.treeData.clear();
     for (const treeItem of items) {
-      this.treeData.set(treeItem.folderUri.path, treeItem);
+      this.treeData.set(treeItem.label, treeItem);
     }
     treeView.refresh(this);
   }
@@ -289,12 +296,16 @@ class BaseItem extends vscode.TreeItem {
     await this.search();
   }
 
-  setTreeItemIconToSame(name: string, folderUri: vscode.Uri) {
-    const treeItem = (<Map<string, ObjectItem>>this.treeData)
-      .get(folderUri.path)
+  protected getTreeItem(name: string, parent?: string) {
+    return (<Map<string, ObjectItem>>this.treeData)
+      .get(parent!)
       ?.treeData.get(name);
-    if (!treeItem || !treeItem.iconPath) return;
-    treeItem.iconPath = icons.same;
+  }
+
+  setTreeItemIcon(name: string, icon: vscode.ThemeIcon, parent?: string) {
+    const treeItem = this.getTreeItem(name, parent);
+    if (!treeItem || treeItem.icon === icon) return;
+    treeItem.iconPath = icon;
     treeView.refresh(treeItem);
   }
 }
@@ -336,11 +347,8 @@ class BaseItemWebTemp extends BaseItem {
     this.resetTreeData(items);
   }
 
-  override setTreeItemIconToSame(name: string) {
-    const treeItem = this.treeData.get(name);
-    if (!treeItem || !treeItem.iconPath) return;
-    treeItem.iconPath = icons.same;
-    treeView.refresh(treeItem);
+  protected override getTreeItem(name: string) {
+    return (<Map<string, WebTempItem>>this.treeData).get(name);
   }
 }
 

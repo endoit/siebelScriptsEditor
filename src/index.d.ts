@@ -33,7 +33,7 @@ type Payload = {
   Script?: string;
   "Program Language"?: "JS";
   Definition?: string;
-  "Project Name"?: string
+  "Project Name"?: string;
 };
 
 //Siebel REST response

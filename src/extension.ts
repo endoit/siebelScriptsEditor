@@ -16,6 +16,7 @@ import {
   search,
   pushAll,
   newScript,
+  checkFileChange,
 } from "./buttonAction";
 import {
   newService,
@@ -40,6 +41,7 @@ export async function activate({
 
     vscode.window.onDidChangeActiveTextEditor(parseFilePath);
     vscode.workspace.onDidRenameFiles(reparseFilePath);
+    vscode.workspace.onDidChangeTextDocument(checkFileChange);
     vscode.workspace.onDidChangeConfiguration(refreshConfig);
 
     const commands = {

@@ -82,10 +82,10 @@ export const newWorkspace = async () => {
   const config = getConfig(connection),
     path = `workspace/${answer}/Application`,
     response = await getObject("testConnection", config, path);
-  if (response.length === 0)
-    return vscode.window.showErrorMessage(
+  if (response.length === 0) return;
+  /* return vscode.window.showErrorMessage(
       `Workspace ${answer} does not exist in the ${connection} connection!`
-    );
+    );*/
   workspace = answer;
   const folderUri = vscode.Uri.joinPath(workspaceUri, connection, workspace);
   await vscode.workspace.fs.createDirectory(folderUri);
@@ -154,11 +154,10 @@ const configHandler = async ({
           paths.workspaces
         ),
         uncheck = response.length === 0;
-      if (!uncheck)
-        vscode.window.showInformationMessage(
-          "Getting workspaces from the Siebel REST API was successful!"
-        );
-      return await configView.postMessage({ uncheck });
+      if (uncheck) return await configView.postMessage({ uncheck });
+      return vscode.window.showInformationMessage(
+        "Getting workspaces from the Siebel REST API was successful!"
+      );
     case "newConnection":
       const connectionExists = Object.keys(getConfig(name)).length > 0;
       if (connectionExists)

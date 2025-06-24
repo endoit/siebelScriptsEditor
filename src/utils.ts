@@ -5,6 +5,7 @@ import {
   customScriptItem,
   dataSourceOptions,
   error,
+  icons,
   newScriptOptions,
   openFileOptions,
   query,
@@ -58,9 +59,7 @@ export const getObject = async (
     vscode.window.showErrorMessage(
       err.response?.status === 404
         ? error[action]
-        : `Error using the Siebel REST API: ${
-            err.response?.data?.ERROR ?? err.message
-          }`
+        : err.response?.data?.ERROR ?? err.message
     );
     return [];
   }
@@ -231,6 +230,7 @@ export const createNewScript = async (
   const fileUri = getFileUri(folderUri, label, settings.fileExtension);
   await writeFile(fileUri, content);
   await openFile(fileUri);
+  //refresh tree
 };
 
 export const compareObjects = async (
@@ -254,14 +254,16 @@ export const compareObjects = async (
 export const pullMissing = async (
   response: RestResponse,
   folderUri: vscode.Uri,
-  type?: Type
+  type?: Type,
+  parent?: string
 ) => {
   const onDisk = await getScriptsOnDisk(folderUri);
   for (const { Name: label, Script: text } of response) {
     if (onDisk.has(label) || !text) continue;
     const fileUri = getFileUri(folderUri, label, settings.fileExtension);
     await writeFile(fileUri, text);
-    if (type) treeView.setTreeItemIconToSame(type, label, folderUri);
+    if (type)
+      treeView.setTreeItemIcon(type, label, folderUri, icons.same, parent);
   }
 };
 
@@ -278,9 +280,8 @@ export const getHTML = async (
     fileContent = await readFile(fileUri),
     styleUri = webview.asWebviewUri(
       vscode.Uri.joinPath(extensionUri, "webview", "style.css")
-    ),
-    replacedHTML = fileContent!.replace("./style.css", styleUri.toString());
-  return replacedHTML;
+    );
+  return fileContent!.replace("./style.css", styleUri.toString());
 };
 
 export const openWorkspace = async (

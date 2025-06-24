@@ -12,7 +12,7 @@ import {
   fields,
   icons,
 } from "./constants";
-import { getConfig, settings } from "./settings";
+import { getConfig } from "./settings";
 import {
   getObject,
   isFileScript,
@@ -36,6 +36,7 @@ let editor: vscode.TextEditor | undefined,
   document: vscode.TextDocument,
   name: string,
   ext: FileExt,
+  parent: string,
   type: Type,
   field: Field,
   baseScriptItems: readonly vscode.QuickPickItem[],
@@ -48,7 +49,10 @@ let editor: vscode.TextEditor | undefined,
   workspace: string,
   connection: string,
   config: Config,
-  folderUri: vscode.Uri;
+  folderUri: vscode.Uri,
+  objectFolderUri: vscode.Uri;
+
+let recent: boolean;
 
 export const parseFilePath = async (
   textEditor: vscode.TextEditor | undefined
@@ -70,10 +74,11 @@ export const parseFilePath = async (
     if (!name) throw buttonError;
     switch (true) {
       case isFileScript(ext) && parts.length > 4:
-        const parent = parts.pop()!;
+        parent = parts.pop()!;
         type = <Type>parts.pop();
         const meta = metadata[type];
         if (!meta) throw buttonError;
+        objectFolderUri = vscode.Uri.joinPath(folderUri, "..");
         baseScriptItems = meta.baseScriptItems;
         field = fields.script;
         parentPath = joinPath(meta.parent, parent, meta.child);
@@ -82,7 +87,9 @@ export const parseFilePath = async (
         visibility.search = true;
         break;
       case isFileWebTemp(ext) && parts.length > 3 && parts.pop() === "webtemp":
+        parent = "";
         type = "webtemp";
+        objectFolderUri = folderUri;
         field = fields.definition;
         parentPath = "Web Template";
         message = "Web Template definition";
@@ -119,6 +126,17 @@ export const reparseFilePath = ({ files }: vscode.FileRenameEvent) => {
   }
 };
 
+export const checkFileChange = async ({
+  document: changed,
+}: vscode.TextDocumentChangeEvent) => {
+  if (!changed || changed.uri.path !== document.uri.path) return;
+  if (recent) {
+    recent = false;
+    return;
+  }
+  treeView.setTreeItemIcon(type, name, objectFolderUri, icons.differ, parent);
+};
+
 export const pull = async () => {
   const answer = await vscode.window.showInformationMessage(
     `Do you want to pull the ${name} ${message} from the ${workspace} workspace of the ${config.name} connection?`,
@@ -129,7 +147,8 @@ export const pull = async () => {
     content = response[0]?.[field];
   if (content === undefined) return;
   await writeFile(document.uri, content);
-  treeView.setTreeItemIconToSame(type, name, folderUri);
+  treeView.setTreeItemIcon(type, name, objectFolderUri, icons.same, parent);
+  recent = true;
 };
 
 export const push = async () => {
@@ -151,7 +170,8 @@ export const push = async () => {
   vscode.window.showInformationMessage(
     `Successfully pushed ${name} to Siebel!`
   );
-  treeView.setTreeItemIconToSame(type, name, folderUri);
+  treeView.setTreeItemIcon(type, name, objectFolderUri, icons.same, parent);
+  recent = true;
 };
 
 export const compare = async () => {
@@ -197,12 +217,14 @@ export const search = async () => {
       : selection,
     query = selected ? document.getText(selected) : "",
     response = await getObject("pullScript", config, parentFullPath);
-  await pullMissing(response, folderUri, type);
+  await pullMissing(response, folderUri, type, parent);
   await vscode.commands.executeCommand("workbench.action.findInFiles", {
     query,
     filesToInclude: folderUri.fsPath,
     ...findInFilesOptions,
   });
+  //refresh parent
+  //recent
 };
 
 export const pushAll = async () => {
@@ -231,16 +253,23 @@ export const pushAll = async () => {
     `Do you want to push ${messageAll} to the ${workspace} workspace of the ${config.name} connection?`,
     ...pushAllNo
   );
-  if (answer !== "Push all") return;
+  if (answer !== "Push All") return;
   for (const payload of payloads) {
     const pushFullPath = joinPath(parentFullPath, payload.Name),
       result = await putObject(config, pushFullPath, payload);
     if (!result) return;
-    treeView.setTreeItemIconToSame(type, payload.Name, folderUri);
+    treeView.setTreeItemIcon(
+      type,
+      payload.Name,
+      objectFolderUri,
+      icons.same,
+      parent
+    );
   }
   vscode.window.showInformationMessage(
     `Successfully pushed ${messageAll} to Siebel!`
   );
+  //refresh parent
 };
 
 export const newScript = async () =>

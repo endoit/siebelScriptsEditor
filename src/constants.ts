@@ -82,7 +82,6 @@ export const metadata = {
   //constant query params
   query = {
     testConnection: { fields: "Name" },
-    testWorkspace: { fields: "Name" },
     allWorkspaces: {
       fields: "Name,Status",
       ViewMode: "Organization",
@@ -107,7 +106,7 @@ export const metadata = {
   yesNo = ["Yes", "No"] as const,
   pullNo = ["Pull", "No"] as const,
   pushNo = ["Push", "No"] as const,
-  pushAllNo = ["Push all", "No"] as const,
+  pushAllNo = ["Push All", "No"] as const,
   icons = {
     none: undefined,
     disk: new vscode.ThemeIcon(
@@ -194,7 +193,6 @@ export const metadata = {
   //constant error messages
   error = {
     testConnection: "Error in the Siebel REST API Base URI!",
-    testWorkspace: "Error checking the workspace",
     allWorkspaces:
       "Error getting workspaces from the Siebel REST API, [see documentation for more information!](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)",
     editableWorkspaces:
