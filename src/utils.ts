@@ -5,14 +5,20 @@ import {
   customScriptItem,
   dataSourceOptions,
   error,
-  icons,
+  fields,
+  metadata,
   newScriptOptions,
   openFileOptions,
+  paths,
+  projectInput,
+  projectOptions,
   query,
+  serviceInput,
+  itemStates,
   workspaceDialogOptions,
+  findInFilesOptions,
 } from "./constants";
 import { create } from "axios";
-import { settings } from "./settings";
 import { treeView } from "./treeView";
 
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
@@ -25,6 +31,34 @@ const compareFileUris =
       html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
     } as const),
   restApi = create(baseConfig);
+
+export const settings: ExtensionSettings = {
+  ...vscode.workspace.getConfiguration().get("siebelScriptAndWebTempEditor")!,
+};
+
+export const getConfig = (name: string) => {
+  for (const connection of settings.connections) {
+    if (connection.name === name) return connection;
+  }
+  return <Config>{};
+};
+
+export const setConfigs = async (configs: Config[]) =>
+  await vscode.workspace
+    .getConfiguration("siebelScriptAndWebTempEditor")
+    .update("connections", configs, vscode.ConfigurationTarget.Global);
+
+export const configChange = (e: vscode.ConfigurationChangeEvent) => {
+  if (!e.affectsConfiguration("siebelScriptAndWebTempEditor")) return false;
+  for (const name of <(keyof ExtensionSettings)[]>Object.keys(settings)) {
+    if (!e.affectsConfiguration(`siebelScriptAndWebTempEditor.${name}`))
+      continue;
+    settings[name] = vscode.workspace
+      .getConfiguration("siebelScriptAndWebTempEditor")
+      .get(name)!;
+    return name === "connections";
+  }
+};
 
 export const openSettings = () =>
   vscode.commands.executeCommand(
@@ -44,13 +78,17 @@ export const joinPath = (...parts: string[]) => parts.join("/");
 export const getObject = async (
   action: RestAction,
   { url: baseURL, username, password }: RestConfig,
-  path: string
+  path: string,
+  params?: QueryParams
 ): Promise<RestResponse> => {
   try {
     const request = {
         baseURL,
         auth: { username, password },
-        params: query[action],
+        params: {
+          ...(params ?? query[action]),
+          PageSize: settings.maxPageSize,
+        },
       },
       response = await restApi.get(path, request),
       data = response?.data?.items ?? [];
@@ -66,7 +104,7 @@ export const getObject = async (
 };
 
 export const putObject = async (
-  { url: baseURL, username, password }: Config,
+  { url: baseURL, username, password }: RestConfig,
   path: string,
   data: Payload
 ) => {
@@ -205,6 +243,14 @@ export const readFile = async (fileUri: vscode.Uri) => {
   }
 };
 
+export const searchInFiles = async (folderUri: vscode.Uri, query = "") => {
+  await vscode.commands.executeCommand("workbench.action.findInFiles", {
+    query,
+    filesToInclude: folderUri.fsPath,
+    ...findInFilesOptions,
+  });
+};
+
 export const createNewScript = async (
   folderUri: vscode.Uri,
   baseScriptItems: readonly vscode.QuickPickItem[]
@@ -219,7 +265,7 @@ export const createNewScript = async (
   const isCustom = answer.label === "Custom",
     label = isCustom
       ? await vscode.window.showInputBox({
-          placeHolder: "Enter server script name",
+          placeHolder: "Enter the name of the new server script",
           validateInput: createValidateScriptName(files),
         })
       : answer.label;
@@ -229,8 +275,54 @@ export const createNewScript = async (
     : baseScripts[<keyof typeof baseScripts>label];
   const fileUri = getFileUri(folderUri, label, settings.fileExtension);
   await writeFile(fileUri, content);
+  await openFile(fileUri); //átgondolni a frissitést
+};
+
+export const createNewService = async (
+  config: RestConfig,
+  objectFolderUri: vscode.Uri
+) => {
+  const searchString = await vscode.window.showInputBox(projectInput);
+  if (!searchString) return;
+  const params = {
+      fields: fields.name,
+      searchSpec: `Name LIKE '${searchString}*'`,
+    },
+    projectResponse = await getObject("search", config, paths.project, params),
+    items = projectResponse.map(({ Name }) => ({ label: Name }));
+  if (items.length === 0)
+    return vscode.window.showErrorMessage(
+      `No project name starts with the specified string "${searchString}"!`
+    );
+  const project = await vscode.window.showQuickPick(items, projectOptions);
+  if (!project) return;
+  const serviceName = await vscode.window.showInputBox(serviceInput),
+    serviceNameTrimmed = serviceName && serviceName.trim();
+  if (!serviceNameTrimmed) return;
+  const path = joinPath(metadata.service.parent, serviceNameTrimmed),
+    serviceResponse = await getObject(
+      "search",
+      config,
+      path,
+      query.testConnection
+    ),
+    isService = serviceResponse.length !== 0;
+  if (isService)
+    return vscode.window.showErrorMessage(
+      `Busines service ${serviceNameTrimmed} already exists!`
+    );
+  const payload = { Name: serviceNameTrimmed, "Project Name": project.label },
+    isSuccess = await putObject(config, path, payload);
+  if (!isSuccess) return;
+  const folderUri = vscode.Uri.joinPath(objectFolderUri, serviceNameTrimmed),
+    fileUri = getFileUri(
+      folderUri,
+      "Service_PreInvokeMethod",
+      settings.fileExtension
+    );
+  await writeFile(fileUri, baseScripts.Service_PreInvokeMethod);
   await openFile(fileUri);
-  //refresh tree
+  //await treeView.search("service"); //átgondolni a frissitést
 };
 
 export const compareObjects = async (
@@ -241,7 +333,7 @@ export const compareObjects = async (
   compareMessage: string
 ) => {
   const content = response[0]?.[field];
-  if (content === undefined) return;
+  if (content === undefined) return false;
   await writeFile(compareFileUris[ext], content);
   await vscode.commands.executeCommand(
     "vscode.diff",
@@ -249,6 +341,7 @@ export const compareObjects = async (
     fileUri,
     compareMessage
   );
+  return content !== (await readFile(fileUri));
 };
 
 export const pullMissing = async (
@@ -263,7 +356,7 @@ export const pullMissing = async (
     const fileUri = getFileUri(folderUri, label, settings.fileExtension);
     await writeFile(fileUri, text);
     if (type)
-      treeView.setTreeItemIcon(type, label, folderUri, icons.same, parent);
+      treeView.setItemState(type, label, folderUri, itemStates.same, parent);
   }
 };
 

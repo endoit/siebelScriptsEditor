@@ -72,7 +72,7 @@ export const metadata = {
       uniformresponse: "y",
       childlinks: "None",
     },
-  },
+  } as const,
   //fields
   fields = {
     name: "Name",
@@ -81,6 +81,7 @@ export const metadata = {
   } as const,
   //constant query params
   query = {
+    search: {},
     testConnection: { fields: "Name" },
     allWorkspaces: {
       fields: "Name,Status",
@@ -100,38 +101,52 @@ export const metadata = {
   paths = {
     workspaces: "data/Workspace/Repository Workspace",
     test: "workspace/MAIN/Application",
-    project: "workspace/MAIN/Project",
+    project: "Project",
   } as const,
   //constant for message box answers
   yesNo = ["Yes", "No"] as const,
   pullNo = ["Pull", "No"] as const,
   pushNo = ["Push", "No"] as const,
   pushAllNo = ["Push All", "No"] as const,
-  icons = {
-    none: undefined,
-    disk: new vscode.ThemeIcon(
-      "device-desktop",
-      new vscode.ThemeColor("charts.blue")
-    ),
-    siebel: new vscode.ThemeIcon(
-      "cloud",
-      new vscode.ThemeColor("charts.yellow")
-    ),
-    same: new vscode.ThemeIcon("check", new vscode.ThemeColor("charts.green")),
-    differ: new vscode.ThemeIcon(
-      "request-changes",
-      new vscode.ThemeColor("charts.red")
-    ),
-    online: new vscode.ThemeIcon("plug", new vscode.ThemeColor("charts.green")),
+  itemStates = {
+    none: { icon: undefined, tooltip: undefined },
+    offline: {
+      icon: new vscode.ThemeIcon("library"),
+      tooltip: "Showing objects on disk",
+    },
+    online: {
+      icon: new vscode.ThemeIcon("plug", new vscode.ThemeColor("charts.green")),
+      tooltip: "Showing data from Siebel, last search: ",
+    },
+    disk: {
+      icon: new vscode.ThemeIcon(
+        "device-desktop",
+        new vscode.ThemeColor("charts.blue")
+      ),
+      tooltip: "Only on disk",
+    },
+    siebel: {
+      icon: new vscode.ThemeIcon(
+        "cloud",
+        new vscode.ThemeColor("charts.yellow")
+      ),
+      tooltip: "Only in Siebel",
+    },
+    same: {
+      icon: new vscode.ThemeIcon(
+        "check",
+        new vscode.ThemeColor("charts.green")
+      ),
+      tooltip: "Identical in Siebel and on disk, last check: ",
+    },
+    differ: {
+      icon: new vscode.ThemeIcon(
+        "request-changes",
+        new vscode.ThemeColor("charts.red")
+      ),
+      tooltip: "Differs between Siebel and disk, last check: ",
+    },
   } as const,
-  tooltips = new Map([
-    [icons.none, undefined],
-    [icons.disk, "Only on disk"],
-    [icons.siebel, "Only in Siebel"],
-    [icons.same, "Identical in Siebel and on disk"],
-    [icons.differ, "Differs between Siebel and disk"],
-    [icons.online, "Showing data from Siebel"],
-  ]),
   selectCommand = {
     command: "siebelscriptandwebtempeditor.selectTreeItem",
     title: "Select",
@@ -177,10 +192,10 @@ export const metadata = {
     matchWholeWord: false,
   } as const,
   projectInput = {
-    placeHolder: "Enter search string for project",
+    placeHolder: "Enter the search string for the Siebel project name",
   } as const,
   serviceInput = {
-    placeHolder: "Enter business service name",
+    placeHolder: "Enter the name of the new business service",
   } as const,
   //html to show when there is no workspace folder open
   workspaceDialogOptions = {
@@ -192,6 +207,7 @@ export const metadata = {
   } as const,
   //constant error messages
   error = {
+    search: "",
     testConnection: "Error in the Siebel REST API Base URI!",
     allWorkspaces:
       "Error getting workspaces from the Siebel REST API, [see documentation for more information!](https://github.com/endoit/siebelScriptsEditor/wiki#21-configuration)",
@@ -248,3 +264,5 @@ export const metadata = {
     Application_PreNavigate: `function Application_PreNavigate (DestViewName, DestBusObjName)\n{\n\treturn (ContinueOperation);\n}`,
     Application_Navigate: `function Application_Navigate ()\n{\n\n}`,
   } as const;
+
+export type ItemStates = (typeof itemStates)[keyof typeof itemStates];

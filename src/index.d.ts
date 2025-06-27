@@ -8,7 +8,11 @@ type ExtensionSettings = {
   maxPageSize: 10 | 20 | 50 | 100 | 200 | 500;
 };
 
-type RestConfig = { url: string; username: string; password: string };
+type RestConfig = {
+  url: string;
+  username: string;
+  password: string;
+};
 
 type Config = {
   name: string;
@@ -70,6 +74,7 @@ type ConfigMessage = {
 
 //Siebel rest api actions
 type RestAction =
+  | "search"
   | "testConnection"
   | "allWorkspaces"
   | "editableWorkspaces"
@@ -84,14 +89,11 @@ type FileExt = "js" | "ts" | "html";
 //downloaded files
 type OnDisk = Map<string, FileExt>;
 
-//tree item state
-type TreeItemState = "disk" | "siebel" | "same" | "differ";
-
 //Answer options for tree item selection
 type Answer = "Only method names" | "All scripts" | "Yes" | "No" | undefined;
 
 //button actions
-type Button = "pull" | "push" | "search" | "pushAll";
+type Button = "pull" | "push" | "search" | "pushAll" | "newService";
 
 //type for subscriptions
 type Subscriptions = { dispose(): any }[];

@@ -14,14 +14,14 @@ import {
   createFolder,
   getHTML,
   openWorkspace,
+  configChange,
+  getConfig,
+  setConfigs,
+  settings,
 } from "./utils";
-import { configChange, getConfig, setConfigs, settings } from "./settings";
 import { treeView } from "./treeView";
 
-let connection = "",
-  workspace = "",
-  type: Type = "service",
-  dataSourceView: vscode.Webview,
+let dataSourceView: vscode.Webview,
   dataSourceHTML: string,
   configPanel: vscode.WebviewPanel | undefined,
   configView: vscode.Webview,
@@ -33,15 +33,17 @@ export const refreshState = async () => {
     defaultConnection;
   for (const { name, isDefault } of settings.connections) {
     connections.push(name);
-    isConnection ||= connection === name;
+    isConnection ||= treeView.connection === name;
     if (isDefault) defaultConnection = name;
   }
   if (connections.length === 0) {
     vscode.window.showErrorMessage(error.noConnection);
     return dataSourceView.postMessage({});
   }
-  connection = isConnection ? connection : defaultConnection ?? connections[0];
-  const config = getConfig(connection);
+  treeView.connection = isConnection
+    ? treeView.connection
+    : defaultConnection ?? connections[0];
+  const config = getConfig(treeView.connection);
   if (config.restWorkspaces) {
     const data = await getObject(
       "editableWorkspaces",
@@ -52,18 +54,20 @@ export const refreshState = async () => {
       const { Name, RepositoryWorkspace } = data.pop()!;
       if (RepositoryWorkspace) data.push(...RepositoryWorkspace);
       if (!Name.includes(config.username.toLowerCase())) continue;
-      await createFolder(connection, Name);
+      await createFolder(treeView.connection, Name);
     }
   }
-  const workspaces = await getLocalWorkspaces(connection);
-  workspace = workspaces.includes(workspace) ? workspace : workspaces[0];
-  await treeView.setConfig(config, connection, workspace);
+  const workspaces = await getLocalWorkspaces(treeView.connection);
+  treeView.workspace = workspaces.includes(treeView.workspace)
+    ? treeView.workspace
+    : workspaces[0];
+  await treeView.setConfig(config);
   return await dataSourceView.postMessage({
     connections,
-    connection,
+    connection: treeView.connection,
     workspaces,
-    workspace,
-    type,
+    workspace: treeView.workspace,
+    type: treeView.type,
   });
 };
 
@@ -73,21 +77,22 @@ export const refreshConfig = async (event: vscode.ConfigurationChangeEvent) => {
 };
 
 export const newWorkspace = async () => {
-  const workspaces = await getLocalWorkspaces(connection),
+  const workspaces = await getLocalWorkspaces(treeView.connection),
     answer = await vscode.window.showInputBox({
       placeHolder: "Enter name of the new workspace",
       validateInput: createValidateWorkspaceName(workspaces),
     });
   if (!answer) return;
-  const config = getConfig(connection),
+  const config = getConfig(treeView.connection),
     path = `workspace/${answer}/Application`,
     response = await getObject("testConnection", config, path);
   if (response.length === 0) return;
-  /* return vscode.window.showErrorMessage(
-      `Workspace ${answer} does not exist in the ${connection} connection!`
-    );*/
-  workspace = answer;
-  const folderUri = vscode.Uri.joinPath(workspaceUri, connection, workspace);
+  treeView.workspace = answer;
+  const folderUri = vscode.Uri.joinPath(
+    workspaceUri,
+    treeView.connection,
+    treeView.workspace
+  );
   await vscode.workspace.fs.createDirectory(folderUri);
   await refreshState();
 };
@@ -95,16 +100,15 @@ export const newWorkspace = async () => {
 const dataSourceHandler = async ({ command, data }: DataSourceMessage) => {
   switch (command) {
     case "connection":
-      connection = data;
+      treeView.connection = data;
       return await refreshState();
     case "workspace":
-      workspace = data;
-      return await treeView.setWorkspace(connection, workspace);
+      treeView.workspace = data;
+      return await treeView.setWorkspace();
     case "type":
-      return (type = data);
+      return (treeView.type = data);
     case "search":
-      //if (data.length > 0 && data.length < 3) return;
-      return await treeView.search(type, data);
+      return await treeView.search(data);
   }
 };
 
@@ -164,7 +168,7 @@ const configHandler = async ({
         return vscode.window.showErrorMessage(error.connectionExists);
       config.name = name;
       configs.unshift(config);
-      connection = name;
+      treeView.connection = name;
     case "editConnection":
       config.url = url;
       config.username = username;
@@ -198,7 +202,7 @@ export const createConfig =
     const columnToShowIn = vscode.window.activeTextEditor?.viewColumn,
       isPanel = configPanel !== undefined,
       isNew = configType === "new" || settings.connections.length === 0,
-      config = isNew ? <Config>{} : getConfig(connection);
+      config = isNew ? <Config>{} : getConfig(treeView.connection);
     configPanel ??= vscode.window.createWebviewPanel(
       "configureConnection",
       "Configure Connection",

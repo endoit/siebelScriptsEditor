@@ -6,7 +6,7 @@ import {
   createConfig,
   newWorkspace,
   refreshConfig,
-} from "./state";
+} from "./webview";
 import {
   compare,
   pull,
@@ -16,16 +16,18 @@ import {
   search,
   pushAll,
   newScript,
+  newService,
   checkFileChange,
 } from "./buttonAction";
 import {
-  newService,
+  newServiceTree,
   compareTree,
   newScriptTree,
   pullAllTree,
   refreshTree,
   selectTreeItem,
   showFilesOnDisk,
+  searchTree,
 } from "./treeView";
 
 export async function activate({
@@ -51,14 +53,16 @@ export async function activate({
       search,
       pushAll,
       newScript,
+      newService,
       newWorkspace,
       refreshState,
       newConnection: createConfig(extensionUri, subscriptions, "new"),
       editConnection: createConfig(extensionUri, subscriptions, "edit"),
       openSettings,
       selectTreeItem,
+      searchTree,
       showFilesOnDisk,
-      newService,
+      newServiceTree,
       pullAllTree,
       refreshTree,
       newScriptTree,

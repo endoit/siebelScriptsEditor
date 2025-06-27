@@ -10,10 +10,10 @@ import {
   findInFilesOptions,
   pushAllNo,
   fields,
-  icons,
+  itemStates,
 } from "./constants";
-import { getConfig } from "./settings";
 import {
+  getConfig,
   getObject,
   isFileScript,
   isFileWebTemp,
@@ -29,6 +29,8 @@ import {
   compareObjects,
   pullMissing,
   getLocalWorkspaces,
+  createNewService,
+  searchInFiles,
 } from "./utils";
 import { treeView } from "./treeView";
 
@@ -52,7 +54,7 @@ let editor: vscode.TextEditor | undefined,
   folderUri: vscode.Uri,
   objectFolderUri: vscode.Uri;
 
-let recent: boolean;
+let isFocused: boolean, recent: boolean;
 
 export const parseFilePath = async (
   textEditor: vscode.TextEditor | undefined
@@ -62,6 +64,7 @@ export const parseFilePath = async (
     push: false,
     search: false,
     pushAll: false,
+    newService: false,
   };
 
   try {
@@ -84,14 +87,13 @@ export const parseFilePath = async (
         parentPath = joinPath(meta.parent, parent, meta.child);
         message = `script of the ${parent} ${meta.parent}`;
         messageAll = `all scripts of the ${parent} ${meta.parent}`;
-        visibility.search = true;
         break;
       case isFileWebTemp(ext) && parts.length > 3 && parts.pop() === "webtemp":
         parent = "";
         type = "webtemp";
         objectFolderUri = folderUri;
         field = fields.definition;
-        parentPath = "Web Template";
+        parentPath = metadata.webtemp.parent;
         message = "Web Template definition";
         break;
       default:
@@ -106,10 +108,13 @@ export const parseFilePath = async (
     objectFullPath = joinPath(parentFullPath, name);
     visibility.pull = true;
     visibility.push = workspace.includes(`_${config.username.toLowerCase()}_`);
+    visibility.search = type !== "webtemp";
     visibility.pushAll = visibility.push && visibility.search;
+    visibility.newService = visibility.push && type === "service";
     for (const [button, visible] of Object.entries(visibility)) {
       setButtonVisibility(<Button>button, visible);
     }
+    isFocused = treeView.isFocused(connection, workspace, type);
   } catch (err: any) {
     for (const button of Object.keys(visibility)) {
       setButtonVisibility(<Button>button, false);
@@ -129,12 +134,12 @@ export const reparseFilePath = ({ files }: vscode.FileRenameEvent) => {
 export const checkFileChange = async ({
   document: changed,
 }: vscode.TextDocumentChangeEvent) => {
-  if (!changed || changed.uri.path !== document.uri.path) return;
+  if (!changed || !isFocused || changed.uri.path !== document.uri.path ) return;
   if (recent) {
     recent = false;
     return;
   }
-  treeView.setTreeItemIcon(type, name, objectFolderUri, icons.differ, parent);
+  treeView.setItemState(type, name, objectFolderUri, itemStates.differ, parent);
 };
 
 export const pull = async () => {
@@ -147,7 +152,7 @@ export const pull = async () => {
     content = response[0]?.[field];
   if (content === undefined) return;
   await writeFile(document.uri, content);
-  treeView.setTreeItemIcon(type, name, objectFolderUri, icons.same, parent);
+  treeView.setItemState(type, name, objectFolderUri, itemStates.same, parent);
   recent = true;
 };
 
@@ -170,7 +175,7 @@ export const push = async () => {
   vscode.window.showInformationMessage(
     `Successfully pushed ${name} to Siebel!`
   );
-  treeView.setTreeItemIcon(type, name, objectFolderUri, icons.same, parent);
+  treeView.setItemState(type, name, objectFolderUri, itemStates.same, parent);
   recent = true;
 };
 
@@ -206,8 +211,21 @@ export const compare = async () => {
   const { label } = answer,
     compareFullPath = joinPath("workspace", label, objectPath),
     response = await getObject(`compare${field}`, config, compareFullPath),
-    compareMessage = `Comparison of ${name} between ${label} and ${workspace} (on disk)`;
-  await compareObjects(response, field, ext, document.uri, compareMessage);
+    compareMessage = `Comparison of ${name} between ${label} and ${workspace} (on disk)`,
+    differ = await compareObjects(
+      response,
+      field,
+      ext,
+      document.uri,
+      compareMessage
+    );
+  treeView.setItemState(
+    type,
+    name,
+    objectFolderUri,
+    differ ? itemStates.differ : itemStates.same,
+    parent
+  );
 };
 
 export const search = async () => {
@@ -218,12 +236,9 @@ export const search = async () => {
     query = selected ? document.getText(selected) : "",
     response = await getObject("pullScript", config, parentFullPath);
   await pullMissing(response, folderUri, type, parent);
-  await vscode.commands.executeCommand("workbench.action.findInFiles", {
-    query,
-    filesToInclude: folderUri.fsPath,
-    ...findInFilesOptions,
-  });
+  await searchInFiles(folderUri, query);
   //refresh parent
+  //icon frissités
   //recent
 };
 
@@ -258,11 +273,11 @@ export const pushAll = async () => {
     const pushFullPath = joinPath(parentFullPath, payload.Name),
       result = await putObject(config, pushFullPath, payload);
     if (!result) return;
-    treeView.setTreeItemIcon(
+    treeView.setItemState(
       type,
       payload.Name,
       objectFolderUri,
-      icons.same,
+      itemStates.same,
       parent
     );
   }
@@ -274,3 +289,11 @@ export const pushAll = async () => {
 
 export const newScript = async () =>
   await createNewScript(folderUri, baseScriptItems);
+
+export const newService = async () => {
+  const configWithWorkspace = {
+    ...config,
+    url: joinPath(config.url, "workspace", workspace),
+  };
+  await createNewService(configWithWorkspace, objectFolderUri);
+};
