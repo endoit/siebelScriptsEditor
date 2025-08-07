@@ -16,7 +16,6 @@ import {
   search,
   pushAll,
   newScript,
-  newService,
   checkFileChange,
 } from "./buttonAction";
 import {
@@ -43,8 +42,8 @@ export async function activate({
 
     vscode.window.onDidChangeActiveTextEditor(parseFilePath);
     vscode.workspace.onDidRenameFiles(reparseFilePath);
-    vscode.workspace.onDidChangeTextDocument(checkFileChange);
     vscode.workspace.onDidChangeConfiguration(refreshConfig);
+    vscode.workspace.onDidChangeTextDocument(checkFileChange);
 
     const commands = {
       pull,
@@ -53,7 +52,6 @@ export async function activate({
       search,
       pushAll,
       newScript,
-      newService,
       newWorkspace,
       refreshState,
       newConnection: createConfig(extensionUri, subscriptions, "new"),

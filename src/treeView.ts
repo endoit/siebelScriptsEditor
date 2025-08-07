@@ -3,16 +3,13 @@ import {
   metadata,
   query,
   fields,
-  projectOptions,
-  projectInput,
-  serviceInput,
-  baseScripts,
+  settings,
   itemStates,
   ItemStates,
+  workspaceUri,
   selectCommand,
 } from "./constants";
 import {
-  workspaceUri,
   getScriptsOnDisk,
   getWebTempsOnDisk,
   joinPath,
@@ -26,9 +23,9 @@ import {
   pullMissing,
   getObject,
   putObject,
-  settings,
   createNewService,
   searchInFiles,
+  setButtonVisibility,
 } from "./utils";
 
 export const selectTreeItem = async (treeItem: ScriptItem | WebTempItem) =>
@@ -58,11 +55,12 @@ class TreeView {
     ["application", new BaseItem("application")],
     ["webtemp", new BaseItemWebTemp()],
   ]);
-  readonly config = { url: "", username: "", password: "" };
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
   readonly refresh = (
     treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
   ) => this._onDidChangeTreeData.fire(treeItem);
+  readonly config = { url: "", username: "", password: "" };
+  private activeTreeItem: ScriptItem | WebTempItem | undefined;
   private declare baseURL: string;
   connection = "";
   workspace = "";
@@ -88,11 +86,6 @@ class TreeView {
     return [...this.treeData.values()];
   }
 
-  isFocused = (connection: string, workspace: string, type: Type) =>
-    this.connection === connection &&
-    this.workspace === workspace &&
-    this.type === type;
-
   async setWorkspace() {
     this.config.url = joinPath(this.baseURL, "workspace", this.workspace);
     for (const [type, treeItem] of this.treeData) {
@@ -104,11 +97,13 @@ class TreeView {
       );
       await treeItem.search();
     }
+    const treeEdit = this.workspace.includes(
+      `_${this.config.username.toLowerCase()}_`
+    );
+    setButtonVisibility({ treeEdit });
   }
 
-  async setConfig(
-    { url, username, password }: RestConfig
-  ) {
+  async setConfig({ url, username, password }: RestConfig) {
     this.baseURL = url;
     this.config.username = username;
     this.config.password = password;
@@ -125,14 +120,14 @@ class TreeView {
     return treeItem ? treeItem.treeItems : this.treeItems;
   }
 
-  getParent(
+  /*getParent(
     treeItem: BaseItem | BaseItemWebTemp | ObjectItem | ScriptItem | WebTempItem
   ) {
     return treeItem.parent;
-  }
+  }*/
 
   async search(searchString?: string) {
-    await this.treeData.get(this.type)?.search(searchString);
+    await this.treeData.get(this.type)!.search(searchString);
   }
 
   async getObject(path: string, params: QueryParams): Promise<RestResponse> {
@@ -143,15 +138,8 @@ class TreeView {
     return await putObject(this.config, path, data);
   }
 
-  getParentState(diskOnly: boolean, onDisk: OnDisk) {
-    return diskOnly
-      ? itemStates.none
-      : onDisk.size === 0
-      ? itemStates.siebel
-      : itemStates.same;
-    /*onDisk.size === 0
-      ? itemStates.siebel
-      : itemStates.same;*/
+  getParentState(onDisk: OnDisk) {
+    return onDisk.size === 0 ? itemStates.siebel : itemStates.same;
   }
 
   async getItemState(
@@ -160,22 +148,30 @@ class TreeView {
     onDisk: OnDisk,
     folderUri: vscode.Uri
   ) {
-    if (text === undefined) return itemStates.none;
+    //if (text === undefined) return itemStates.none;
     if (!onDisk.has(label)) return itemStates.siebel;
     const fileUri = getFileUri(folderUri, label, onDisk.get(label)!),
       fileContent = await readFile(fileUri);
     return fileContent === text ? itemStates.same : itemStates.differ;
   }
 
-  setItemState(
+  setItemState(state: ItemStates) {
+    if (!this.activeTreeItem || this.activeTreeItem.state === state) return;
+    this.activeTreeItem.state = state;
+    this.refresh(this.activeTreeItem);
+  }
+
+  setActiveTreeItem(
     type: Type,
     name: string,
     folderUri: vscode.Uri,
-    state: ItemStates,
     parent?: string
   ) {
-    if (this.treeData.get(type)!.folderUri.path !== folderUri.path) return;
-    this.treeData.get(type)?.setItemState(name, state, parent);
+    const treeItem = this.treeData.get(type);
+    this.activeTreeItem =
+      treeItem && treeItem.folderUri.path === folderUri.path
+        ? treeItem.getTreeItem(name, parent)
+        : undefined;
   }
 }
 
@@ -184,7 +180,7 @@ class BaseItem extends vscode.TreeItem {
   protected readonly childSegment;
   protected readonly searchFields: QueryParams["fields"] = fields.name;
   readonly baseScriptItems: readonly vscode.QuickPickItem[];
-  readonly parent: undefined;
+  //readonly parent: undefined;
   override collapsibleState: vscode.TreeItemCollapsibleState =
     vscode.TreeItemCollapsibleState.Expanded;
   declare folderUri: vscode.Uri;
@@ -224,7 +220,7 @@ class BaseItem extends vscode.TreeItem {
         const path = joinPath(this.parentSegment, label, this.childSegment),
           folderUri = vscode.Uri.joinPath(this.folderUri, label),
           onDisk = await getScriptsOnDisk(folderUri),
-          itemState = treeView.getParentState(diskOnly, onDisk);
+          itemState = treeView.getParentState(onDisk);
         return new ObjectItem(label, path, onDisk, folderUri, itemState, this);
       })
     );
@@ -253,9 +249,10 @@ class BaseItem extends vscode.TreeItem {
 
   async newService() {
     await createNewService(treeView.config, this.folderUri); //átgondolni a frissitést
+    await this.setTreeItems();
   }
 
-  protected getTreeItem(name: string, parent?: string) {
+  getTreeItem(name: string, parent?: string) {
     return (<Map<string, ObjectItem>>this.treeData)
       .get(parent!)
       ?.treeData.get(name);
@@ -280,7 +277,25 @@ class BaseItemWebTemp extends BaseItem {
     const diskOnly = !data,
       onDisk = await getWebTempsOnDisk(this.folderUri),
       source = diskOnly
-        ? [...onDisk.keys()].map((Name) => ({ Name, Definition: undefined }))
+        ? await Promise.all(
+            [...onDisk.keys()].map(async (Name) => {
+              const path = joinPath(this.parentSegment, Name),
+                data = await treeView.getObject(path, query.pullDefinition),
+                Definition =
+                  data.length === 0 ? undefined : data[0]?.Definition;
+              /*if (data.length === 0) {
+        this.state = itemStates.disk;
+        treeView.refresh(this.parent ? this.parent : this);
+        return await openFile(this.fileUri);
+      }
+      if (text === undefined) return;
+      if (this.iconPath === itemStates.siebel.icon) {
+        await writeFile(this.fileUri, text);
+        this.onDisk.set(this.label, this.ext);
+      }*/
+              return { Name, Definition };
+            })
+          )
         : data,
       state = diskOnly ? itemStates.offline : itemStates.online;
     this.iconPath = state.icon;
@@ -309,7 +324,7 @@ class BaseItemWebTemp extends BaseItem {
     this.resetTreeData(items);
   }
 
-  protected override getTreeItem(name: string) {
+  override getTreeItem(name: string) {
     return (<Map<string, WebTempItem>>this.treeData).get(name);
   }
 }
@@ -370,34 +385,34 @@ class ScriptItem extends vscode.TreeItem {
   }
 
   async select() {
-    //kitalálni rendesen és javítani
-    if (this.iconPath === itemStates.disk.icon)
-      return await openFile(this.fileUri);
+    //call rest on every select or only open? and refresh from parent?
+    /* if (this.iconPath === itemStates.disk.icon)
+      return await openFile(this.fileUri);*/
 
-    const data = await treeView.getObject(this.path, this.params);
-    if (data.length === 0) {
-      this.state = itemStates.disk;
-      treeView.refresh(this.parent ? this.parent : this);
-      return await openFile(this.fileUri);
-    }
-    const { [this.field]: text } = data[0];
-    if (text === undefined) return;
+    // ha csak siebelben van akkor legyen letöltés?
     if (this.iconPath === itemStates.siebel.icon) {
-      await writeFile(this.fileUri, text);
-      this.onDisk.set(this.label, this.ext);
-    }
-    this.state = await treeView.getItemState(
-      this.label,
-      text,
-      this.onDisk,
-      this.folderUri
-    );
-
-    if (this.parent instanceof ObjectItem) {
-      this.parent.state = treeView.getParentState(
-        this.parent.iconPath === itemStates.none.icon,
-        this.parent.onDisk
+      const data = await treeView.getObject(this.path, this.params);
+      if (data.length === 0) {
+        this.state = itemStates.disk;
+        treeView.refresh(this.parent ? this.parent : this);
+        return await openFile(this.fileUri);
+      }
+      const { [this.field]: text } = data[0];
+      if (text === undefined) return;
+      if (this.iconPath === itemStates.siebel.icon) {
+        await writeFile(this.fileUri, text);
+        this.onDisk.set(this.label, this.ext);
+      }
+      this.state = await treeView.getItemState(
+        this.label,
+        text,
+        this.onDisk,
+        this.folderUri
       );
+      if (this.parent instanceof ObjectItem) {
+        this.parent.state = treeView.getParentState(this.parent.onDisk);
+      }
+      treeView.refresh(this.parent ? this.parent : this);
       /* this.parent.state = await treeView.getItemState(
           this.label,
           text,
@@ -405,8 +420,6 @@ class ScriptItem extends vscode.TreeItem {
           this.folderUri
         ); //itemStates.same;*/
     }
-
-    treeView.refresh(this.parent ? this.parent : this);
     await openFile(this.fileUri);
   }
 
@@ -479,8 +492,7 @@ class ObjectItem extends ScriptItem {
   }
 
   override async select() {
-    const diskOnly = this.iconPath === itemStates.none.icon,
-      data = diskOnly ? [] : await treeView.getObject(this.path, this.params),
+    const data = await treeView.getObject(this.path, this.params),
       inSiebel = new Set<string>(),
       siebel = await Promise.all(
         data.map(async ({ Name: label, Script: text }) => {
@@ -494,14 +506,13 @@ class ObjectItem extends ScriptItem {
           return this.createItem(label, iconPath);
         })
       ),
-      iconPath = diskOnly ? itemStates.none : itemStates.disk,
       disk = [...this.onDisk.keys()]
         .filter((label) => !inSiebel.has(label))
-        .map((label) => this.createItem(label, iconPath));
+        .map((label) => this.createItem(label, itemStates.disk));
     const items = [...siebel, ...disk].sort(({ label: a }, { label: b }) =>
       a.localeCompare(b)
     );
-    this.state = treeView.getParentState(diskOnly, this.onDisk);
+    this.state = treeView.getParentState(this.onDisk);
     this.resetTreeData(items);
   }
 

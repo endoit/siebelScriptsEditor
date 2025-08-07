@@ -6,7 +6,7 @@
 	"publisher": "endoIT",
 	"icon": "icon.png",
 	"engines": {
-		"vscode": "^1.73.0"
+		"vscode": "^1.76.0"
 	},
 	"categories": [
 		"Other",
@@ -16,9 +16,6 @@
 		"type": "git",
 		"url": "https://github.com/endoit/siebelScriptsEditor"
 	},
-	"activationEvents": [
-		"onView:extensionView"
-	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"viewsContainers": {
@@ -116,12 +113,17 @@
 				"when": "workspaceFolderCount > 0"
 			},
 			{
+				"command": "siebelscriptandwebtempeditor.searchTree",
+				"title": "Search In The Downloaded Files",
+				"icon": "$(search)"
+			},
+			{
 				"command": "siebelscriptandwebtempeditor.showFilesOnDisk",
 				"title": "Show Files On Disk",
 				"icon": "$(device-desktop)"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.newService",
+				"command": "siebelscriptandwebtempeditor.newServiceTree",
 				"title": "New Business Service",
 				"icon": "$(new-folder)"
 			},
@@ -208,13 +210,18 @@
 			],
 			"view/item/context": [
 				{
+					"command": "siebelscriptandwebtempeditor.searchTree",
+					"when": "viewItem == service || viewItem == buscomp || viewItem == applet || viewItem == application || viewItem == webtemp",
+					"group": "inline"
+				},
+				{
 					"command": "siebelscriptandwebtempeditor.showFilesOnDisk",
 					"when": "viewItem == service || viewItem == buscomp || viewItem == applet || viewItem == application || viewItem == webtemp",
 					"group": "inline"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.newService",
-					"when": "viewItem == service",
+					"command": "siebelscriptandwebtempeditor.newServiceTree",
+					"when": "viewItem == service && siebelscriptandwebtempeditor.treeEditEnabled",
 					"group": "inline@1"
 				},
 				{
@@ -229,7 +236,7 @@
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.newScriptTree",
-					"when": "viewItem == objectItem",
+					"when": "viewItem == objectItem && siebelscriptandwebtempeditor.treeEditEnabled",
 					"group": "inline@2"
 				},
 				{

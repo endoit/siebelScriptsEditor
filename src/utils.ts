@@ -1,9 +1,7 @@
 import * as vscode from "vscode";
 import {
-  baseConfig,
   baseScripts,
   customScriptItem,
-  dataSourceOptions,
   error,
   fields,
   metadata,
@@ -15,26 +13,14 @@ import {
   query,
   serviceInput,
   itemStates,
-  workspaceDialogOptions,
   findInFilesOptions,
+  settings,
+  restApi,
+  workspaceUri,
+  compareFileUris,
 } from "./constants";
-import { create } from "axios";
+
 import { treeView } from "./treeView";
-
-export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!;
-
-const compareFileUris =
-    workspaceUri &&
-    ({
-      js: vscode.Uri.joinPath(workspaceUri, "compare", "compare.js"),
-      ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
-      html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
-    } as const),
-  restApi = create(baseConfig);
-
-export const settings: ExtensionSettings = {
-  ...vscode.workspace.getConfiguration().get("siebelScriptAndWebTempEditor")!,
-};
 
 export const getConfig = (name: string) => {
   for (const connection of settings.connections) {
@@ -66,12 +52,15 @@ export const openSettings = () =>
     "siebelScriptAndWebTempEditor"
   );
 
-export const setButtonVisibility = (button: Button, isEnabled: boolean) =>
-  vscode.commands.executeCommand(
-    "setContext",
-    `siebelscriptandwebtempeditor.${button}Enabled`,
-    isEnabled
-  );
+export const setButtonVisibility = (visibility: Partial<ButtonVisibility>) => {
+  for (const [button, isEnabled] of Object.entries(visibility)) {
+    vscode.commands.executeCommand(
+      "setContext",
+      `siebelscriptandwebtempeditor.${button}Enabled`,
+      isEnabled
+    );
+  }
+};
 
 export const joinPath = (...parts: string[]) => parts.join("/");
 
@@ -356,7 +345,7 @@ export const pullMissing = async (
     const fileUri = getFileUri(folderUri, label, settings.fileExtension);
     await writeFile(fileUri, text);
     if (type)
-      treeView.setItemState(type, label, folderUri, itemStates.same, parent);
+      treeView.setItemState(itemStates.same);
   }
 };
 
@@ -375,25 +364,6 @@ export const getHTML = async (
       vscode.Uri.joinPath(extensionUri, "webview", "style.css")
     );
   return fileContent!.replace("./style.css", styleUri.toString());
-};
-
-export const openWorkspace = async (
-  extensionUri: vscode.Uri,
-  subscriptions: Subscriptions,
-  webview: vscode.Webview
-) => {
-  webview.options = dataSourceOptions;
-  webview.onDidReceiveMessage(
-    async () => {
-      const folder = await vscode.window.showOpenDialog(workspaceDialogOptions);
-      if (!folder || folder.length === 0) return;
-      await vscode.commands.executeCommand("vscode.openFolder", folder[0]);
-    },
-    undefined,
-    subscriptions
-  );
-  webview.html = await getHTML(extensionUri, webview, "openWorkspace");
-  return;
 };
 
 export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {

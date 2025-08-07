@@ -7,10 +7,10 @@ import {
   pullNo,
   pushNo,
   metadata,
-  findInFilesOptions,
   pushAllNo,
   fields,
   itemStates,
+  disableAllButtons,
 } from "./constants";
 import {
   getConfig,
@@ -52,21 +52,12 @@ let editor: vscode.TextEditor | undefined,
   connection: string,
   config: Config,
   folderUri: vscode.Uri,
-  objectFolderUri: vscode.Uri;
-
-let isFocused: boolean, recent: boolean;
+  objectFolderUri: vscode.Uri,
+  isChanged: boolean;
 
 export const parseFilePath = async (
   textEditor: vscode.TextEditor | undefined
 ) => {
-  const visibility = {
-    pull: false,
-    push: false,
-    search: false,
-    pushAll: false,
-    newService: false,
-  };
-
   try {
     editor = textEditor;
     if (!editor) throw buttonError;
@@ -106,19 +97,18 @@ export const parseFilePath = async (
     objectPath = joinPath(parentPath, name);
     parentFullPath = joinPath("workspace", workspace, parentPath);
     objectFullPath = joinPath(parentFullPath, name);
-    visibility.pull = true;
-    visibility.push = workspace.includes(`_${config.username.toLowerCase()}_`);
-    visibility.search = type !== "webtemp";
-    visibility.pushAll = visibility.push && visibility.search;
-    visibility.newService = visibility.push && type === "service";
-    for (const [button, visible] of Object.entries(visibility)) {
-      setButtonVisibility(<Button>button, visible);
-    }
-    isFocused = treeView.isFocused(connection, workspace, type);
+    const isEditable = workspace.includes(`_${config.username.toLowerCase()}_`),
+      visibility = {
+        pull: true,
+        push: isEditable,
+        search: type !== "webtemp",
+        pushAll: isEditable && type !== "webtemp"
+      } as const;
+    setButtonVisibility(visibility);
+    isChanged = false;
+    treeView.setActiveTreeItem(type, name, objectFolderUri, parent);
   } catch (err: any) {
-    for (const button of Object.keys(visibility)) {
-      setButtonVisibility(<Button>button, false);
-    }
+    setButtonVisibility(disableAllButtons);
   }
 };
 
@@ -131,15 +121,14 @@ export const reparseFilePath = ({ files }: vscode.FileRenameEvent) => {
   }
 };
 
-export const checkFileChange = async ({
-  document: changed,
+export const checkFileChange = ({
+  document: changedDocument,
 }: vscode.TextDocumentChangeEvent) => {
-  if (!changed || !isFocused || changed.uri.path !== document.uri.path ) return;
-  if (recent) {
-    recent = false;
+  if (isChanged) {
+    isChanged = false;
     return;
   }
-  treeView.setItemState(type, name, objectFolderUri, itemStates.differ, parent);
+  treeView.setItemState(itemStates.differ);
 };
 
 export const pull = async () => {
@@ -151,9 +140,9 @@ export const pull = async () => {
   const response = await getObject(`pull${field}`, config, objectFullPath),
     content = response[0]?.[field];
   if (content === undefined) return;
+  isChanged = true;
   await writeFile(document.uri, content);
-  treeView.setItemState(type, name, objectFolderUri, itemStates.same, parent);
-  recent = true;
+  treeView.setItemState(itemStates.same);
 };
 
 export const push = async () => {
@@ -175,8 +164,7 @@ export const push = async () => {
   vscode.window.showInformationMessage(
     `Successfully pushed ${name} to Siebel!`
   );
-  treeView.setItemState(type, name, objectFolderUri, itemStates.same, parent);
-  recent = true;
+  treeView.setItemState(itemStates.same);
 };
 
 export const compare = async () => {
@@ -219,13 +207,7 @@ export const compare = async () => {
       document.uri,
       compareMessage
     );
-  treeView.setItemState(
-    type,
-    name,
-    objectFolderUri,
-    differ ? itemStates.differ : itemStates.same,
-    parent
-  );
+  treeView.setItemState(differ ? itemStates.differ : itemStates.same);
 };
 
 export const search = async () => {
@@ -273,13 +255,7 @@ export const pushAll = async () => {
     const pushFullPath = joinPath(parentFullPath, payload.Name),
       result = await putObject(config, pushFullPath, payload);
     if (!result) return;
-    treeView.setItemState(
-      type,
-      payload.Name,
-      objectFolderUri,
-      itemStates.same,
-      parent
-    );
+    treeView.setItemState(itemStates.same);
   }
   vscode.window.showInformationMessage(
     `Successfully pushed ${messageAll} to Siebel!`
@@ -289,11 +265,3 @@ export const pushAll = async () => {
 
 export const newScript = async () =>
   await createNewScript(folderUri, baseScriptItems);
-
-export const newService = async () => {
-  const configWithWorkspace = {
-    ...config,
-    url: joinPath(config.url, "workspace", workspace),
-  };
-  await createNewService(configWithWorkspace, objectFolderUri);
-};

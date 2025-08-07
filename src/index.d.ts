@@ -92,8 +92,15 @@ type OnDisk = Map<string, FileExt>;
 //Answer options for tree item selection
 type Answer = "Only method names" | "All scripts" | "Yes" | "No" | undefined;
 
-//button actions
-type Button = "pull" | "push" | "search" | "pushAll" | "newService";
+
+//button visibility object
+type ButtonVisibility = {
+  pull: boolean;
+  push: boolean;
+  search: boolean;
+  pushAll: boolean;
+  treeEdit: boolean;
+};
 
 //type for subscriptions
 type Subscriptions = { dispose(): any }[];

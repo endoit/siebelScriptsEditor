@@ -4,20 +4,20 @@ import {
   error,
   yesNo,
   configOptions,
+  settings,
   dataSourceOptions,
+  workspaceUri,
+  workspaceDialogOptions,
 } from "./constants";
 import {
-  workspaceUri,
   getObject,
   getLocalWorkspaces,
   createValidateWorkspaceName,
   createFolder,
   getHTML,
-  openWorkspace,
   configChange,
   getConfig,
   setConfigs,
-  settings,
 } from "./utils";
 import { treeView } from "./treeView";
 
@@ -97,6 +97,12 @@ export const newWorkspace = async () => {
   await refreshState();
 };
 
+const openWorkspaceHandler = async () => {
+  const folder = await vscode.window.showOpenDialog(workspaceDialogOptions);
+  if (!folder || folder.length === 0) return;
+  await vscode.commands.executeCommand("vscode.openFolder", folder[0]);
+};
+
 const dataSourceHandler = async ({ command, data }: DataSourceMessage) => {
   switch (command) {
     case "connection":
@@ -106,7 +112,8 @@ const dataSourceHandler = async ({ command, data }: DataSourceMessage) => {
       treeView.workspace = data;
       return await treeView.setWorkspace();
     case "type":
-      return (treeView.type = data);
+      treeView.type = data;
+      return;
     case "search":
       return await treeView.search(data);
   }
@@ -115,8 +122,16 @@ const dataSourceHandler = async ({ command, data }: DataSourceMessage) => {
 export const createDataSource =
   (extensionUri: vscode.Uri, subscriptions: Subscriptions) =>
   async ({ webview }: { webview: vscode.Webview }) => {
-    if (!workspaceUri)
-      return openWorkspace(extensionUri, subscriptions, webview);
+    if (!workspaceUri) {
+      webview.options = dataSourceOptions;
+      webview.onDidReceiveMessage(
+        openWorkspaceHandler,
+        undefined,
+        subscriptions
+      );
+      webview.html = await getHTML(extensionUri, webview, "openWorkspace");
+      return;
+    }
     if (!dataSourceView) dataSourceView = webview;
     dataSourceView.options = dataSourceOptions;
     dataSourceView.onDidReceiveMessage(

@@ -1,7 +1,30 @@
 import * as vscode from "vscode";
+import { create } from "axios";
 
-//Repository object paths adn scripts
-export const metadata = {
+//workspace folder for the extension
+export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
+  //files for the compared objects
+  compareFileUris =
+    workspaceUri &&
+    ({
+      js: vscode.Uri.joinPath(workspaceUri, "compare", "compare.js"),
+      ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
+      html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
+    } as const),
+  //extension settings
+  settings: ExtensionSettings = {
+    ...vscode.workspace.getConfiguration().get("siebelScriptAndWebTempEditor")!,
+  },
+  //rest api instance
+  restApi = create({
+    withCredentials: true,
+    params: {
+      uniformresponse: "y",
+      childlinks: "None",
+    },
+  }),
+  //Repository object paths and scripts
+  metadata = {
     service: {
       parent: "Business Service",
       child: "Business Service Server Script",
@@ -65,14 +88,6 @@ export const metadata = {
     },
     webtemp: { parent: "Web Template", child: "", baseScriptItems: [] },
   } as const,
-  //axios base config
-  baseConfig = {
-    withCredentials: true,
-    params: {
-      uniformresponse: "y",
-      childlinks: "None",
-    },
-  } as const,
   //fields
   fields = {
     name: "Name",
@@ -109,7 +124,6 @@ export const metadata = {
   pushNo = ["Push", "No"] as const,
   pushAllNo = ["Push All", "No"] as const,
   itemStates = {
-    none: { icon: undefined, tooltip: undefined },
     offline: {
       icon: new vscode.ThemeIcon("library"),
       tooltip: "Showing objects on disk",
@@ -204,6 +218,13 @@ export const metadata = {
     canSelectMany: false,
     title:
       "Select a workspace folder for the Siebel Script And Web Template Editor extension",
+  } as const,
+  //object to disable all buttons
+  disableAllButtons = {
+    pull: false,
+    push: false,
+    search: false,
+    pushAll: false,
   } as const,
   //constant error messages
   error = {
