@@ -1,30 +1,28 @@
 import * as vscode from "vscode";
 import {
-  baseScripts,
-  customScriptItem,
   error,
-  fields,
-  metadata,
-  newScriptOptions,
   openFileOptions,
-  paths,
-  projectInput,
-  projectOptions,
   query,
-  serviceInput,
-  itemStates,
   findInFilesOptions,
   settings,
   restApi,
   workspaceUri,
   compareFileUris,
+  customScriptItem,
+  newScriptOptions,
+  metadata,
+  fields,
+  paths,
+  projectInput,
+  projectOptions,
+  serviceInput,
+  itemStates,
 } from "./constants";
 
-import { treeView } from "./treeView";
-
 export const getConfig = (name: string) => {
-  for (const connection of settings.connections) {
-    if (connection.name === name) return connection;
+  for (const connection of settings) {
+    if (connection.name !== name) continue;
+    return connection;
   }
   return <Config>{};
 };
@@ -33,24 +31,6 @@ export const setConfigs = async (configs: Config[]) =>
   await vscode.workspace
     .getConfiguration("siebelScriptAndWebTempEditor")
     .update("connections", configs, vscode.ConfigurationTarget.Global);
-
-export const configChange = (e: vscode.ConfigurationChangeEvent) => {
-  if (!e.affectsConfiguration("siebelScriptAndWebTempEditor")) return false;
-  for (const name of <(keyof ExtensionSettings)[]>Object.keys(settings)) {
-    if (!e.affectsConfiguration(`siebelScriptAndWebTempEditor.${name}`))
-      continue;
-    settings[name] = vscode.workspace
-      .getConfiguration("siebelScriptAndWebTempEditor")
-      .get(name)!;
-    return name === "connections";
-  }
-};
-
-export const openSettings = () =>
-  vscode.commands.executeCommand(
-    "workbench.action.openSettings",
-    "siebelScriptAndWebTempEditor"
-  );
 
 export const setButtonVisibility = (visibility: Partial<ButtonVisibility>) => {
   for (const [button, isEnabled] of Object.entries(visibility)) {
@@ -66,7 +46,7 @@ export const joinPath = (...parts: string[]) => parts.join("/");
 
 export const getObject = async (
   action: RestAction,
-  { url: baseURL, username, password }: RestConfig,
+  { url: baseURL, username, password, maxPageSize = 100 }: RestConfig,
   path: string,
   params?: QueryParams
 ): Promise<RestResponse> => {
@@ -76,7 +56,7 @@ export const getObject = async (
         auth: { username, password },
         params: {
           ...(params ?? query[action]),
-          PageSize: settings.maxPageSize,
+          PageSize: maxPageSize,
         },
       },
       response = await restApi.get(path, request),
@@ -190,14 +170,14 @@ export const createValidateWorkspaceName =
 const isFileNameValid = (name: string) =>
   /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) || name === "(declarations)";
 
-export const createValidateScriptName = (files: OnDisk) => (value: string) =>
+const createValidateScriptName = (files: OnDisk) => (value: string) =>
   isFileNameValid(value)
     ? files.has(value)
       ? "Script already exists!"
       : ""
     : "Invalid script name!";
 
-export const isScriptNameValid = (name: string, text: string) =>
+export const isScriptNameValid = (name: string, text = "") =>
   new RegExp(`function\\s+${name}\\s*\\(`).test(text) ||
   name === "(declarations)";
 
@@ -240,16 +220,39 @@ export const searchInFiles = async (folderUri: vscode.Uri, query = "") => {
   });
 };
 
+export const createNewScriptBody = ({
+  label,
+  scriptArgs = "",
+  isPre = false,
+}: {
+  label: string;
+  scriptArgs?: string;
+  isPre?: boolean;
+}) =>
+  label !== "(declarations)"
+    ? `function ${label}(${scriptArgs})\n{\n${
+        isPre ? "\treturn (ContinueOperation);" : ""
+      }\n}`
+    : "";
+
 export const createNewScript = async (
   folderUri: vscode.Uri,
-  baseScriptItems: readonly vscode.QuickPickItem[]
+  defaultScripts: readonly vscode.QuickPickItem[],
+  parent: string,
+  fileExtension: FileExt
 ) => {
   const files = await getScriptsOnDisk(folderUri),
-    items: vscode.QuickPickItem[] = [
+    items: (vscode.QuickPickItem & {
+      scriptArgs?: string;
+      isPre?: boolean;
+    })[] = [
       customScriptItem,
-      ...baseScriptItems.filter(({ label }) => !files.has(label)),
+      ...defaultScripts.filter(({ label }) => !files.has(label)),
     ] as const,
-    answer = await vscode.window.showQuickPick(items, newScriptOptions);
+    answer = await vscode.window.showQuickPick(items, {
+      title: `New script for ${parent}`,
+      ...newScriptOptions,
+    });
   if (!answer) return;
   const isCustom = answer.label === "Custom",
     label = isCustom
@@ -259,12 +262,12 @@ export const createNewScript = async (
         })
       : answer.label;
   if (!label) return;
-  const content = isCustom
-    ? `function ${label}(){\n\n}`
-    : baseScripts[<keyof typeof baseScripts>label];
-  const fileUri = getFileUri(folderUri, label, settings.fileExtension);
+  const defaultScript = isCustom ? { label } : answer,
+    content = createNewScriptBody(defaultScript),
+    fileUri = getFileUri(folderUri, label, fileExtension);
   await writeFile(fileUri, content);
-  await openFile(fileUri); //átgondolni a frissitést
+  return fileUri;
+  //await openFile(fileUri);
 };
 
 export const createNewService = async (
@@ -306,12 +309,12 @@ export const createNewService = async (
   const folderUri = vscode.Uri.joinPath(objectFolderUri, serviceNameTrimmed),
     fileUri = getFileUri(
       folderUri,
-      "Service_PreInvokeMethod",
-      settings.fileExtension
-    );
-  await writeFile(fileUri, baseScripts.Service_PreInvokeMethod);
+      metadata.service.defaultScripts[0].label,
+      config.fileExtension
+    ),
+    content = createNewScriptBody(metadata.service.defaultScripts[0]);
+  await writeFile(fileUri, content);
   await openFile(fileUri);
-  //await treeView.search("service"); //átgondolni a frissitést
 };
 
 export const compareObjects = async (
@@ -322,7 +325,8 @@ export const compareObjects = async (
   compareMessage: string
 ) => {
   const content = response[0]?.[field];
-  if (content === undefined) return false;
+  if (content === undefined) return itemStates.differ;
+  const fileContent = await readFile(fileUri);
   await writeFile(compareFileUris[ext], content);
   await vscode.commands.executeCommand(
     "vscode.diff",
@@ -330,23 +334,7 @@ export const compareObjects = async (
     fileUri,
     compareMessage
   );
-  return content !== (await readFile(fileUri));
-};
-
-export const pullMissing = async (
-  response: RestResponse,
-  folderUri: vscode.Uri,
-  type?: Type,
-  parent?: string
-) => {
-  const onDisk = await getScriptsOnDisk(folderUri);
-  for (const { Name: label, Script: text } of response) {
-    if (onDisk.has(label) || !text) continue;
-    const fileUri = getFileUri(folderUri, label, settings.fileExtension);
-    await writeFile(fileUri, text);
-    if (type)
-      treeView.setItemState(itemStates.same);
-  }
+  return content === fileContent ? itemStates.same : itemStates.differ;
 };
 
 export const getHTML = async (

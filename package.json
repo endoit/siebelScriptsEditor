@@ -32,50 +32,44 @@
 				{
 					"type": "webview",
 					"id": "extensionView",
-					"name": "Datasource"
+					"name": "Connection"
 				},
 				{
 					"id": "objectsView",
-					"name": "Siebel objects"
+					"name": "Objects"
 				}
 			]
 		},
 		"commands": [
 			{
-				"command": "siebelscriptandwebtempeditor.pull",
-				"title": "Pull script/web template from Siebel",
-				"icon": "$(repo-pull)",
-				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
-			},
-			{
 				"command": "siebelscriptandwebtempeditor.push",
-				"title": "Push script/web template to Siebel",
+				"title": "Push to Siebel",
 				"icon": "$(repo-push)",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushEnabled && !isInDiffEditor"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.compare",
-				"title": "Compare script/web template with Siebel",
-				"icon": "$(symbol-boolean)",
-				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
-			},
-			{
-				"command": "siebelscriptandwebtempeditor.search",
-				"title": "Pull missing and search in scripts",
-				"icon": "$(search-fuzzy)",
-				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
-			},
-			{
 				"command": "siebelscriptandwebtempeditor.pushAll",
-				"title": "Push all scripts of the current parent object to Siebel",
+				"title": "Push all scripts of the parent object to Siebel",
 				"icon": "$(repo-force-push)",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.newScript",
-				"title": "Create a new script for the current parent object",
+				"title": "Create a new script for the parent object",
 				"icon": "$(new-file)",
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.search",
+				"title": "Search in the downloaded scripts of the parent object",
+				"icon": "$(search)",
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.compare",
+				"title": "Compare with Siebel",
+				"icon": "$(symbol-boolean)",
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.compareEnabled && !isInDiffEditor"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.newWorkspace",
@@ -102,18 +96,12 @@
 				"icon": "$(edit)"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.openSettings",
-				"title": "Open Settings",
-				"when": "workspaceFolderCount > 0",
-				"icon": "$(settings-gear)"
-			},
-			{
 				"command": "siebelscriptandwebtempeditor.selectTreeItem",
 				"title": "Select",
 				"when": "workspaceFolderCount > 0"
 			},
 			{
-				"command": "siebelscriptandwebtempeditor.searchTree",
+				"command": "siebelscriptandwebtempeditor.searchDisk",
 				"title": "Search In The Downloaded Files",
 				"icon": "$(search)"
 			},
@@ -130,17 +118,17 @@
 			{
 				"command": "siebelscriptandwebtempeditor.pullAllTree",
 				"title": "Pull All",
-				"icon": "$(git-fetch)"
-			},
-			{
-				"command": "siebelscriptandwebtempeditor.refreshTree",
-				"title": "Refresh",
-				"icon": "$(refresh)"
+				"icon": "$(repo-pull)"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.newScriptTree",
 				"title": "New Script",
 				"icon": "$(new-file)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.revertTree",
+				"title": "Revert",
+				"icon": "$(discard)"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.compareTree",
@@ -151,19 +139,19 @@
 		"menus": {
 			"editor/title": [
 				{
-					"command": "siebelscriptandwebtempeditor.pull",
-					"group": "navigation",
-					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
-				},
-				{
 					"command": "siebelscriptandwebtempeditor.push",
-					"group": "navigation@1",
+					"group": "navigation@0",
 					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushEnabled && !isInDiffEditor"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.compare",
+					"command": "siebelscriptandwebtempeditor.pushAll",
+					"group": "navigation@1",
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.newScript",
 					"group": "navigation@2",
-					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pullEnabled && !isInDiffEditor"
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.search",
@@ -171,14 +159,9 @@
 					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.pushAll",
+					"command": "siebelscriptandwebtempeditor.compare",
 					"group": "navigation@4",
-					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
-				},
-				{
-					"command": "siebelscriptandwebtempeditor.newScript",
-					"group": "navigation@5",
-					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.pushAllEnabled && !isInDiffEditor"
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.compareEnabled && !isInDiffEditor"
 				}
 			],
 			"view/title": [
@@ -201,38 +184,28 @@
 					"command": "siebelscriptandwebtempeditor.editConnection",
 					"when": "workspaceFolderCount > 0 && view == extensionView",
 					"group": "navigation@3"
-				},
-				{
-					"command": "siebelscriptandwebtempeditor.openSettings",
-					"when": "workspaceFolderCount > 0 && view == extensionView",
-					"group": "navigation@4"
 				}
 			],
 			"view/item/context": [
 				{
-					"command": "siebelscriptandwebtempeditor.searchTree",
+					"command": "siebelscriptandwebtempeditor.newServiceTree",
+					"when": "viewItem == service && siebelscriptandwebtempeditor.treeEditEnabled",
+					"group": "inline@0"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.searchDisk",
 					"when": "viewItem == service || viewItem == buscomp || viewItem == applet || viewItem == application || viewItem == webtemp",
-					"group": "inline"
+					"group": "inline@1"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.showFilesOnDisk",
 					"when": "viewItem == service || viewItem == buscomp || viewItem == applet || viewItem == application || viewItem == webtemp",
-					"group": "inline"
-				},
-				{
-					"command": "siebelscriptandwebtempeditor.newServiceTree",
-					"when": "viewItem == service && siebelscriptandwebtempeditor.treeEditEnabled",
-					"group": "inline@1"
+					"group": "inline@2"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.pullAllTree",
 					"when": "viewItem == objectItem",
-					"group": "inline"
-				},
-				{
-					"command": "siebelscriptandwebtempeditor.refreshTree",
-					"when": "viewItem == objectItem",
-					"group": "inline@1"
+					"group": "inline@0"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.newScriptTree",
@@ -240,9 +213,14 @@
 					"group": "inline@2"
 				},
 				{
+					"command": "siebelscriptandwebtempeditor.revertTree",
+					"when": "viewItem == pullTree",
+					"group": "inline@0"
+				},
+				{
 					"command": "siebelscriptandwebtempeditor.compareTree",
-					"when": "viewItem == compareTree",
-					"group": "inline"
+					"when": "viewItem == pullTree",
+					"group": "inline@1"
 				}
 			]
 		},
@@ -256,28 +234,6 @@
 						"type": "object"
 					},
 					"default": []
-				},
-				"siebelScriptAndWebTempEditor.fileExtension": {
-					"type": "string",
-					"enum": [
-						"js",
-						"ts"
-					],
-					"default": "js",
-					"markdownDescription": "The file extension for the downloaded server scripts. If you use type definitons in eScript, it is recommended to save the files as .ts."
-				},
-				"siebelScriptAndWebTempEditor.maxPageSize": {
-					"type": "integer",
-					"enum": [
-						10,
-						20,
-						50,
-						100,
-						200,
-						500
-					],
-					"default": 100,
-					"markdownDescription": "Number of records to fetch from the Siebel REST API. Can not be greater than the value of the MaximumPageSize parameter of the component EAI Object Manager (default is 100)!"
 				}
 			}
 		},

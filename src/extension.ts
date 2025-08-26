@@ -1,33 +1,8 @@
 import * as vscode from "vscode";
-import { openSettings, setupWorkspaceFolder } from "./utils";
-import {
-  refreshState,
-  createDataSource,
-  createConfig,
-  newWorkspace,
-  refreshConfig,
-} from "./webview";
-import {
-  compare,
-  pull,
-  push,
-  parseFilePath,
-  reparseFilePath,
-  search,
-  pushAll,
-  newScript,
-  checkFileChange,
-} from "./buttonAction";
-import {
-  newServiceTree,
-  compareTree,
-  newScriptTree,
-  pullAllTree,
-  refreshTree,
-  selectTreeItem,
-  showFilesOnDisk,
-  searchTree,
-} from "./treeView";
+import { setupWorkspaceFolder } from "./utils";
+import { webView } from "./webView";
+import { activeEditor } from "./activeEditor";
+import { treeView } from "./treeView";
 
 export async function activate({
   extensionUri,
@@ -37,34 +12,31 @@ export async function activate({
     await setupWorkspaceFolder(extensionUri);
 
     vscode.window.registerWebviewViewProvider("extensionView", {
-      resolveWebviewView: createDataSource(extensionUri, subscriptions),
+      resolveWebviewView: webView.createDataSource(extensionUri, subscriptions),
     });
 
-    vscode.window.onDidChangeActiveTextEditor(parseFilePath);
-    vscode.workspace.onDidRenameFiles(reparseFilePath);
-    vscode.workspace.onDidChangeConfiguration(refreshConfig);
-    vscode.workspace.onDidChangeTextDocument(checkFileChange);
+    vscode.window.onDidChangeActiveTextEditor(activeEditor.parseFilePath);
+    vscode.workspace.onDidRenameFiles(activeEditor.reparseFilePath);
+    vscode.workspace.onDidChangeConfiguration(webView.refreshConfig);
 
     const commands = {
-      pull,
-      push,
-      compare,
-      search,
-      pushAll,
-      newScript,
-      newWorkspace,
-      refreshState,
-      newConnection: createConfig(extensionUri, subscriptions, "new"),
-      editConnection: createConfig(extensionUri, subscriptions, "edit"),
-      openSettings,
-      selectTreeItem,
-      searchTree,
-      showFilesOnDisk,
-      newServiceTree,
-      pullAllTree,
-      refreshTree,
-      newScriptTree,
-      compareTree,
+      push: activeEditor.push,
+      pushAll: activeEditor.pushAll,
+      newScript: activeEditor.newScript,
+      search: activeEditor.search,
+      compare: activeEditor.compare,
+      newWorkspace: webView.newWorkspace,
+      refreshState: webView.refreshState,
+      newConnection: webView.createConfig(extensionUri, subscriptions, "new"),
+      editConnection: webView.createConfig(extensionUri, subscriptions, "edit"),
+      selectTreeItem: treeView.select,
+      searchDisk: treeView.searchDisk,
+      showFilesOnDisk: treeView.showFilesOnDisk,
+      newServiceTree: treeView.newService,
+      pullAllTree: treeView.pullAll,
+      newScriptTree: treeView.newScript,
+      revertTree: treeView.revert,
+      compareTree: treeView.compare,
     } as const;
 
     for (const [command, callback] of Object.entries(commands)) {

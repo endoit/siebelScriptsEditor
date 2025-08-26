@@ -52,7 +52,7 @@ h1 {
 }
 
 .checkbox-container {
-  justify-self: end;
+  justify-self: left;
 }
 
 .select, .button, .checkbox {

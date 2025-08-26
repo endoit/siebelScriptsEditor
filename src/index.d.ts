@@ -2,16 +2,18 @@
 type Type = "service" | "buscomp" | "applet" | "application" | "webtemp";
 
 //settings
-type ExtensionSettings = {
+/*type ExtensionSettings = {
   connections: Config[];
   fileExtension: "js" | "ts";
   maxPageSize: 10 | 20 | 50 | 100 | 200 | 500;
-};
+};*/
 
 type RestConfig = {
   url: string;
   username: string;
   password: string;
+  fileExtension: "js" | "ts";
+  maxPageSize: 10 | 20 | 50 | 100 | 200 | 500;
 };
 
 type Config = {
@@ -25,10 +27,10 @@ type Field = "Script" | "Definition";
 
 //query parameters
 type QueryParams = {
-  searchspec?: string;
+  searchSpec?: string;
   workspace?: "MAIN";
   fields?: "Name" | `Name,${Field}` | "Name,Status";
-  PageSize?: ExtensionSettings["maxPageSize"];
+  PageSize?: Config["maxPageSize"];
 };
 
 //body when upserting script/web template into Siebel
@@ -67,10 +69,7 @@ type ConfigMessage = {
     | "newConnection"
     | "editConnection"
     | "deleteConnection";
-  name: string;
-  isDefault: boolean;
-  restWorkspaces: boolean;
-} & RestConfig;
+} & Config;
 
 //Siebel rest api actions
 type RestAction =
@@ -79,6 +78,7 @@ type RestAction =
   | "allWorkspaces"
   | "editableWorkspaces"
   | "pullScript"
+  | "pullScripts"
   | "pullDefinition"
   | "compareScript"
   | "compareDefinition";
@@ -89,16 +89,12 @@ type FileExt = "js" | "ts" | "html";
 //downloaded files
 type OnDisk = Map<string, FileExt>;
 
-//Answer options for tree item selection
-type Answer = "Only method names" | "All scripts" | "Yes" | "No" | undefined;
-
-
 //button visibility object
 type ButtonVisibility = {
-  pull: boolean;
   push: boolean;
-  search: boolean;
   pushAll: boolean;
+  search: boolean;
+  compare: boolean;
   treeEdit: boolean;
 };
 

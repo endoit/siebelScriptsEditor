@@ -31,20 +31,42 @@
 			<label for="password">Password</label>
 		</div>
 		<div class="grid-item grid-24">
-			<input type="password" class="input" name="username" id="password" oninput="enableButtons()">
+			<input type="password" class="input" name="password" id="password" oninput="enableButtons()">
 		</div>
-		<div class="grid-item grid-1 checkbox-container">
+		<div class="grid-item grid-1">
+			<label for="file-extension">Script File Extension</label>
+		</div>
+		<div class="grid-item grid-23">
+			<select class="input select" name="file-extension" id="file-extension">
+				<option class="option" value="js" selected>js</option>
+				<option class="option" value="ts">ts</option>
+			</select>
+		</div>
+		<div class="grid-item grid-1">
+			<label for="max-page-size">Maximum Page Size</label>
+		</div>
+		<div class="grid-item grid-23">
+			<select class="input select" name="max-page-size" id="max-page-size">
+				<option class="option" value="10">10</option>
+				<option class="option" value="20">20</option>
+				<option class="option" value="50">50</option>
+				<option class="option" value="100" selected>100</option>
+				<option class="option" value="200">200</option>
+				<option class="option" value="500">500</option>
+			</select>
+		</div>
+		<div class="grid-item grid-1">
+			<label for="rest-workspaces">Get Workspaces From REST</label>
+		</div>
+		<div class="grid-item grid-24 checkbox-container">
 			<input type="checkbox" class="checkbox" name="rest-workspaces" id="rest-workspaces"
 				onchange="buttonHandler('testRestWorkspaces')">
 		</div>
-		<div class="grid-item grid-2">
-			<label for="rest-workspaces">Get Workspaces From The Siebel REST API</label>
-		</div>
-		<div class="grid-item grid-1 checkbox-container">
-			<input type="checkbox" class="checkbox" name="is-default" id="is-default">
-		</div>
-		<div class="grid-item grid-2">
+		<div class="grid-item grid-1">
 			<label for="is-default">Default Connection</label>
+		</div>
+		<div class="grid-item grid-24 checkbox-container">
+			<input type="checkbox" class="checkbox" name="is-default" id="is-default">
 		</div>
 		<div class="grid-item grid-1">
 			<Button class="button" id="test-connection" onclick="buttonHandler('testConnection')">Test Connection</Button>
@@ -68,6 +90,8 @@
 				password: document.getElementById("password").value,
 				restWorkspaces: document.getElementById("rest-workspaces").checked,
 				isDefault: document.getElementById("is-default").checked,
+				fileExtension: document.getElementById("file-extension").value,
+				maxPageSize: document.getElementById("max-page-size").value,
 			}),
 			buttonHandler = (command) => vscode.postMessage({
 				command: command === "newOrEditConnection" ? isNew ? "newConnection" : "editConnection" : command,
@@ -82,7 +106,16 @@
 				document.getElementById("is-default").disabled = isDisabled;
 			};
 		window.addEventListener("message", ({
-			data: { name = "", url = "", username = "", password = "", restWorkspaces = false, isDefault = false, uncheck = false }
+			data: { name = "",
+				url = "",
+				username = "",
+				password = "",
+				fileExtension = "js",
+				maxPageSize = 100,
+				restWorkspaces = false,
+				isDefault = false,
+				uncheck = false
+			}
 		}) => {
 			if (uncheck) return document.getElementById("rest-workspaces").checked = false;
 			isNew = !name;
@@ -90,6 +123,8 @@
 			document.getElementById("url").value = url;
 			document.getElementById("username").value = username;
 			document.getElementById("password").value = password;
+			document.getElementById("file-extension").value = fileExtension;
+			document.getElementById("max-page-size").value = maxPageSize;
 			document.getElementById("rest-workspaces").checked = restWorkspaces;
 			document.getElementById("is-default").checked = isDefault;
 			if (isNew) {

@@ -12,9 +12,13 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
       html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
     } as const),
   //extension settings
-  settings: ExtensionSettings = {
-    ...vscode.workspace.getConfiguration().get("siebelScriptAndWebTempEditor")!,
-  },
+  settings = [
+    ...(<Config[]>(
+      vscode.workspace
+        .getConfiguration("siebelScriptAndWebTempEditor")
+        .get("connections")!
+    )),
+  ],
   //rest api instance
   restApi = create({
     withCredentials: true,
@@ -28,47 +32,84 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     service: {
       parent: "Business Service",
       child: "Business Service Server Script",
-      baseScriptItems: [
-        { label: "Service_PreInvokeMethod" },
-        { label: "Service_InvokeMethod" },
-        { label: "Service_PreCanInvokeMethod" },
+      defaultScripts: [
+        {
+          label: "Service_PreInvokeMethod",
+          scriptArgs: "MethodName, Inputs, Outputs",
+          isPre: true,
+        },
+        {
+          label: "Service_InvokeMethod",
+          scriptArgs: "MethodName, Inputs, Outputs",
+        },
+        {
+          label: "Service_PreCanInvokeMethod",
+          scriptArgs: "MethodName, &CanInvoke",
+          isPre: true,
+        },
         { label: "(declarations)" },
       ],
     },
     buscomp: {
       parent: "Business Component",
       child: "BusComp Server Script",
-      baseScriptItems: [
-        { label: "BusComp_PreSetFieldValue" },
-        { label: "BusComp_SetFieldValue" },
-        { label: "BusComp_PreGetFieldValue" },
-        { label: "BusComp_PreCopyRecord" },
+      defaultScripts: [
+        {
+          label: "BusComp_PreSetFieldValue",
+          scriptArgs: "FieldName, FieldValue",
+          isPre: true,
+        },
+        { label: "BusComp_SetFieldValue", scriptArgs: "FieldName" },
+        {
+          label: "BusComp_PreGetFieldValue",
+          scriptArgs: "FieldName, &FieldValue",
+          isPre: true,
+        },
+        { label: "BusComp_PreCopyRecord", isPre: true },
         { label: "BusComp_CopyRecord" },
-        { label: "BusComp_PreNewRecord" },
+        { label: "BusComp_PreNewRecord", isPre: true },
         { label: "BusComp_NewRecord" },
-        { label: "BusComp_PreAssociate" },
+        { label: "BusComp_PreAssociate", isPre: true },
         { label: "BusComp_Associate" },
-        { label: "BusComp_PreDeleteRecord" },
+        { label: "BusComp_PreDeleteRecord", isPre: true },
         { label: "BusComp_DeleteRecord" },
-        { label: "BusComp_PreWriteRecord" },
+        { label: "BusComp_PreWriteRecord", isPre: true },
         { label: "BusComp_WriteRecord" },
         { label: "BusComp_ChangeRecord" },
-        { label: "BusComp_PreQuery" },
+        { label: "BusComp_PreQuery", isPre: true },
         { label: "BusComp_Query" },
-        { label: "BusComp_PreInvokeMethod" },
-        { label: "BusComp_InvokeMethod" },
+        {
+          label: "BusComp_PreInvokeMethod",
+          scriptArgs: "MethodName",
+          isPre: true,
+        },
+        { label: "BusComp_InvokeMethod", scriptArgs: "MethodName" },
         { label: "(declarations)" },
       ],
     },
     applet: {
       parent: "Applet",
       child: "Applet Server Script",
-      baseScriptItems: [
-        { label: "WebApplet_PreInvokeMethod" },
-        { label: "WebApplet_InvokeMethod" },
-        { label: "WebApplet_ShowControl" },
-        { label: "WebApplet_ShowListColumn" },
-        { label: "WebApplet_PreCanInvokeMethod" },
+      defaultScripts: [
+        {
+          label: "WebApplet_PreInvokeMethod",
+          scriptArgs: "MethodName",
+          isPre: true,
+        },
+        { label: "WebApplet_InvokeMethod", scriptArgs: "MethodName" },
+        {
+          label: "WebApplet_ShowControl",
+          scriptArgs: "ControlName, Property, Mode, &HTML",
+        },
+        {
+          label: "WebApplet_ShowListColumn",
+          scriptArgs: "ColumnName, Property, Mode, &HTML",
+        },
+        {
+          label: "WebApplet_PreCanInvokeMethod",
+          scriptArgs: "MethodName, &CanInvoke",
+          isPre: true,
+        },
         { label: "WebApplet_Load" },
         { label: "(declarations)" },
       ],
@@ -76,17 +117,28 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     application: {
       parent: "Application",
       child: "Application Server Script",
-      baseScriptItems: [
-        { label: "Application_Start" },
+      defaultScripts: [
+        { label: "Application_Start", scriptArgs: "CommandLine" },
         { label: "Application_Close" },
-        { label: "Application_PreInvokeMethod" },
-        { label: "Application_InvokeMethod" },
-        { label: "Application_PreNavigate" },
+        {
+          label: "Application_PreInvokeMethod",
+          scriptArgs: "MethodName",
+          isPre: true,
+        },
+        {
+          label: "Application_InvokeMethod",
+          scriptArgs: "MethodName",
+        },
+        {
+          label: "Application_PreNavigate",
+          scriptArgs: "DestViewName, DestBusObjName",
+          isPre: true,
+        },
         { label: "Application_Navigate" },
         { label: "(declarations)" },
       ],
     },
-    webtemp: { parent: "Web Template", child: "", baseScriptItems: [] },
+    webtemp: { parent: "Web Template", child: "", defaultScripts: [] },
   } as const,
   //fields
   fields = {
@@ -104,10 +156,11 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     },
     editableWorkspaces: {
       fields: "Name",
-      searchspec:
+      searchSpec:
         "Status='Created' OR Status='Checkpointed' OR Status='Edit-In-Progress'",
     },
     pullScript: { fields: "Name,Script" },
+    pullScripts: { fields: "Name,Script", searchSpec: "Inactive <> 'Y'" },
     pullDefinition: { fields: "Name,Definition" },
     compareScript: { fields: "Name,Script" },
     compareDefinition: { fields: "Name,Definition" },
@@ -119,8 +172,8 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     project: "Project",
   } as const,
   //constant for message box answers
-  yesNo = ["Yes", "No"] as const,
-  pullNo = ["Pull", "No"] as const,
+  deleteNo = ["Delete", "No"] as const,
+  revertNo = ["Revert", "No"] as const,
   pushNo = ["Push", "No"] as const,
   pushAllNo = ["Push All", "No"] as const,
   itemStates = {
@@ -137,28 +190,28 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
         "device-desktop",
         new vscode.ThemeColor("charts.blue")
       ),
-      tooltip: "Only on disk",
+      tooltip: "On disk",
     },
     siebel: {
       icon: new vscode.ThemeIcon(
         "cloud",
         new vscode.ThemeColor("charts.yellow")
       ),
-      tooltip: "Only in Siebel",
+      tooltip: "In Siebel",
     },
     same: {
       icon: new vscode.ThemeIcon(
         "check",
         new vscode.ThemeColor("charts.green")
       ),
-      tooltip: "Identical in Siebel and on disk, last check: ",
+      tooltip: "Synchronized",
     },
     differ: {
       icon: new vscode.ThemeIcon(
         "request-changes",
         new vscode.ThemeColor("charts.red")
       ),
-      tooltip: "Differs between Siebel and disk, last check: ",
+      tooltip: "Modified",
     },
   } as const,
   selectCommand = {
@@ -187,9 +240,8 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
   } as const,
   //new script options
   newScriptOptions = {
-    title:
+    placeHolder:
       "Choose the server script to be created or select Custom and enter its name",
-    placeHolder: "Script",
     canPickMany: false,
   } as const,
   //new service options
@@ -221,10 +273,10 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
   } as const,
   //object to disable all buttons
   disableAllButtons = {
-    pull: false,
     push: false,
-    search: false,
     pushAll: false,
+    search: false,
+    compare: false,
   } as const,
   //constant error messages
   error = {
@@ -235,6 +287,7 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     editableWorkspaces:
       "No workspace with status Created, Checkpointed or Edit-In-Progress was found!",
     pullScript: "Unable to pull, script was not found in Siebel!",
+    pullScripts: "Unable to pull, object was not found in Siebel!",
     pullDefinition: "Unable to pull, web template was not found in Siebel!",
     compareScript:
       "Unable to compare, script does not exists in the selected workspace!",
@@ -247,43 +300,6 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
       "Unable to push script, name of the file and the function is not the same!",
   } as const,
   //error when parsing active file
-  buttonError = new Error(),
-  //base scripts for new scripts
-  baseScripts = {
-    "(declarations)": "",
-    Service_PreInvokeMethod: `function Service_PreInvokeMethod (MethodName, Inputs, Outputs)\n{\n\treturn (ContinueOperation);\n}`,
-    Service_InvokeMethod: `function Service_InvokeMethod (MethodName, Inputs, Outputs)\n{\n\n}`,
-    Service_PreCanInvokeMethod: `function Service_PreCanInvokeMethod (MethodName, &CanInvoke)\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_PreSetFieldValue: `function BusComp_PreSetFieldValue (FieldName, FieldValue)\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_SetFieldValue: `function BusComp_SetFieldValue (FieldName)\n{\n\n}`,
-    BusComp_PreGetFieldValue: `function BusComp_PreGetFieldValue (FieldName, &FieldValue)\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_PreCopyRecord: `function BusComp_PreCopyRecord ()\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_CopyRecord: `function BusComp_CopyRecord ()\n{\n\n}`,
-    BusComp_PreNewRecord: `function BusComp_PreNewRecord ()\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_NewRecord: `function BusComp_NewRecord ()\n{\n\n}`,
-    BusComp_PreAssociate: `function BusComp_PreAssociate ()\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_Associate: `function BusComp_Associate ()\n{\n\n}`,
-    BusComp_PreDeleteRecord: `function BusComp_PreDeleteRecord ()\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_DeleteRecord: `function BusComp_DeleteRecord ()\n{\n\n}`,
-    BusComp_PreWriteRecord: `function BusComp_PreWriteRecord ()\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_WriteRecord: `function BusComp_WriteRecord ()\n{\n\n}`,
-    BusComp_ChangeRecord: `function BusComp_ChangeRecord ()\n{\n\n}`,
-    BusComp_PreQuery: `function BusComp_PreQuery ()\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_Query: `function BusComp_Query ()\n{\n\n}`,
-    BusComp_PreInvokeMethod: `function BusComp_PreInvokeMethod (MethodName)\n{\n\treturn (ContinueOperation);\n}`,
-    BusComp_InvokeMethod: `function BusComp_InvokeMethod (MethodName)\n{\n\n}`,
-    WebApplet_PreInvokeMethod: `function WebApplet_PreInvokeMethod (MethodName)\n{\n\treturn (ContinueOperation);\n}`,
-    WebApplet_InvokeMethod: `function WebApplet_InvokeMethod (MethodName)\n{\n\n}`,
-    WebApplet_ShowControl: `function WebApplet_ShowControl (ControlName, Property, Mode, &HTML)\n{\n\n}`,
-    WebApplet_ShowListColumn: `function WebApplet_ShowListColumn (ColumnName, Property, Mode, &HTML)\n{\n\n}`,
-    WebApplet_PreCanInvokeMethod: `function WebApplet_PreCanInvokeMethod (MethodName, &CanInvoke)\n{\n\treturn (ContinueOperation);\n}`,
-    WebApplet_Load: `function WebApplet_Load ()\n{\n\n}`,
-    Application_Start: `function Application_Start (CommandLine)\n{\n\n}`,
-    Application_Close: `function Application_Close ()\n{\n\n}`,
-    Application_PreInvokeMethod: `function Application_PreInvokeMethod (MethodName)\n{\n\treturn (ContinueOperation);\n}`,
-    Application_InvokeMethod: `function Application_InvokeMethod (MethodName)\n{\n\n}`,
-    Application_PreNavigate: `function Application_PreNavigate (DestViewName, DestBusObjName)\n{\n\treturn (ContinueOperation);\n}`,
-    Application_Navigate: `function Application_Navigate ()\n{\n\n}`,
-  } as const;
+  buttonError = new Error();
 
 export type ItemStates = (typeof itemStates)[keyof typeof itemStates];
