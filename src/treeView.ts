@@ -8,6 +8,7 @@ import {
   workspaceUri,
   selectCommand,
   revertNo,
+  revealOptions,
 } from "./constants";
 import {
   getScriptsOnDisk,
@@ -163,7 +164,7 @@ class TreeView {
     return fileContent === text ? itemStates.same : itemStates.differ;
   }
 
-  setActiveItem(
+  async setActiveItem(
     type: Type,
     folderUri: vscode.Uri,
     name: string,
@@ -172,12 +173,16 @@ class TreeView {
     const treeItem = this.treeData.get(type);
     this.activeItem =
       treeItem && treeItem.folderUri.toString() === folderUri.toString()
-        ? treeItem.getItem(name, parent)
+        ? await treeItem.getItem(name, parent)
         : undefined;
     this.isSyncing = false;
-    if (!this.activeItem || this.activeItem.iconPath !== itemStates.same.icon)
-      return;
-    this.addChangeListener();
+    this.disposeChangeListener();
+    if (!this.activeItem) return;
+    if (this.activeItem.iconPath === itemStates.same.icon)
+      this.addChangeListener();
+    //this way if opened from file explorer the tree view is shown
+    if (this.treeObject.selection?.[0] !== this.activeItem)
+      await this.treeObject.reveal(this.activeItem, revealOptions);
   }
 
   setActiveItemState(state: ItemStates) {
@@ -186,7 +191,7 @@ class TreeView {
     this.refresh(this.activeItem);
   }
 
-  setActiveParentItemState() {
+  setActiveParentItemStateToSame() {
     if (!this.activeItem || this.activeItem.iconPath === itemStates.same.icon)
       return;
     const parentItem = this.activeItem.parent;
@@ -196,8 +201,25 @@ class TreeView {
     this.refresh(parentItem);
   }
 
-  addChangeListener() {
+  async resetActiveParentItem(
+    type: Type,
+    objectFolderUri: vscode.Uri,
+    name: string,
+    parent: string
+  ) {
+    const baseItem = this.treeData.get(type)!,
+      parentItem = baseItem.treeData.get(parent);
+    if (!parentItem) return;
+    await parentItem?.select();
+    await this.setActiveItem(type, objectFolderUri, name, parent);
+  }
+
+  disposeChangeListener() {
     this.changeListener?.dispose();
+    this.changeListener = undefined;
+  }
+
+  addChangeListener() {
     this.changeListener = vscode.workspace.onDidChangeTextDocument(() => {
       if (this.isSyncing) {
         this.isSyncing = false;
@@ -205,28 +227,7 @@ class TreeView {
       }
       treeView.setActiveItemState(itemStates.differ);
       this.refresh(this.activeItem!);
-      this.changeListener?.dispose();
-    });
-  }
-
-  async refreshBase(
-    type: Type,
-    objectFolderUri: vscode.Uri,
-    name: string,
-    parent: string
-  ) {
-    const baseItem = this.treeData.get(type),
-      parentItem = baseItem!.treeData.get(parent);
-    await parentItem?.select();
-    this.setActiveItem(type, objectFolderUri, name, parent);
-    console.log(this.activeItem?.label);
-    await treeView.reveal();
-  }
-
-  async reveal() {
-    await this.treeObject.reveal(this.activeItem, {
-      select: true,
-      focus: true,
+      this.disposeChangeListener();
     });
   }
 }
@@ -253,6 +254,17 @@ class BaseItem extends vscode.TreeItem {
 
   get treeItems() {
     return [...this.treeData.values()];
+  }
+
+  async getItem(name: string, parent?: string) {
+    const item = (<Map<string, ObjectItem>>this.treeData)
+      .get(parent!)
+      ?.treeData.get(name);
+    if (item) return item;
+    const parentItem = (<Map<string, ObjectItem>>this.treeData).get(parent!);
+    if (!parentItem) return;
+    await parentItem.refresh();
+    return parentItem?.treeData.get(name);
   }
 
   protected async setTreeItems(data?: RestResponse) {
@@ -303,22 +315,16 @@ class BaseItem extends vscode.TreeItem {
   }
 
   async newService() {
-    await createNewService(treeView.config, this.folderUri);
+    const newServiceData = await createNewService(
+      treeView.config,
+      this.folderUri
+    );
+    if (!newServiceData) return;
+    const [serviceName, fileUri] = newServiceData;
     await this.setTreeItems();
+    await (<ObjectItem>this.treeData.get(serviceName)!).refresh();
+    await openFile(fileUri);
   }
-
-  getItem(name: string, parent?: string) {
-    return (<Map<string, ObjectItem>>this.treeData)
-      .get(parent!)
-      ?.treeData.get(name);
-  }
-
-  /*setActiveItemState(name: string, state: ItemStates, parent?: string) {
-    const treeItem = this.getItem(name, parent);
-    if (!treeItem || treeItem.iconPath === state.icon) return;
-    treeItem.state = state;
-    treeView.refresh(treeItem);
-  }*/
 }
 
 class BaseItemWebTemp extends BaseItem {
@@ -326,6 +332,10 @@ class BaseItemWebTemp extends BaseItem {
 
   constructor() {
     super("webtemp");
+  }
+
+  override async getItem(name: string) {
+    return (<Map<string, WebTempItem>>this.treeData).get(name);
   }
 
   protected override async setTreeItems(data?: RestResponse) {
@@ -338,25 +348,15 @@ class BaseItemWebTemp extends BaseItem {
                 data = await treeView.getObject(path, query.pullDefinition),
                 Definition =
                   data.length === 0 ? undefined : data[0]?.Definition;
-              /*if (data.length === 0) {
-        this.state = itemStates.disk;
-        treeView.refresh(this.parent ? this.parent : this);
-        return await openFile(this.fileUri);
-      }
-      if (text === undefined) return;
-      if (this.iconPath === itemStates.siebel.icon) {
-        await writeFile(this.fileUri, text);
-        this.onDisk.set(this.label, this.ext);
-      }*/
               return { Name, Definition };
             })
           )
         : data,
       state = diskOnly ? itemStates.offline : itemStates.online;
     this.iconPath = state.icon;
-    this.tooltip = diskOnly ? state.tooltip : state.tooltip;
+    this.tooltip = state.tooltip;
     this.treeData.clear();
-    const items = await Promise.all(
+    await Promise.all(
       source.map(async ({ Name: label, Definition: text }) => {
         const path = joinPath(this.parentSegment, label),
           itemState = await treeView.getItemState(
@@ -373,13 +373,10 @@ class BaseItemWebTemp extends BaseItem {
             itemState,
             this
           );
+        this.treeData.set(label, item);
       })
     );
     treeView.refresh(this);
-  }
-
-  override getItem(name: string) {
-    return (<Map<string, WebTempItem>>this.treeData).get(name);
   }
 }
 
@@ -470,6 +467,7 @@ class ScriptItem extends vscode.TreeItem {
       content = response[0]?.[this.field];
     if (content === undefined) return;
     treeView.isSyncing = true;
+    treeView.disposeChangeListener();
     await writeFile(this.fileUri, content);
     this.state = itemStates.same;
     treeView.refresh(this);
@@ -596,8 +594,9 @@ class ObjectItem extends ScriptItem {
       this.label,
       treeView.config.fileExtension
     );
+    if (!fileUri) return;
     await this.refresh();
-    if (fileUri) await openFile(fileUri);
+    await openFile(fileUri);
   }
 }
 

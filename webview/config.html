@@ -36,24 +36,48 @@
 		<div class="grid-item grid-1">
 			<label for="file-extension">Script File Extension</label>
 		</div>
-		<div class="grid-item grid-23">
-			<select class="input select" name="file-extension" id="file-extension">
-				<option class="option" value="js" selected>js</option>
-				<option class="option" value="ts">ts</option>
-			</select>
+		<div class="grid-item grid-24">
+			<form class="radio-row" name="file-extension" id="file-extension">
+				<label class="radio-label">
+					<input type="radio" class="radio-button checkbox" name="ext" value="js">
+					js
+				</label>
+				<label class="radio-label">
+					<input type="radio" class="radio-button checkbox" name="ext" value="ts">
+					ts
+				</label>
+			</form>
 		</div>
 		<div class="grid-item grid-1">
 			<label for="max-page-size">Maximum Page Size</label>
 		</div>
-		<div class="grid-item grid-23">
-			<select class="input select" name="max-page-size" id="max-page-size">
-				<option class="option" value="10">10</option>
-				<option class="option" value="20">20</option>
-				<option class="option" value="50">50</option>
-				<option class="option" value="100" selected>100</option>
-				<option class="option" value="200">200</option>
-				<option class="option" value="500">500</option>
-			</select>
+		<div class="grid-item grid-24">
+			<form class="radio-row" name="max-page-size" id="max-page-size">
+				<label class="radio-label">
+					<input type="radio" class="radio-button checkbox" name="page" value="10">
+					10
+				</label>
+				<label class="radio-label">
+					<input type="radio" class="radio-button checkbox" name="page" value="20">
+					20
+				</label>
+				<label class="radio-label">
+					<input type="radio" class="radio-button checkbox" name="page" value="50">
+					50
+				</label>
+				<label class="radio-label">
+					<input type="radio" class="radio-button checkbox" name="page" value="100">
+					100
+				</label>
+				<label class="radio-label">
+					<input type="radio" class="radio-button checkbox" name="page" value="200">
+					200
+				</label>
+				<label class="radio-label">
+					<input type="radio" class="radio-button checkbox" name="page" value="500">
+					500
+				</label>
+			</form>
 		</div>
 		<div class="grid-item grid-1">
 			<label for="rest-workspaces">Get Workspaces From REST</label>
@@ -90,8 +114,8 @@
 				password: document.getElementById("password").value,
 				restWorkspaces: document.getElementById("rest-workspaces").checked,
 				isDefault: document.getElementById("is-default").checked,
-				fileExtension: document.getElementById("file-extension").value,
-				maxPageSize: document.getElementById("max-page-size").value,
+				fileExtension: document.querySelector(`input[name="ext"]:checked`).value,
+				maxPageSize: document.querySelector(`input[name="page"]:checked`).value,
 			}),
 			buttonHandler = (command) => vscode.postMessage({
 				command: command === "newOrEditConnection" ? isNew ? "newConnection" : "editConnection" : command,
@@ -104,6 +128,7 @@
 				document.getElementById("new-or-edit-connection").disabled = isDisabled;
 				document.getElementById("rest-workspaces").disabled = isDisabled;
 				document.getElementById("is-default").disabled = isDisabled;
+				document.querySelectorAll(`input[type="radio"]`).forEach((item) => item.disabled = isDisabled);
 			};
 		window.addEventListener("message", ({
 			data: { name = "",
@@ -123,8 +148,8 @@
 			document.getElementById("url").value = url;
 			document.getElementById("username").value = username;
 			document.getElementById("password").value = password;
-			document.getElementById("file-extension").value = fileExtension;
-			document.getElementById("max-page-size").value = maxPageSize;
+			document.querySelector(`input[name="ext"][value="${fileExtension}"]`).checked = true;
+			document.querySelector(`input[name="page"][value="${maxPageSize}"]`).checked = true;
 			document.getElementById("rest-workspaces").checked = restWorkspaces;
 			document.getElementById("is-default").checked = isDefault;
 			if (isNew) {

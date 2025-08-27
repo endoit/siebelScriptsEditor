@@ -33,7 +33,7 @@ class WebView {
     return WebView.instance;
   }
 
-  async refreshState() {
+  refreshState = async () => {
     const connections: string[] = [];
     let isConnection = false,
       defaultConnection;
@@ -75,7 +75,7 @@ class WebView {
       workspace: treeView.workspace,
       type: treeView.type,
     });
-  }
+  };
 
   refreshConfig = async (event: vscode.ConfigurationChangeEvent) => {
     if (!event.affectsConfiguration("siebelScriptAndWebTempEditor")) return;
@@ -167,6 +167,10 @@ class WebView {
   }: ConfigMessage) => {
     const configs = settings,
       config = getConfig(name);
+    console.log({
+      fileExtension,
+      maxPageSize,
+    });
     switch (command) {
       case "testConnection":
         const testResponse = await getObject(
@@ -241,7 +245,11 @@ class WebView {
         configOptions
       );
       this.configView = this.configPanel.webview;
-      this.configHTML ??= await getHTML(extensionUri, this.configView, "config");
+      this.configHTML ??= await getHTML(
+        extensionUri,
+        this.configView,
+        "config"
+      );
       this.configView.html = this.configHTML;
       await this.configView.postMessage(config);
       if (isPanel) return this.configPanel.reveal(columnToShowIn);
@@ -250,7 +258,11 @@ class WebView {
         null,
         subscriptions
       );
-      this.configView.onDidReceiveMessage(this.configHandler, undefined, subscriptions);
+      this.configView.onDidReceiveMessage(
+        this.configHandler,
+        undefined,
+        subscriptions
+      );
     };
 }
 

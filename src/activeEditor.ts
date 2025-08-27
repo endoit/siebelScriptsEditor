@@ -56,7 +56,7 @@ class ActiveEditor {
     return ActiveEditor.instance;
   }
 
-  parseFilePath = (textEditor: vscode.TextEditor | undefined) => {
+  parseFilePath = async (textEditor: vscode.TextEditor | undefined) => {
     try {
       this.editor = textEditor;
       if (!this.editor) throw buttonError;
@@ -109,7 +109,7 @@ class ActiveEditor {
           compare: true,
         } as const;
       setButtonVisibility(visibility);
-      treeView.setActiveItem(
+      await treeView.setActiveItem(
         this.type,
         this.objectFolderUri,
         this.name,
@@ -149,7 +149,6 @@ class ActiveEditor {
       `Successfully pushed ${this.name} to Siebel!`
     );
     treeView.setActiveItemState(itemStates.same);
-    treeView.addChangeListener();
   };
 
   pushAll = async () => {
@@ -187,8 +186,7 @@ class ActiveEditor {
     vscode.window.showInformationMessage(
       `Successfully pushed  all scripts of ${this.parent} to Siebel!`
     );
-    treeView.setActiveParentItemState();
-    treeView.addChangeListener();
+    treeView.setActiveParentItemStateToSame();
   };
 
   newScript = async () => {
@@ -196,15 +194,16 @@ class ActiveEditor {
       this.folderUri,
       this.defaultScripts,
       this.parent,
-      this.config.fileExtension ?? "js"
+      this.config.fileExtension
     );
-    await treeView.refreshBase(
+    if (!fileUri) return;
+    await treeView.resetActiveParentItem(
       this.type,
       this.objectFolderUri,
       this.name,
       this.parent
     );
-    if (fileUri) await openFile(fileUri);
+    await openFile(fileUri);
   };
 
   search = async () => {

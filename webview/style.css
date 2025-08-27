@@ -46,6 +46,22 @@ h1 {
   cursor: not-allowed;
 }
 
+
+.radio-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  column-gap: 10px;
+}
+
+.radio-label {
+  display: flex;
+  align-items: left;
+}
+
+.radio-button {
+  margin-right: 5px;
+}
+
 .checkbox {
   transform: scale(1.5);
   accent-color: var(--vscode-checkbox-background);

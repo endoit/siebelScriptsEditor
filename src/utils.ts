@@ -239,7 +239,7 @@ export const createNewScript = async (
   folderUri: vscode.Uri,
   defaultScripts: readonly vscode.QuickPickItem[],
   parent: string,
-  fileExtension: FileExt
+  fileExtension: FileExt = "js"
 ) => {
   const files = await getScriptsOnDisk(folderUri),
     items: (vscode.QuickPickItem & {
@@ -267,7 +267,6 @@ export const createNewScript = async (
     fileUri = getFileUri(folderUri, label, fileExtension);
   await writeFile(fileUri, content);
   return fileUri;
-  //await openFile(fileUri);
 };
 
 export const createNewService = async (
@@ -282,10 +281,12 @@ export const createNewService = async (
     },
     projectResponse = await getObject("search", config, paths.project, params),
     items = projectResponse.map(({ Name }) => ({ label: Name }));
-  if (items.length === 0)
-    return vscode.window.showErrorMessage(
+  if (items.length === 0) {
+    vscode.window.showErrorMessage(
       `No project name starts with the specified string "${searchString}"!`
     );
+    return;
+  }
   const project = await vscode.window.showQuickPick(items, projectOptions);
   if (!project) return;
   const serviceName = await vscode.window.showInputBox(serviceInput),
@@ -299,10 +300,12 @@ export const createNewService = async (
       query.testConnection
     ),
     isService = serviceResponse.length !== 0;
-  if (isService)
-    return vscode.window.showErrorMessage(
+  if (isService) {
+    vscode.window.showErrorMessage(
       `Busines service ${serviceNameTrimmed} already exists!`
     );
+    return;
+  }
   const payload = { Name: serviceNameTrimmed, "Project Name": project.label },
     isSuccess = await putObject(config, path, payload);
   if (!isSuccess) return;
@@ -314,7 +317,7 @@ export const createNewService = async (
     ),
     content = createNewScriptBody(metadata.service.defaultScripts[0]);
   await writeFile(fileUri, content);
-  await openFile(fileUri);
+  return [serviceName, fileUri] as const;
 };
 
 export const compareObjects = async (

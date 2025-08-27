@@ -271,6 +271,11 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     title:
       "Select a workspace folder for the Siebel Script And Web Template Editor extension",
   } as const,
+  //options when revealing tree items
+  revealOptions = {
+    select: true,
+    focus: true,
+  } as const,
   //object to disable all buttons
   disableAllButtons = {
     push: false,
