@@ -165,12 +165,7 @@ class WebView {
     restWorkspaces,
     isDefault,
   }: ConfigMessage) => {
-    const configs = settings,
-      config = getConfig(name);
-    console.log({
-      fileExtension,
-      maxPageSize,
-    });
+    const config = getConfig(name);
     switch (command) {
       case "testConnection":
         const testResponse = await getObject(
@@ -198,7 +193,7 @@ class WebView {
         if (connectionExists)
           return vscode.window.showErrorMessage(error.connectionExists);
         config.name = name;
-        configs.unshift(config);
+        settings.unshift(config);
         treeView.connection = name;
       case "editConnection":
         config.url = url;
@@ -207,11 +202,12 @@ class WebView {
         config.fileExtension = fileExtension;
         config.maxPageSize = maxPageSize;
         config.restWorkspaces = restWorkspaces;
-        if (isDefault)
-          configs.forEach(
-            (configItem) => (configItem.isDefault = config === configItem)
-          );
-        await setConfigs(configs);
+        if (isDefault) {
+          for (const item of settings) {
+            item.isDefault = config === item;
+          }
+        }
+        await setConfigs();
         return this.configPanel?.dispose();
       case "deleteConnection":
         const answer = await vscode.window.showInformationMessage(
@@ -219,10 +215,12 @@ class WebView {
           ...deleteNo
         );
         if (answer !== "Delete") return;
-        const newConfigs = configs.filter(
-          (configItem) => config !== configItem
-        );
-        await setConfigs(newConfigs);
+        for (const [index, item] of settings.entries()) {
+          if (item.name !== name) continue;
+          settings.splice(index, 1);
+          break;
+        }
+        await setConfigs();
         return this.configPanel?.dispose();
     }
   };

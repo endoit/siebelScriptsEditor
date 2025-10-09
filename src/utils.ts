@@ -10,13 +10,18 @@ import {
   compareFileUris,
   customScriptItem,
   newScriptOptions,
-  metadata,
   fields,
   paths,
   projectInput,
   projectOptions,
   serviceInput,
   itemStates,
+  APPLET,
+  APPLICATION,
+  BUSCOMP,
+  SERVICE,
+  WEBTEMP,
+  scriptMeta,
 } from "./constants";
 
 export const getConfig = (name: string) => {
@@ -27,10 +32,10 @@ export const getConfig = (name: string) => {
   return <Config>{};
 };
 
-export const setConfigs = async (configs: Config[]) =>
+export const setConfigs = async () =>
   await vscode.workspace
     .getConfiguration("siebelScriptAndWebTempEditor")
-    .update("connections", configs, vscode.ConfigurationTarget.Global);
+    .update("connections", settings, vscode.ConfigurationTarget.Global);
 
 export const setButtonVisibility = (visibility: Partial<ButtonVisibility>) => {
   for (const [button, isEnabled] of Object.entries(visibility)) {
@@ -105,6 +110,15 @@ export const isFileScript = (ext: string): ext is "js" | "ts" =>
 
 export const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
 
+export const isTypeScript = (type: string): type is Script =>
+  type === SERVICE ||
+  type === BUSCOMP ||
+  type === APPLET ||
+  type === APPLICATION;
+
+export const isTypeWebTemp = (type: string): type is WebTemp =>
+  type === WEBTEMP;
+
 const createGetFilesOnDisk =
   (isFileValid: (ext: string) => ext is FileExt) =>
   async (folderUri: vscode.Uri) => {
@@ -138,7 +152,8 @@ export const getScriptParentsOnDisk = async (folderUri: vscode.Uri) => {
 export const createFolder = async (...parts: string[]) => {
   const folderUri = vscode.Uri.joinPath(workspaceUri, ...parts),
     isFolder = await exists(folderUri);
-  if (!isFolder) await vscode.workspace.fs.createDirectory(folderUri);
+  if (isFolder) return;
+  await vscode.workspace.fs.createDirectory(folderUri);
 };
 
 export const getLocalWorkspaces = async (connection: string) => {
@@ -177,8 +192,8 @@ const createValidateScriptName = (files: OnDisk) => (value: string) =>
       : ""
     : "Invalid script name!";
 
-export const isScriptNameValid = (name: string, text = "") =>
-  new RegExp(`function\\s+${name}\\s*\\(`).test(text) ||
+export const isScriptNameValid = (name: string, content = "") =>
+  new RegExp(`function\\s+${name}\\s*\\(`).test(content) ||
   name === "(declarations)";
 
 export const getFileUri = (folderUri: vscode.Uri, name: string, ext: FileExt) =>
@@ -237,7 +252,7 @@ export const createNewScriptBody = ({
 
 export const createNewScript = async (
   folderUri: vscode.Uri,
-  defaultScripts: readonly vscode.QuickPickItem[],
+  type: Script,
   parent: string,
   fileExtension: FileExt = "js"
 ) => {
@@ -245,14 +260,15 @@ export const createNewScript = async (
     items: (vscode.QuickPickItem & {
       scriptArgs?: string;
       isPre?: boolean;
-    })[] = [
-      customScriptItem,
-      ...defaultScripts.filter(({ label }) => !files.has(label)),
-    ] as const,
-    answer = await vscode.window.showQuickPick(items, {
-      title: `New script for ${parent}`,
-      ...newScriptOptions,
-    });
+    })[] = [customScriptItem] as const;
+  for (const item of scriptMeta[type].defaultScripts) {
+    if (files.has(item.label)) continue;
+    items.push(item);
+  }
+  const answer = await vscode.window.showQuickPick(items, {
+    title: `New script for ${parent}`,
+    ...newScriptOptions,
+  });
   if (!answer) return;
   const isCustom = answer.label === "Custom",
     label = isCustom
@@ -262,8 +278,8 @@ export const createNewScript = async (
         })
       : answer.label;
   if (!label) return;
-  const defaultScript = isCustom ? { label } : answer,
-    content = createNewScriptBody(defaultScript),
+  const name = isCustom ? { label } : answer,
+    content = createNewScriptBody(name),
     fileUri = getFileUri(folderUri, label, fileExtension);
   await writeFile(fileUri, content);
   return fileUri;
@@ -280,7 +296,10 @@ export const createNewService = async (
       searchSpec: `Name LIKE '${searchString}*'`,
     },
     projectResponse = await getObject("search", config, paths.project, params),
-    items = projectResponse.map(({ Name }) => ({ label: Name }));
+    items = [];
+  for (const { Name: label } of projectResponse) {
+    items.push({ label });
+  }
   if (items.length === 0) {
     vscode.window.showErrorMessage(
       `No project name starts with the specified string "${searchString}"!`
@@ -292,7 +311,7 @@ export const createNewService = async (
   const serviceName = await vscode.window.showInputBox(serviceInput),
     serviceNameTrimmed = serviceName && serviceName.trim();
   if (!serviceNameTrimmed) return;
-  const path = joinPath(metadata.service.parent, serviceNameTrimmed),
+  const path = joinPath(SERVICE, serviceNameTrimmed),
     serviceResponse = await getObject(
       "search",
       config,
@@ -302,7 +321,7 @@ export const createNewService = async (
     isService = serviceResponse.length !== 0;
   if (isService) {
     vscode.window.showErrorMessage(
-      `Busines service ${serviceNameTrimmed} already exists!`
+      `Business service ${serviceNameTrimmed} already exists!`
     );
     return;
   }
@@ -312,22 +331,20 @@ export const createNewService = async (
   const folderUri = vscode.Uri.joinPath(objectFolderUri, serviceNameTrimmed),
     fileUri = getFileUri(
       folderUri,
-      metadata.service.defaultScripts[0].label,
+      scriptMeta[SERVICE].defaultScripts[0].label,
       config.fileExtension
     ),
-    content = createNewScriptBody(metadata.service.defaultScripts[0]);
+    content = createNewScriptBody(scriptMeta[SERVICE].defaultScripts[0]);
   await writeFile(fileUri, content);
   return [serviceName, fileUri] as const;
 };
 
 export const compareObjects = async (
-  response: RestResponse,
-  field: Field,
+  content: string | undefined,
   ext: FileExt,
   fileUri: vscode.Uri,
   compareMessage: string
 ) => {
-  const content = response[0]?.[field];
   if (content === undefined) return itemStates.differ;
   const fileContent = await readFile(fileUri);
   await writeFile(compareFileUris[ext], content);

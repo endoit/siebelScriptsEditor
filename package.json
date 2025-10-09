@@ -189,17 +189,17 @@
 			"view/item/context": [
 				{
 					"command": "siebelscriptandwebtempeditor.newServiceTree",
-					"when": "viewItem == service && siebelscriptandwebtempeditor.treeEditEnabled",
+					"when": "viewItem == serviceManager && siebelscriptandwebtempeditor.treeEditEnabled",
 					"group": "inline@0"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.searchDisk",
-					"when": "viewItem == service || viewItem == buscomp || viewItem == applet || viewItem == application || viewItem == webtemp",
+					"when": "viewItem == manager || viewItem == serviceManager",
 					"group": "inline@1"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.showFilesOnDisk",
-					"when": "viewItem == service || viewItem == buscomp || viewItem == applet || viewItem == application || viewItem == webtemp",
+					"when": "viewItem == manager || viewItem == serviceManager",
 					"group": "inline@2"
 				},
 				{
@@ -214,12 +214,12 @@
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.revertTree",
-					"when": "viewItem == pullTree",
+					"when": "viewItem == childItem",
 					"group": "inline@0"
 				},
 				{
 					"command": "siebelscriptandwebtempeditor.compareTree",
-					"when": "viewItem == pullTree",
+					"when": "viewItem == childItem",
 					"group": "inline@1"
 				}
 			]

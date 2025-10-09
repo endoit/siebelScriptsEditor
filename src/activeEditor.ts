@@ -5,11 +5,11 @@ import {
   error,
   paths,
   pushNo,
-  metadata,
   pushAllNo,
   fields,
   itemStates,
   disableAllButtons,
+  scriptMeta,
 } from "./constants";
 import {
   getConfig,
@@ -28,6 +28,8 @@ import {
   searchInFiles,
   createNewScript,
   openFile,
+  isTypeScript,
+  isTypeWebTemp,
 } from "./utils";
 import { treeView } from "./treeView";
 
@@ -41,15 +43,12 @@ class ActiveEditor {
   private declare parent: string;
   private declare type: Type;
   private declare workspace: string;
-  private declare connection: string;
   private declare config: Config;
   private declare field: Field;
-  private declare defaultScripts: readonly vscode.QuickPickItem[];
   private declare parentPath: string;
-  private declare objectPath: string;
-  private declare parentFullPath: string;
-  private declare objectFullPath: string;
-  private declare objectFolderUri: vscode.Uri;
+  private declare isTreeActive: boolean;
+
+  private constructor() {}
 
   static getInstance() {
     ActiveEditor.instance ??= new ActiveEditor();
@@ -65,58 +64,51 @@ class ActiveEditor {
       const parts = this.document.uri.path.split("/");
       [this.name, this.ext] = <[string, FileExt]>parts.pop()!.split(".");
       if (!this.name) throw buttonError;
-      switch (true) {
-        case isFileScript(this.ext) && parts.length > 4:
-          this.parent = parts.pop()!;
-          this.type = <Type>parts.pop();
-          const meta = metadata[this.type];
-          if (!meta) throw buttonError;
-          this.objectFolderUri = vscode.Uri.joinPath(this.folderUri, "..");
-          this.defaultScripts = meta.defaultScripts;
-          this.field = fields.script;
-          this.parentPath = joinPath(meta.parent, this.parent, meta.child);
-          break;
-        case isFileWebTemp(this.ext) &&
-          parts.length > 3 &&
-          parts.pop() === "webtemp":
-          this.parent = "";
-          this.type = "webtemp";
-          this.objectFolderUri = this.folderUri;
-          this.field = fields.definition;
-          this.parentPath = metadata.webtemp.parent;
-          break;
-        default:
-          throw buttonError;
-      }
+      const isScript = isFileScript(this.ext);
+      if (isScript && parts.length > 4) {
+        this.parent = parts.pop()!;
+        const type = parts.pop()!;
+        if (!isTypeScript(type)) throw buttonError;
+        this.type = type;
+        this.field = fields.script;
+        this.parentPath = joinPath(
+          this.type,
+          this.parent,
+          scriptMeta[this.type].path
+        );
+      } else if (isFileWebTemp(this.ext) && parts.length > 3) {
+        this.parent = "";
+        const type = parts.pop()!;
+        if (!isTypeWebTemp(type)) throw buttonError;
+        this.type = type;
+        this.field = fields.definition;
+        this.parentPath = this.type;
+      } else throw buttonError;
       this.workspace = parts.pop()!;
-      this.connection = parts.pop()!;
-      this.config = getConfig(this.connection);
+      this.config = getConfig(parts.pop()!);
       if (Object.keys(this.config).length === 0) throw buttonError;
-      this.objectPath = joinPath(this.parentPath, this.name);
-      this.parentFullPath = joinPath(
-        "workspace",
-        this.workspace,
-        this.parentPath
-      );
-      this.objectFullPath = joinPath(this.parentFullPath, this.name);
+      this.isTreeActive =
+        treeView.connection === this.config.name &&
+        treeView.workspace === this.workspace;
       const isEditable = this.workspace.includes(
           `_${this.config.username.toLowerCase()}_`
         ),
         visibility = {
           push: isEditable,
-          pushAll: isEditable && this.type !== "webtemp",
-          search: this.type !== "webtemp",
+          pushAll: isEditable && isScript,
+          search: isScript,
           compare: true,
         } as const;
       setButtonVisibility(visibility);
-      await treeView.setActiveItem(
-        this.type,
-        this.objectFolderUri,
-        this.name,
-        this.parent
-      );
+      if (!this.isTreeActive) {
+        treeView.activeItem = undefined;
+        return;
+      }
+      await treeView.setActiveItem(this.type, this.name, this.parent);
     } catch (err: any) {
+      this.isTreeActive = false;
       setButtonVisibility(disableAllButtons);
+      treeView.activeItem = undefined;
     }
   };
 
@@ -131,10 +123,10 @@ class ActiveEditor {
 
   push = async () => {
     await this.document.save();
-    const text = this.document.getText(),
-      payload = { Name: this.name, [this.field]: text };
+    const content = this.document.getText(),
+      payload = { Name: this.name, [this.field]: content };
     if (isFileScript(this.ext)) {
-      if (!isScriptNameValid(this.name, text))
+      if (!isScriptNameValid(this.name, content))
         return vscode.window.showErrorMessage(error.nameDifferent);
       payload["Program Language"] = "JS";
     }
@@ -143,30 +135,35 @@ class ActiveEditor {
       ...pushNo
     );
     if (answer !== "Push") return;
-    const result = await putObject(this.config, this.objectFullPath, payload);
+    const path = joinPath(
+        "workspace",
+        this.workspace,
+        this.parentPath,
+        this.name
+      ),
+      result = await putObject(this.config, path, payload);
     if (!result) return;
     vscode.window.showInformationMessage(
       `Successfully pushed ${this.name} to Siebel!`
     );
-    treeView.setActiveItemState(itemStates.same);
+    treeView.activeItemState = itemStates.same;
   };
 
   pushAll = async () => {
     const files = await getScriptsOnDisk(this.folderUri),
-      payloads = [],
-      invalid = [];
-    for (const [fileName, fileExt] of files) {
-      const fileUri = getFileUri(this.folderUri, fileName, fileExt),
-        text = await readFile(fileUri),
-        payload: Payload = {
-          Name: fileName,
-          Script: text,
-          "Program Language": "JS",
-        };
-      payloads.push(payload);
-      if (isScriptNameValid(fileName, text)) continue;
-      invalid.push(fileName);
-    }
+      invalid: string[] = [],
+      payloads = await Promise.all(
+        [...files].map(async ([fileName, fileExt]) => {
+          const fileUri = getFileUri(this.folderUri, fileName, fileExt),
+            content = await readFile(fileUri);
+          if (!isScriptNameValid(fileName, content)) invalid.push(fileName);
+          return <Payload>{
+            Name: fileName,
+            Script: content,
+            "Program Language": "JS",
+          };
+        })
+      );
     if (invalid.length > 0)
       return vscode.window.showErrorMessage(
         `Unable to push all, file and function names differ for the following script(s): ${invalid.join(
@@ -179,31 +176,31 @@ class ActiveEditor {
     );
     if (answer !== "Push All") return;
     for (const payload of payloads) {
-      const pushFullPath = joinPath(this.parentFullPath, payload.Name),
-        result = await putObject(this.config, pushFullPath, payload);
+      const path = joinPath(
+          "workspace",
+          this.workspace,
+          this.parentPath,
+          payload.Name
+        ),
+        result = await putObject(this.config, path, payload);
       if (!result) return;
     }
     vscode.window.showInformationMessage(
       `Successfully pushed  all scripts of ${this.parent} to Siebel!`
     );
-    treeView.setActiveParentItemStateToSame();
+    treeView.activeObjectState = itemStates.same;
   };
 
   newScript = async () => {
     const fileUri = await createNewScript(
       this.folderUri,
-      this.defaultScripts,
+      <Script>this.type,
       this.parent,
       this.config.fileExtension
     );
     if (!fileUri) return;
-    await treeView.resetActiveParentItem(
-      this.type,
-      this.objectFolderUri,
-      this.name,
-      this.parent
-    );
     await openFile(fileUri);
+    await treeView.reveal();
   };
 
   search = async () => {
@@ -216,14 +213,13 @@ class ActiveEditor {
   };
 
   compare = async () => {
-    const { restWorkspaces } = this.config,
-      items: vscode.QuickPickItem[] = [
-        {
-          label: this.workspace,
-          description: "Compare in the same workspace",
-        },
-      ];
-    if (restWorkspaces) {
+    const items: vscode.QuickPickItem[] = [
+      {
+        label: this.workspace,
+        description: "Compare in the same workspace",
+      },
+    ];
+    if (this.config.restWorkspaces) {
       const data = await getObject(
         "allWorkspaces",
         this.config,
@@ -240,7 +236,7 @@ class ActiveEditor {
         items.push({ label, description });
       }
     } else {
-      const workspaces = await getLocalWorkspaces(this.connection);
+      const workspaces = await getLocalWorkspaces(this.config.name);
       for (const label of workspaces) {
         if (label === this.workspace) continue;
         items.push({ label });
@@ -249,22 +245,18 @@ class ActiveEditor {
     const answer = await vscode.window.showQuickPick(items, compareOptions);
     if (!answer) return;
     const { label } = answer,
-      compareFullPath = joinPath("workspace", label, this.objectPath),
-      response = await getObject(
-        `compare${this.field}`,
-        this.config,
-        compareFullPath
-      ),
+      path = joinPath("workspace", label, this.parentPath, this.name),
+      response = await getObject(`compare${this.field}`, this.config, path),
+      content = response[0]?.[this.field],
       compareMessage = `Comparison of ${this.name} between ${label} and ${this.workspace} (on disk)`,
       state = await compareObjects(
-        response,
-        this.field,
+        content,
         this.ext,
         this.document.uri,
         compareMessage
       );
     if (label !== this.workspace) return;
-    treeView.setActiveItemState(state);
+    treeView.activeItemState = state;
   };
 }
 

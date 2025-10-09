@@ -1,5 +1,11 @@
 //Siebel object types
-type Type = "service" | "buscomp" | "applet" | "application" | "webtemp";
+type Script =
+  | "Business Service"
+  | "Business Component"
+  | "Applet"
+  | "Application";
+type WebTemp = "Web Template";
+type Type = Script | WebTemp;
 
 type RestConfig = {
   url: string;

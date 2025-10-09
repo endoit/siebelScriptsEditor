@@ -27,11 +27,15 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
       childlinks: "None",
     },
   }),
-  //Repository object paths and scripts
-  metadata = {
-    service: {
-      parent: "Business Service",
-      child: "Business Service Server Script",
+  //siebel object paths and default scripts
+  SERVICE = "Business Service",
+  BUSCOMP = "Business Component",
+  APPLET = "Applet",
+  APPLICATION = "Application",
+  WEBTEMP = "Web Template",
+  scriptMeta = {
+    [SERVICE]: {
+      path: "Business Service Server Script",
       defaultScripts: [
         {
           label: "Service_PreInvokeMethod",
@@ -50,9 +54,8 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
         { label: "(declarations)" },
       ],
     },
-    buscomp: {
-      parent: "Business Component",
-      child: "BusComp Server Script",
+    [BUSCOMP]: {
+      path: "BusComp Server Script",
       defaultScripts: [
         {
           label: "BusComp_PreSetFieldValue",
@@ -87,9 +90,8 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
         { label: "(declarations)" },
       ],
     },
-    applet: {
-      parent: "Applet",
-      child: "Applet Server Script",
+    [APPLET]: {
+      path: "Applet Server Script",
       defaultScripts: [
         {
           label: "WebApplet_PreInvokeMethod",
@@ -114,9 +116,8 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
         { label: "(declarations)" },
       ],
     },
-    application: {
-      parent: "Application",
-      child: "Application Server Script",
+    [APPLICATION]: {
+      path: "Application Server Script",
       defaultScripts: [
         { label: "Application_Start", scriptArgs: "CommandLine" },
         { label: "Application_Close" },
@@ -138,7 +139,13 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
         { label: "(declarations)" },
       ],
     },
-    webtemp: { parent: "Web Template", child: "", defaultScripts: [] },
+  } as const,
+  //context values for tree items
+  contextValues = {
+    serviceManager: "serviceManager",
+    manager: "manager",
+    object: "objectItem",
+    child: "childItem",
   } as const,
   //fields
   fields = {
@@ -171,7 +178,7 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     test: "workspace/MAIN/Application",
     project: "Project",
   } as const,
-  //constant for message box answers
+  //message answers
   deleteNo = ["Delete", "No"] as const,
   revertNo = ["Revert", "No"] as const,
   pushNo = ["Push", "No"] as const,
@@ -183,7 +190,7 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     },
     online: {
       icon: new vscode.ThemeIcon("plug", new vscode.ThemeColor("charts.green")),
-      tooltip: "Showing data from Siebel, last search: ",
+      tooltip: "Showing data from Siebel",
     },
     disk: {
       icon: new vscode.ThemeIcon(
@@ -308,3 +315,4 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
   buttonError = new Error();
 
 export type ItemStates = (typeof itemStates)[keyof typeof itemStates];
+

@@ -33,16 +33,9 @@
   <script>
     const vscode = acquireVsCodeApi(),
       state = vscode.getState() ?? {},
-      objectNames = {
-        service: "Business Service",
-        buscomp: "Business Component",
-        applet: "Applet",
-        application: "Application",
-        webtemp: "Web Template"
-      },
-      createOptions = (items = [], selected, isObject = false) =>
-        items.map((item) => `<option class="option" value="${item}" ${item === selected ? "selected" : ""}>
-        ${isObject ? objectNames[item] : item}</option>`).join(""),
+      objects = ["Business Service", "Business Component", "Applet", "Application", "Web Template"],
+      createOptions = (items = [], selected) =>
+        items.map((item) => `<option class="option" value="${item}" ${item === selected ? "selected" : ""}>${item}</option>`).join(""),
       selectConnection = () => {
         const connection = document.getElementById("connection").value;
         state.connection = connection;
@@ -75,14 +68,14 @@
         document.getElementById("connection").disabled = noConnection;
         document.getElementById("workspace").innerHTML = createOptions(workspaces, workspace);
         document.getElementById("workspace").disabled = noWorkspaces;
-        document.getElementById("type").innerHTML = createOptions(["service", "buscomp", "applet", "application", "webtemp"], type, true);
+        document.getElementById("type").innerHTML = createOptions(objects, type);
         document.getElementById("type").disabled = noWorkspaces;
         document.getElementById("search-bar").value = searchString;
         document.getElementById("search-bar").readOnly = noWorkspaces;
       };
     populate();
     window.addEventListener("message", ({ data:
-      { connections = [], connection = "", workspaces = [], workspace = "", type = "service" }
+      { connections = [], connection = "", workspaces = [], workspace = "", type = "Business Service" }
     }) => {
       state.connections = connections;
       state.connection = connection;

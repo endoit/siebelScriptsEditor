@@ -18,6 +18,7 @@ export async function activate({
     vscode.window.onDidChangeActiveTextEditor(activeEditor.parseFilePath);
     vscode.workspace.onDidRenameFiles(activeEditor.reparseFilePath);
     vscode.workspace.onDidChangeConfiguration(webView.refreshConfig);
+    vscode.workspace.onDidChangeTextDocument(treeView.changeListener);
 
     const commands = {
       push: activeEditor.push,
