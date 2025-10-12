@@ -30,6 +30,7 @@ import {
   openFile,
   isTypeScript,
   isTypeWebTemp,
+  isWorkspaceEditable,
 } from "./utils";
 import { treeView } from "./treeView";
 
@@ -90,9 +91,7 @@ class ActiveEditor {
       this.isTreeActive =
         treeView.connection === this.config.name &&
         treeView.workspace === this.workspace;
-      const isEditable = this.workspace.includes(
-          `_${this.config.username.toLowerCase()}_`
-        ),
+      const isEditable = isWorkspaceEditable(this.workspace, this.config),
         visibility = {
           push: isEditable,
           pushAll: isEditable && isScript,

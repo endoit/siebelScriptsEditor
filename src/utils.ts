@@ -25,9 +25,9 @@ import {
 } from "./constants";
 
 export const getConfig = (name: string) => {
-  for (const connection of settings) {
-    if (connection.name !== name) continue;
-    return connection;
+  for (const config of settings) {
+    if (config.name !== name) continue;
+    return config;
   }
   return <Config>{};
 };
@@ -167,6 +167,9 @@ export const getLocalWorkspaces = async (connection: string) => {
   }
   return workspaces;
 };
+
+export const isWorkspaceEditable = (workspace: string, config: RestConfig) =>
+  workspace.includes(`_${config.username.toLowerCase()}_`);
 
 export const createValidateWorkspaceName =
   (workspaces: string[]) => async (value: string) => {

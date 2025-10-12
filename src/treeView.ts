@@ -32,6 +32,7 @@ import {
   setButtonVisibility,
   createNewScript,
   createNewService,
+  isWorkspaceEditable,
 } from "./utils";
 
 class TreeView {
@@ -169,13 +170,12 @@ class TreeView {
     await Promise.all(
       [...this.treeData].map(async ([type, treeItem]) => {
         treeItem.folderUri = vscode.Uri.joinPath(this.folderUri, type);
-        return await treeItem.search();
+        await treeItem.search();
       })
     );
-    const treeEdit = this.workspace.includes(
-      `_${this.config.username.toLowerCase()}_`
-    );
-    setButtonVisibility({ treeEdit });
+    setButtonVisibility({
+      treeEdit: isWorkspaceEditable(this.workspace, this.config),
+    });
     this.activeItem = undefined;
   }
 
@@ -389,14 +389,20 @@ class ObjectItem extends vscode.TreeItem {
   }
 
   setState() {
-    this.state =
-      this.onDisk.size === 0
-        ? itemStates.siebel
-        : this.treeItems.some(
-            (item) => item.iconPath === itemStates.differ.icon
-          )
-        ? itemStates.differ
-        : itemStates.same;
+    if (this.onDisk.size === 0) {
+      this.state = itemStates.siebel;
+      return;
+    }
+    for (const item of this.treeItems) {
+      if (
+        item.iconPath !== itemStates.differ.icon &&
+        item.iconPath !== itemStates.disk.icon
+      )
+        continue;
+      this.state = itemStates.differ;
+      return;
+    }
+    this.state = itemStates.same;
   }
 
   async setOnDisk() {
@@ -449,7 +455,7 @@ class ObjectItem extends vscode.TreeItem {
           label,
           treeView.config.fileExtension
         );
-        return await writeFile(fileUri, text);
+        await writeFile(fileUri, text);
       })
     );
     await this.refresh();
@@ -470,6 +476,7 @@ class ObjectItem extends vscode.TreeItem {
     if (!fileUri) return;
     await this.refresh();
     await openFile(fileUri);
+    await treeView.reveal();
   }
 }
 
