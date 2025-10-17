@@ -3,7 +3,7 @@ import {
   query,
   fields,
   itemStates,
-  ItemStates,
+  ItemState,
   workspaceUri,
   selectCommand,
   revertNo,
@@ -195,13 +195,13 @@ class TreeView {
     this.activeItem = await this.treeData.get(type)!.getItem(name, parent);
   }
 
-  set activeItemState(state: ItemStates) {
+  set activeItemState(state: ItemState) {
     if (!this.activeItem || this.activeItem.state === state) return;
     this.activeItem.state = state;
     this.activeItem.refresh();
   }
 
-  set activeObjectState(state: ItemStates) {
+  set activeObjectState(state: ItemState) {
     if (!this.activeItem) return;
     const objectItem = this.activeItem.parent;
     for (const item of objectItem.treeData.values()) {
@@ -383,7 +383,7 @@ class ObjectItem extends vscode.TreeItem {
     return vscode.Uri.joinPath(this.parent.folderUri, this.label);
   }
 
-  set state(state: ItemStates) {
+  set state(state: ItemState) {
     this.iconPath = state.icon;
     this.tooltip = state.tooltip;
   }
@@ -498,7 +498,7 @@ abstract class ChildItem<
     this.command = { ...selectCommand, arguments: [this] };
   }
 
-  set state(state: ItemStates) {
+  set state(state: ItemState) {
     this.contextValue =
       state === itemStates.same || state === itemStates.differ
         ? contextValues.child

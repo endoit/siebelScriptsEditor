@@ -314,5 +314,4 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
   //error when parsing active file
   buttonError = new Error();
 
-export type ItemStates = (typeof itemStates)[keyof typeof itemStates];
-
+export type ItemState = (typeof itemStates)[keyof typeof itemStates];
