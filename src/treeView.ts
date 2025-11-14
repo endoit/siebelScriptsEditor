@@ -219,8 +219,7 @@ class TreeView {
 abstract class ManagerBase<
   T extends ObjectItem | WebTempItem
 > extends vscode.TreeItem {
-  override readonly collapsibleState: vscode.TreeItemCollapsibleState =
-    vscode.TreeItemCollapsibleState.Expanded;
+  override readonly collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
   readonly parent = undefined;
   readonly treeData = new Map<string, T>();
   declare label: string;
@@ -483,8 +482,7 @@ class ObjectItem extends vscode.TreeItem {
 abstract class ChildItem<
   T extends ObjectItem | WebTempManager
 > extends vscode.TreeItem {
-  override readonly collapsibleState: vscode.TreeItemCollapsibleState =
-    vscode.TreeItemCollapsibleState.None;
+  override readonly collapsibleState = vscode.TreeItemCollapsibleState.None;
   declare label: string;
   parent;
   abstract readonly field: Field;

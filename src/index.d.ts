@@ -32,7 +32,7 @@ type QueryParams = {
   PageSize?: Config["maxPageSize"];
 };
 
-//body when upserting script/web template into Siebel
+//body when pushing script/web template to Siebel
 type Payload = {
   Name: string;
   Script?: string;
