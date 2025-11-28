@@ -6,22 +6,18 @@ Siebel Script And Web Template Editor is a Visual Studio Code extension, which e
 
 # 1. Features
 
-- Download Business Service, Business Component, Applet, Application server scripts and Web Templates from a specified Siebel workspace, and edit them with Visual Studio Code, scripts as javascript/typescript and web templates as html files.
+- Download Business Service, Business Component, Applet, Application server scripts and Web Templates from a specified Siebel workspace, and edit them with Visual Studio Code, scripts as javascript/typescript and web templates as html files
 
-  ![Get server scripts](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/main/features/getscripts.gif "Get server scripts")
+  ![Get server scripts](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/main/features/getdata.gif "Get server scripts")
 
-- Pull (refresh)/push (upload)/compare scripts/web templates from/to/with Siebel.
+- Edit, compare and create new scripts
 
-  ![Push, pull and compare server scripts](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/main/features/pushpull.gif "Push, pull and compare server scripts")
+  ![Edit, compare and create new server scripts](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/refs/heads/main/features/editcomparecreate.gif "Edit, compare and create new server scripts")
 
-- Type definitions are included for Siebel eScript autocompletion and semantic checking:
+- Type definitions are included for Siebel eScript autocompletion and semantic checking
 
   ![Autocompletion](https://raw.githubusercontent.com/endoit/siebelScriptsEditor/main/features/snippetgif.gif "Autocompletion")
 
-- Supports multiple Siebel connections, with multiple workspaces for each.
-
-
 # 2. Requirements
 
-- Siebel REST API and workspaces should be enabled.
-[See full documentation for detailed installation instructions](https://github.com/endoit/siebelScriptsEditor/wiki).
+- Siebel REST API and workspaces should be enabled

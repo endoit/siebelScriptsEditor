@@ -73,7 +73,7 @@
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.newWorkspace",
-				"title": "New Siebel Workspace",
+				"title": "New Workspace",
 				"when": "workspaceFolderCount > 0",
 				"icon": "$(new-folder)"
 			},

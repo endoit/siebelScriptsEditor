@@ -2,6 +2,7 @@
 src/**
 features/**
 .gitignore
+.gitattributes
 **/tsconfig.json
 **/webpack.config.js
 **/.eslintrc.json
