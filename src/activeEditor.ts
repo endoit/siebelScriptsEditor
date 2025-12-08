@@ -10,6 +10,9 @@ import {
   itemStates,
   disableAllButtons,
   scriptMeta,
+  buscompRegexp,
+  query,
+  BUSCOMP,
 } from "./constants";
 import {
   getConfig,
@@ -31,6 +34,8 @@ import {
   isTypeScript,
   isTypeWebTemp,
   isWorkspaceEditable,
+  writeFieldMap,
+  writeFieldType,
 } from "./utils";
 import { treeView } from "./treeView";
 
@@ -256,6 +261,32 @@ class ActiveEditor {
       );
     if (label !== this.workspace) return;
     treeView.activeItemState = state;
+  };
+
+  pullFields = async () => {
+    const text = this.document.getText(),
+      buscomps = new Set<string>();
+    for (const [, name] of text.matchAll(buscompRegexp)) {
+      buscomps.add(name);
+    }
+    for (const buscomp of buscomps) {
+      const path = joinPath(
+          "workspace",
+          this.workspace,
+          BUSCOMP,
+          buscomp,
+          "Field"
+        ),
+        response = await getObject(
+          "search",
+          this.config,
+          path,
+          query.pullFields
+        );
+      if (response.length === 0) continue;
+      await writeFieldType(buscomp, response);
+    }
+    await writeFieldMap();
   };
 }
 

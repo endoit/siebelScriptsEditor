@@ -3,7 +3,7 @@ import { create } from "axios";
 
 //workspace folder for the extension
 export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
-  //files for the compared objects
+  //constant uris
   compareFileUris =
     workspaceUri &&
     ({
@@ -11,14 +11,15 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
       ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
       html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
     } as const),
+  typeFolderUri = workspaceUri && vscode.Uri.joinPath(workspaceUri, "fields"),
+  fieldMapFileUri =
+    workspaceUri && vscode.Uri.joinPath(workspaceUri, "fieldMap.d.ts"),
   //extension settings
-  settings = [
-    ...(<Config[]>(
-      vscode.workspace
-        .getConfiguration("siebelScriptAndWebTempEditor")
-        .get("connections")!
-    )),
-  ],
+  settings = <Config[]>(
+    vscode.workspace
+      .getConfiguration("siebelScriptAndWebTempEditor")
+      .get("connections")!
+  ),
   //rest api instance
   restApi = create({
     withCredentials: true,
@@ -146,6 +147,7 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     manager: "manager",
     object: "objectItem",
     child: "childItem",
+    buscomp: "buscompItem",
   } as const,
   //fields
   fields = {
@@ -171,6 +173,7 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     pullDefinition: { fields: "Name,Definition" },
     compareScript: { fields: "Name,Script" },
     compareDefinition: { fields: "Name,Definition" },
+    pullFields: { fields: "Name,PickList", searchSpec: "Inactive <> 'Y'" },
   } as const,
   //constant paths
   paths = {
@@ -183,6 +186,7 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
   revertNo = ["Revert", "No"] as const,
   pushNo = ["Push", "No"] as const,
   pushAllNo = ["Push All", "No"] as const,
+  yesNo = ["Yes", "No"] as const,
   itemStates = {
     offline: {
       icon: new vscode.ThemeIcon("library"),
@@ -311,6 +315,31 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     nameDifferent:
       "Unable to push script, name of the file and the function is not the same!",
   } as const,
+  buscompRegexp = /GetBusComp\s*\(\s*["']([^"']+)["']\s*\)/g,
+  jsConfigFile = `{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}`,
+  fieldMapStart = `declare global {
+  interface BusObject {
+    GetBusComp<T extends keyof FieldMap>(name: T): BusCompT<FieldMap[T]>;
+  }
+
+  interface BusCompT<T> extends BusComp {
+    ActivateField(fieldName: T): void;
+    GetFieldValue(fieldName: T): string;
+    GetFormattedFieldValue(fieldName: T): string;
+    SetFieldValue(fieldName: T, fieldValue: string | number): void;
+    SetFormattedFieldValue(fieldName: T, fieldValue: string | number): void;
+    SetSearchSpec(fieldName: T, string): void;
+  }
+
+  type FieldBase = "Id" | "Created" | "Created By" | "Updated" | "Updated By";
+
+  type FieldMap = {
+`,
+  fieldMapEnd = `
+  };
+}
+
+export {};`,
   //error when parsing active file
   buttonError = new Error();
 

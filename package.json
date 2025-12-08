@@ -72,6 +72,12 @@
 				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.compareEnabled && !isInDiffEditor"
 			},
 			{
+				"command": "siebelscriptandwebtempeditor.pullFields",
+				"title": "Get business components and fields for autocompletion from this file",
+				"icon": "$(symbol-ruler)",
+				"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
+			},
+			{
 				"command": "siebelscriptandwebtempeditor.newWorkspace",
 				"title": "New Workspace",
 				"when": "workspaceFolderCount > 0",
@@ -114,6 +120,11 @@
 				"command": "siebelscriptandwebtempeditor.newServiceTree",
 				"title": "New Business Service",
 				"icon": "$(new-folder)"
+			},
+			{
+				"command": "siebelscriptandwebtempeditor.pullFieldsTree",
+				"title": "Get Business Component And Fields For Autocompletion",
+				"icon": "$(symbol-ruler)"
 			},
 			{
 				"command": "siebelscriptandwebtempeditor.pullAllTree",
@@ -162,6 +173,11 @@
 					"command": "siebelscriptandwebtempeditor.compare",
 					"group": "navigation@4",
 					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.compareEnabled && !isInDiffEditor"
+				},
+				{
+					"command": "siebelscriptandwebtempeditor.pullFields",
+					"group": "navigation@5",
+					"when": "workspaceFolderCount > 0 && siebelscriptandwebtempeditor.searchEnabled && !isInDiffEditor"
 				}
 			],
 			"view/title": [
@@ -203,13 +219,18 @@
 					"group": "inline@2"
 				},
 				{
-					"command": "siebelscriptandwebtempeditor.pullAllTree",
-					"when": "viewItem == objectItem",
+					"command": "siebelscriptandwebtempeditor.pullFieldsTree",
+					"when": "viewItem == buscompItem",
 					"group": "inline@0"
 				},
 				{
+					"command": "siebelscriptandwebtempeditor.pullAllTree",
+					"when": "viewItem == objectItem || viewItem == buscompItem",
+					"group": "inline@1"
+				},
+				{
 					"command": "siebelscriptandwebtempeditor.newScriptTree",
-					"when": "viewItem == objectItem && siebelscriptandwebtempeditor.treeEditEnabled",
+					"when": "(viewItem == objectItem || viewItem == buscompItem) && siebelscriptandwebtempeditor.treeEditEnabled",
 					"group": "inline@2"
 				},
 				{

@@ -22,6 +22,12 @@ import {
   SERVICE,
   WEBTEMP,
   scriptMeta,
+  jsConfigFile,
+  typeFolderUri,
+  fieldMapStart,
+  fieldMapEnd,
+  yesNo,
+  fieldMapFileUri,
 } from "./constants";
 
 export const getConfig = (name: string) => {
@@ -384,8 +390,7 @@ export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
       isTypeDef = await exists(typeDefUri),
       siebelTypesUri = vscode.Uri.joinPath(extensionUri, "siebelTypes.txt"),
       jsconfigUri = vscode.Uri.joinPath(workspaceUri, "jsconfig.json"),
-      isJsconfig = await exists(jsconfigUri),
-      jsConfig = `{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}`;
+      isJsconfig = await exists(jsconfigUri);
     if (!isTypeDef) {
       await vscode.workspace.fs.copy(siebelTypesUri, typeDefUri);
       vscode.window.showInformationMessage(
@@ -393,7 +398,7 @@ export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
       );
     }
     if (!isJsconfig) {
-      await writeFile(jsconfigUri, jsConfig);
+      await writeFile(jsconfigUri, jsConfigFile);
       vscode.window.showInformationMessage(
         `File jsconfig.json was created in the ${workspaceUri.fsPath} folder!`
       );
@@ -401,4 +406,48 @@ export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }
+};
+
+export const writeFieldType = async (
+  buscomp: string,
+  response: RestResponse
+) => {
+  const fieldFileUri = vscode.Uri.joinPath(
+      workspaceUri,
+      "fields",
+      `${buscomp}.ts`
+    ),
+    fileExists = await exists(fieldFileUri),
+    fields = [];
+  if (fileExists) {
+    const answer = await vscode.window.showInformationMessage(
+      `Do you want to overwrite the fields for the ${buscomp} business component?`,
+      ...yesNo
+    );
+    if (answer !== "Yes") return;
+  }
+  for (const { Name, PickList } of response) {
+    fields.push(`"${Name}"`);
+    if (!PickList) continue;
+    fields.push(`"${Name}.TransCode"`);
+  }
+  const fieldsType = `export type Fields = ${fields.join(" | ")};`;
+  await writeFile(fieldFileUri, fieldsType);
+};
+
+export const writeFieldMap = async () => {
+  const isFolder = await exists(typeFolderUri),
+    fieldMapRows = [];
+  if (!isFolder) return;
+  const content = await vscode.workspace.fs.readDirectory(typeFolderUri);
+  for (const [nameExt, fileType] of content) {
+    const [name, ext] = nameExt.split(".");
+    if (fileType !== 1 || ext !== "ts") continue;
+    fieldMapRows.push(
+      `\t\t"${name}": FieldBase | import("./fields/${name}").Fields;`
+    );
+  }
+
+  const fieldMap = `${fieldMapStart}${fieldMapRows.join("\n")}${fieldMapEnd}`;
+  await writeFile(fieldMapFileUri, fieldMap);
 };

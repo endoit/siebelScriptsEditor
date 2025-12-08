@@ -28,7 +28,7 @@ type Field = "Script" | "Definition";
 type QueryParams = {
   searchSpec?: string;
   workspace?: "MAIN";
-  fields?: "Name" | `Name,${Field}` | "Name,Status";
+  fields?: "Name" | `Name,${Field}` | "Name,Status" | "Name,PickList";
   PageSize?: Config["maxPageSize"];
 };
 
@@ -48,6 +48,7 @@ type RestResponse = {
   Definition?: string;
   Status?: string;
   RepositoryWorkspace?: RestResponse;
+  PickList?: string;
 }[];
 
 //message received from the datasource webview

@@ -33,6 +33,8 @@ import {
   createNewScript,
   createNewService,
   isWorkspaceEditable,
+  writeFieldMap,
+  writeFieldType,
 } from "./utils";
 
 class TreeView {
@@ -108,6 +110,8 @@ class TreeView {
     await treeItem.search();
 
   newService = async (treeItem: ObjectManager) => await treeItem.newService();
+
+  pullFields = async (treeItem: ObjectItem) => await treeItem.pullFields();
 
   pullAll = async (treeItem: ObjectItem) => await treeItem.pullAll();
 
@@ -358,7 +362,6 @@ class WebTempManager extends ManagerBase<WebTempItem> {
 class ObjectItem extends vscode.TreeItem {
   override readonly collapsibleState =
     vscode.TreeItemCollapsibleState.Collapsed;
-  override readonly contextValue = contextValues.object;
   declare label: string;
   declare onDisk: OnDisk;
   parent: ObjectManager;
@@ -368,6 +371,8 @@ class ObjectItem extends vscode.TreeItem {
   constructor(label: string, parent: ObjectManager) {
     super(label);
     this.parent = parent;
+    this.contextValue =
+      parent.path === BUSCOMP ? contextValues.buscomp : contextValues.object;
   }
 
   get treeItems() {
@@ -380,6 +385,10 @@ class ObjectItem extends vscode.TreeItem {
 
   get folderUri() {
     return vscode.Uri.joinPath(this.parent.folderUri, this.label);
+  }
+
+  get fieldPath() {
+    return joinPath(this.parent.path, this.label, "Field");
   }
 
   set state(state: ItemState) {
@@ -476,6 +485,13 @@ class ObjectItem extends vscode.TreeItem {
     await this.refresh();
     await openFile(fileUri);
     await treeView.reveal();
+  }
+
+  async pullFields() {
+    const response = await treeView.getObject(this.fieldPath, query.pullFields);
+    if (response.length === 0) return;
+    await writeFieldType(this.label, response);
+    await writeFieldMap();
   }
 }
 
