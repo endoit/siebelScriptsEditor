@@ -10,9 +10,9 @@ import {
   itemStates,
   disableAllButtons,
   scriptMeta,
-  buscompRegexp,
   query,
   BUSCOMP,
+  regexp,
 } from "./constants";
 import {
   getConfig,
@@ -34,8 +34,9 @@ import {
   isTypeScript,
   isTypeWebTemp,
   isWorkspaceEditable,
-  writeFieldMap,
-  writeFieldType,
+  writeBusCompFieldsType,
+  writeFieldsType,
+  setConnectionShim,
 } from "./utils";
 import { treeView } from "./treeView";
 
@@ -91,8 +92,11 @@ class ActiveEditor {
         this.parentPath = this.type;
       } else throw buttonError;
       this.workspace = parts.pop()!;
-      this.config = getConfig(parts.pop()!);
-      if (Object.keys(this.config).length === 0) throw buttonError;
+      const config = getConfig(parts.pop()!);
+      if (Object.keys(config).length === 0) throw buttonError;
+      if (!this.config || this.config.name !== config.name)
+        await setConnectionShim(config.name);
+      this.config = config;
       this.isTreeActive =
         treeView.connection === this.config.name &&
         treeView.workspace === this.workspace;
@@ -266,7 +270,7 @@ class ActiveEditor {
   pullFields = async () => {
     const text = this.document.getText(),
       buscomps = new Set<string>();
-    for (const [, name] of text.matchAll(buscompRegexp)) {
+    for (const [, name] of text.matchAll(regexp.buscomp)) {
       buscomps.add(name);
     }
     for (const buscomp of buscomps) {
@@ -284,9 +288,9 @@ class ActiveEditor {
           query.pullFields
         );
       if (response.length === 0) continue;
-      await writeFieldType(buscomp, response);
+      await writeFieldsType(this.config.name, buscomp, response);
     }
-    await writeFieldMap();
+    await writeBusCompFieldsType(this.config.name);
   };
 }
 

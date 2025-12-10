@@ -33,8 +33,8 @@ import {
   createNewScript,
   createNewService,
   isWorkspaceEditable,
-  writeFieldMap,
-  writeFieldType,
+  writeFieldsType,
+  writeBusCompFieldsType,
 } from "./utils";
 
 class TreeView {
@@ -490,8 +490,8 @@ class ObjectItem extends vscode.TreeItem {
   async pullFields() {
     const response = await treeView.getObject(this.fieldPath, query.pullFields);
     if (response.length === 0) return;
-    await writeFieldType(this.label, response);
-    await writeFieldMap();
+    await writeFieldsType(treeView.connection, this.label, response);
+    await writeBusCompFieldsType(treeView.connection);
   }
 }
 

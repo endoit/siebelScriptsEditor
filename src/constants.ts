@@ -11,9 +11,8 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
       ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
       html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
     } as const),
-  typeFolderUri = workspaceUri && vscode.Uri.joinPath(workspaceUri, "fields"),
-  fieldMapFileUri =
-    workspaceUri && vscode.Uri.joinPath(workspaceUri, "fieldMap.d.ts"),
+  connectionShimFileUri =
+    workspaceUri && vscode.Uri.joinPath(workspaceUri, "connection-shim.ts"),
   //extension settings
   settings = <Config[]>(
     vscode.workspace
@@ -315,32 +314,11 @@ export const workspaceUri = vscode.workspace.workspaceFolders?.[0]?.uri!,
     nameDifferent:
       "Unable to push script, name of the file and the function is not the same!",
   } as const,
-  buscompRegexp = /GetBusComp\s*\(\s*["']([^"']+)["']\s*\)/g,
-  jsConfigFile = `{\n  "compilerOptions": {\n    "allowJs": true,\n    "checkJs": true\n  }\n}`,
-  fieldMapStart = `declare global {
-  interface BusObject {
-    GetBusComp<T extends keyof FieldMap>(name: T): BusCompT<FieldMap[T]>;
-  }
-
-  interface BusCompT<T> extends BusComp {
-    ActivateField(fieldName: T): void;
-    GetFieldValue(fieldName: T): string;
-    GetFormattedFieldValue(fieldName: T): string;
-    SetFieldValue(fieldName: T, fieldValue: string | number): void;
-    SetFormattedFieldValue(fieldName: T, fieldValue: string | number): void;
-    SetSearchSpec(fieldName: T, string): void;
-  }
-
-  type FieldBase = "Id" | "Created" | "Created By" | "Updated" | "Updated By";
-
-  type FieldMap = {
-`,
-  fieldMapEnd = `
-  };
-}
-
-export {};`,
-  //error when parsing active file
+  regexp = {
+    workspace: /^[A-Za-z0-9_-]+$/,
+    identifier: /^[A-Za-z_$][A-Za-z0-9_$]*$/,
+    buscomp: /GetBusComp\s*\(\s*["']([^"']+)["']\s*\)/g,
+  } as const,
   buttonError = new Error();
 
 export type ItemState = (typeof itemStates)[keyof typeof itemStates];

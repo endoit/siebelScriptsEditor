@@ -1,0 +1,18 @@
+import { FieldMap } from "./connection-shim";
+
+declare global {
+  type FieldBase = "Id" | "Created" | "Created By" | "Updated" | "Updated By";
+
+  interface BusObject {
+    GetBusComp<T extends keyof FieldMap>(name: T): BusCompT<FieldMap[T]>;
+  }
+
+  interface BusCompT<T> extends BusComp {
+    ActivateField(fieldName: T): void;
+    GetFieldValue(fieldName: T): string;
+    GetFormattedFieldValue(fieldName: T): string;
+    SetFieldValue(fieldName: T, fieldValue: string): void;
+    SetFormattedFieldValue(fieldName: T, fieldValue: string): void;
+    SetSearchSpec(fieldName: T, fieldValue: string): void;
+  }
+}

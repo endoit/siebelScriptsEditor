@@ -22,12 +22,9 @@ import {
   SERVICE,
   WEBTEMP,
   scriptMeta,
-  jsConfigFile,
-  typeFolderUri,
-  fieldMapStart,
-  fieldMapEnd,
   yesNo,
-  fieldMapFileUri,
+  regexp,
+  connectionShimFileUri,
 } from "./constants";
 
 export const getConfig = (name: string) => {
@@ -166,6 +163,7 @@ export const getLocalWorkspaces = async (connection: string) => {
   const workspaces: string[] = [],
     folderUri = vscode.Uri.joinPath(workspaceUri, connection);
   await createFolder(connection, "MAIN");
+  await writeBusCompFieldsType(connection, false);
   const content = await vscode.workspace.fs.readDirectory(folderUri);
   for (const [workspace, fileType] of content) {
     if (fileType !== 2) continue;
@@ -182,7 +180,7 @@ export const createValidateWorkspaceName =
     const parts = value.split("_");
     if (
       !value ||
-      !/^[A-Za-z0-9_-]+$/.test(value) ||
+      !regexp.workspace.test(value) ||
       parts.length === 1 ||
       (parts.length === 2 && parts[1] === "")
     )
@@ -192,7 +190,7 @@ export const createValidateWorkspaceName =
   };
 
 const isFileNameValid = (name: string) =>
-  /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) || name === "(declarations)";
+  regexp.identifier.test(name) || name === "(declarations)";
 
 const createValidateScriptName = (files: OnDisk) => (value: string) =>
   isFileNameValid(value)
@@ -386,40 +384,35 @@ export const getHTML = async (
 export const setupWorkspaceFolder = async (extensionUri: vscode.Uri) => {
   try {
     if (!workspaceUri) return;
-    const typeDefUri = vscode.Uri.joinPath(workspaceUri, "index.d.ts"),
-      isTypeDef = await exists(typeDefUri),
-      siebelTypesUri = vscode.Uri.joinPath(extensionUri, "siebelTypes.txt"),
-      jsconfigUri = vscode.Uri.joinPath(workspaceUri, "jsconfig.json"),
-      isJsconfig = await exists(jsconfigUri);
-    if (!isTypeDef) {
-      await vscode.workspace.fs.copy(siebelTypesUri, typeDefUri);
-      vscode.window.showInformationMessage(
-        `File index.d.ts was created in the ${workspaceUri.fsPath} folder!`
-      );
-    }
-    if (!isJsconfig) {
-      await writeFile(jsconfigUri, jsConfigFile);
-      vscode.window.showInformationMessage(
-        `File jsconfig.json was created in the ${workspaceUri.fsPath} folder!`
-      );
+    const copyFolderUri = vscode.Uri.joinPath(extensionUri, "copy"),
+      filesToCopy = await vscode.workspace.fs.readDirectory(copyFolderUri);
+    for (const [srcFileName] of filesToCopy) {
+      const targetFileName = srcFileName.split(".txt")[0],
+        targetUri = vscode.Uri.joinPath(workspaceUri, targetFileName),
+        isTarget = await exists(targetUri);
+      if (isTarget) continue;
+      const srcUri = vscode.Uri.joinPath(copyFolderUri, srcFileName);
+      await vscode.workspace.fs.copy(srcUri, targetUri);
     }
   } catch (err: any) {
     vscode.window.showErrorMessage(err.message);
   }
 };
 
-export const writeFieldType = async (
+export const writeFieldsType = async (
+  connection: string,
   buscomp: string,
   response: RestResponse
 ) => {
-  const fieldFileUri = vscode.Uri.joinPath(
+  const fileUri = vscode.Uri.joinPath(
       workspaceUri,
+      connection,
       "fields",
       `${buscomp}.ts`
     ),
-    fileExists = await exists(fieldFileUri),
+    isFile = await exists(fileUri),
     fields = [];
-  if (fileExists) {
+  if (isFile) {
     const answer = await vscode.window.showInformationMessage(
       `Do you want to overwrite the fields for the ${buscomp} business component?`,
       ...yesNo
@@ -431,23 +424,38 @@ export const writeFieldType = async (
     if (!PickList) continue;
     fields.push(`"${Name}.TransCode"`);
   }
-  const fieldsType = `export type Fields = ${fields.join(" | ")};`;
-  await writeFile(fieldFileUri, fieldsType);
+  const content = `export type Fields = ${fields.join(" | ")};`;
+  await writeFile(fileUri, content);
 };
 
-export const writeFieldMap = async () => {
-  const isFolder = await exists(typeFolderUri),
-    fieldMapRows = [];
-  if (!isFolder) return;
-  const content = await vscode.workspace.fs.readDirectory(typeFolderUri);
-  for (const [nameExt, fileType] of content) {
+export const writeBusCompFieldsType = async (
+  connection: string,
+  overwrite = true
+) => {
+  const typeFolderUri = vscode.Uri.joinPath(workspaceUri, connection, "fields"),
+    isFolder = await exists(typeFolderUri),
+    fileUri = vscode.Uri.joinPath(
+      workspaceUri,
+      connection,
+      "buscomp-fields.ts"
+    ),
+    isFile = await exists(fileUri);
+  if (isFile && !overwrite) return;
+  const rows = [],
+    files = isFolder
+      ? await vscode.workspace.fs.readDirectory(typeFolderUri)
+      : [];
+  for (const [nameExt, fileType] of files) {
     const [name, ext] = nameExt.split(".");
     if (fileType !== 1 || ext !== "ts") continue;
-    fieldMapRows.push(
-      `\t\t"${name}": FieldBase | import("./fields/${name}").Fields;`
-    );
+    rows.push(`\t\t"${name}": FieldBase | import("./fields/${name}").Fields;`);
   }
+  const content = `export type BusCompFields = {\n${rows.join("\n")}\n}`;
+  await writeFile(fileUri, content);
+};
 
-  const fieldMap = `${fieldMapStart}${fieldMapRows.join("\n")}${fieldMapEnd}`;
-  await writeFile(fieldMapFileUri, fieldMap);
+export const setConnectionShim = async (connection: string) => {
+  const content = `import { BusCompFields } from "./${connection}/buscomp-fields";
+export type FieldMap = BusCompFields;`;
+  await writeFile(connectionShimFileUri, content);
 };

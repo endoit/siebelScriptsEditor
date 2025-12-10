@@ -369,13 +369,13 @@ interface BusComp {
    * Sets a new value in a field for the current record of a business component.
    * @param expr Sets a new value in a field for the current record of a business component.
    */
-  SetFieldValue(fieldName: string, fieldValue: string | number): void;
+  SetFieldValue(fieldName: string, fieldValue: string): void;
   /**
    * Sets a new value in a field in the current record of a business component. It accepts the field value in the current local format.
    * @param fieldName String that contains the name of the field.
    * @param fieldValue String that contains the value to set.
    */
-  SetFormattedFieldValue(fieldName: string, fieldValue: string | number): void;
+  SetFormattedFieldValue(fieldName: string, fieldValue: string): void;
   /**
    * Sets new values in the fields of the current record of a business component.
    * @param fields Property set that identifies a collection of properties. This argument identifies the fields to set and the value to set for each field.

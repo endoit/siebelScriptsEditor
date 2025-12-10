@@ -17,6 +17,7 @@ import {
   getHTML,
   getConfig,
   setConfigs,
+  writeBusCompFieldsType,
 } from "./utils";
 import { treeView } from "./treeView";
 
