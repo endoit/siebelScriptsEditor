@@ -13,7 +13,9 @@ import {
 import { createValidateWorkspaceName } from "../util/validation";
 import { registerCommands, Subscription } from "../util/command";
 
-const deleteNo = ["Delete", "No"] as const,
+const siebelEscriptExtensionId = "TitanSystems-DE.siebel-escript",
+  installNo = ["Show Extension", "No"] as const,
+  deleteNo = ["Delete", "No"] as const,
   configOptions = {
     enableScripts: true,
     retainContextWhenHidden: true,
@@ -184,6 +186,19 @@ class WebView {
       await this.refreshState();
     };
 
+  private checkEscriptExtension = async () => {
+    if (vscode.extensions.getExtension(siebelEscriptExtensionId)) return;
+    const answer = await vscode.window.showInformationMessage(
+      "For the best experience with the eScript file extension, it is recommended to also install the Siebel eScript extension.",
+      ...installNo,
+    );
+    if (answer !== "Show Extension") return;
+    await vscode.commands.executeCommand(
+      "extension.open",
+      siebelEscriptExtensionId,
+    );
+  };
+
   private configHandler = async ({
     command,
     name,
@@ -240,7 +255,9 @@ class WebView {
           }
         }
         await this.setConfigs();
-        return this.configPanel?.dispose();
+        this.configPanel?.dispose();
+        if (fileExtension === "escript") await this.checkEscriptExtension();
+        return;
       case "deleteConnection":
         const answer = await vscode.window.showInformationMessage(
           `Do you want to delete the ${name} connection?`,

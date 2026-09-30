@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { RestResponse } from "./rest";
 
-export type FileExt = "js" | "ts" | "html";
+export type FileExt = "js" | "ts" | "escript" | "html";
 
 export type OnDisk = Map<string, FileExt>;
 
@@ -30,6 +30,7 @@ export const compareFileUris =
     ({
       js: vscode.Uri.joinPath(workspaceUri, "compare", "compare.js"),
       ts: vscode.Uri.joinPath(workspaceUri, "compare", "compare.ts"),
+      escript: vscode.Uri.joinPath(workspaceUri, "compare", "compare.escript"),
       html: vscode.Uri.joinPath(workspaceUri, "compare", "compare.html"),
     } as const),
   typesFolderUri = workspaceUri && vscode.Uri.joinPath(workspaceUri, "types"),
@@ -48,8 +49,8 @@ export const exists = async (resourceUri: vscode.Uri) => {
   }
 };
 
-export const isFileScript = (ext: string): ext is "js" | "ts" =>
-  ext === "js" || ext === "ts";
+export const isFileScript = (ext: string): ext is "js" | "ts" | "escript" =>
+  ext === "js" || ext === "ts" || ext === "escript";
 
 export const isFileWebTemp = (ext: string): ext is "html" => ext === "html";
 

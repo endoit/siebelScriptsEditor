@@ -39,7 +39,7 @@ export type RestConfig = {
   url: string;
   username: string;
   password: string;
-  fileExtension: "js" | "ts";
+  fileExtension: "js" | "ts" | "escript";
   maxPageSize: "10" | "20" | "50" | "100" | "200" | "500";
 };
 
